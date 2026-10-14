@@ -3,7 +3,9 @@ import { RESPONSE_INIT } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
+import { API_PORT } from '../../core/api/api-port';
 import { Site } from '../../core/models/domain';
+import { MockApiService } from '../../mocks/mock-api.service';
 import { TenantResolver } from '../../core/tenant/tenant-resolver';
 import { TenantView } from '../../core/tenant/tenant-view';
 import { TenantGateComponent } from './tenant-gate.component';
@@ -19,6 +21,8 @@ describe('TenantGateComponent', () => {
       providers: [
         { provide: TenantResolver, useValue: { resolve: () => of(view) } },
         { provide: RESPONSE_INIT, useValue: status },
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
         {
           provide: PlatformLocation,
           useValue: { hostname: 'localhost', port: '4200', search: '' },
@@ -69,7 +73,17 @@ describe('TenantGateComponent', () => {
       slug: 'salao-da-ana-unidades',
       customDomain: null,
       templateId: 'tpl_servicos',
-      content: { businessName: 'Salão da Ana Unidades' },
+      content: {
+        businessName: 'Salão da Ana Unidades',
+        profile: { nome: 'Salão da Ana Unidades', cidade: 'Uberaba', uf: 'MG' },
+        theme: {
+          p1: '#1e3a5f',
+          p2: '#0e6b52',
+          p3: '#f4efe4',
+          fontHeading: 'Fraunces, Palatino, serif',
+          fontBody: 'Literata, Georgia, serif',
+        },
+      },
       status: 'READ_ONLY',
       planId: 'plan_pro',
       editable: true,

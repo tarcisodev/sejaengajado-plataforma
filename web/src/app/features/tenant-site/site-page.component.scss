@@ -1,0 +1,193 @@
+:host {
+  display: block;
+}
+
+.card {
+  width: min(30rem, calc(100% - 2rem));
+  margin: 2.5rem auto 3rem;
+  padding: 1.5rem 1.25rem 1.75rem;
+  background: rgba(255, 252, 247, 0.92);
+  color: var(--ink);
+  font-family: var(--fb, var(--font-body));
+}
+
+.ring {
+  width: 5.25rem;
+  height: 5.25rem;
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(from 20deg, var(--p1), var(--p2), var(--p1));
+  animation: spin 18s linear infinite;
+}
+
+.ring .in {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--p3);
+  color: var(--p1);
+  font-family: var(--fh, var(--font-display));
+  font-size: 1.35rem;
+}
+
+.ring img,
+.gallery img,
+.qr {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qr {
+  width: 8rem;
+  height: auto;
+}
+
+h1 {
+  margin: 0.85rem 0 0;
+  color: var(--p1);
+  font-family: var(--fh, var(--font-display));
+  font-size: clamp(2.2rem, 8vw, 3.15rem);
+  font-weight: 560;
+  line-height: 0.95;
+}
+
+.tag,
+.loc,
+.about p,
+footer {
+  line-height: 1.45;
+}
+
+.tag {
+  margin: 0.45rem 0 0;
+  color: var(--p2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--p1);
+  color: var(--p1);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.links,
+.catalog,
+.hours {
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.links {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.links a,
+.catalog a,
+.review a,
+.actions a {
+  color: var(--ink);
+}
+
+.links a,
+.catalog a {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.8rem 0.85rem;
+  text-decoration: none;
+  background: color-mix(in srgb, var(--p1) 8%, white);
+  border-left: 4px solid var(--p1);
+}
+
+.links a.main {
+  background: var(--p1);
+  color: var(--p3);
+}
+
+.catalog img {
+  width: 3.2rem;
+  height: 3.2rem;
+}
+
+h2 {
+  margin: 1.6rem 0 0.45rem;
+  color: var(--p1);
+  font-family: var(--fh, var(--font-display));
+  font-size: 1.35rem;
+  font-weight: 560;
+}
+
+.hours li {
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed rgba(28, 25, 21, 0.25);
+}
+
+.promo {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 2px solid var(--p2);
+  color: var(--p2);
+  transform: rotate(-1.5deg);
+}
+
+.promo h2,
+.promo p {
+  margin-top: 0;
+  color: inherit;
+}
+
+.clock {
+  display: flex;
+  gap: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.map {
+  width: 100%;
+  height: 12rem;
+  border: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1rem;
+}
+
+.pix {
+  margin-top: 1.25rem;
+}
+
+footer {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}

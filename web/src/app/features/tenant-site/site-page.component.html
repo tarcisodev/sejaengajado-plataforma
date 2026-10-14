@@ -1,0 +1,150 @@
+<article
+  class="card"
+  [attr.data-site-status]="site.status"
+  [attr.data-schema]="schemaType()"
+  [style.--p1]="site.content.theme.p1"
+  [style.--p2]="site.content.theme.p2"
+  [style.--p3]="site.content.theme.p3"
+  [style.--fh]="site.content.theme.fontHeading"
+  [style.--fb]="site.content.theme.fontBody"
+>
+  <header class="hero">
+    <div class="ring" aria-hidden="true">
+      <div class="in">
+        @if (site.content.profile.logoUrl) {
+          <img [src]="site.content.profile.logoUrl" [alt]="" />
+        } @else {
+          <span>{{ initials() }}</span>
+        }
+      </div>
+    </div>
+    <h1>{{ nome() }}</h1>
+    @if (site.content.profile.slogan) {
+      <p class="tag">{{ site.content.profile.slogan }}</p>
+    }
+    @if (tags().length) {
+      <ul class="chips">
+        @for (tag of tags(); track tag) {
+          <li>{{ tag }}</li>
+        }
+      </ul>
+    }
+    <span class="loc">{{ site.content.profile.cidade }}/{{ site.content.profile.uf }}</span>
+  </header>
+
+  @if (site.content.whatsapp || site.content.links?.length) {
+    <ul class="links">
+      @if (site.content.whatsapp) {
+        <li>
+          <a class="main" [href]="whatsappHref()" data-link="whatsapp">WhatsApp</a>
+        </li>
+      }
+      @for (link of site.content.links; track link.url) {
+        <li>
+          <a [href]="link.url" [attr.data-link]="link.tipo">{{ link.titulo }}</a>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (site.content.google) {
+    <p class="review">
+      <a href="/avaliar" [attr.data-place-id]="site.content.google.placeId">Avaliar no Google</a>
+    </p>
+  }
+
+  @if (site.content.hours?.length) {
+    <section data-block="hours">
+      <h2>Horários</h2>
+      <ul class="hours">
+        @for (row of site.content.hours; track row.dias) {
+          <li>{{ hourLine(row) }}</li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (site.content.gallery?.length) {
+    <section data-block="gallery">
+      <h2>Galeria</h2>
+      <div class="gallery">
+        @for (src of site.content.gallery; track src) {
+          <img [src]="src" alt="" />
+        }
+      </div>
+    </section>
+  }
+
+  @if (site.content.products?.length) {
+    <section data-block="catalog">
+      <h2>Catálogo</h2>
+      <ul class="catalog">
+        @for (item of site.content.products; track item.nome) {
+          <li>
+            <a [href]="interestHref(item.nome)">
+              @if (item.fotoUrl) {
+                <img [src]="item.fotoUrl" alt="" />
+              }
+              <span>
+                <b>{{ item.nome }}</b>
+                <small>{{ item.precoTexto }}</small>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (site.content.promo) {
+    <section class="promo" data-block="promo">
+      <h2>{{ site.content.promo.titulo }}</h2>
+      <p>{{ site.content.promo.texto }}</p>
+      @if (clock(); as parts) {
+        <p class="clock" aria-label="Tempo restante da promoção">
+          <span>{{ parts.d }}d</span>
+          <span>{{ parts.h }}h</span>
+          <span>{{ parts.m }}m</span>
+          <span>{{ parts.s }}s</span>
+        </p>
+      }
+    </section>
+  }
+
+  <section class="about" data-block="about">
+    <h2>Sobre</h2>
+    <p>{{ about() }}</p>
+  </section>
+
+  @if (site.content.address) {
+    <section data-block="map">
+      <h2>Onde estamos</h2>
+      <iframe class="map" [src]="mapsEmbed()" title="Mapa do negócio"></iframe>
+      <p class="actions">
+        <a [href]="mapsLink()">Como chegar</a>
+        @if (site.content.phone) {
+          <a [href]="'tel:' + site.content.phone">Ligar</a>
+        }
+      </p>
+    </section>
+  }
+
+  @if (site.content.pix) {
+    <details class="pix" data-block="pix">
+      <summary>Pix</summary>
+      <p data-pix-key>{{ site.content.pix.chave }}</p>
+      <p>{{ site.content.pix.nome }}</p>
+      @if (site.content.pix.qrUrl) {
+        <img class="qr" [src]="site.content.pix.qrUrl" alt="QR do Pix" />
+      }
+      <button type="button" (click)="copyPix()">Copiar chave</button>
+      @if (copied()) {
+        <p>Chave copiada</p>
+      }
+    </details>
+  }
+
+  <footer>
+    <p>feito por <a href="https://sejaengajado.com.br/">Seja Engajado</a></p>
+  </footer>
+</article>

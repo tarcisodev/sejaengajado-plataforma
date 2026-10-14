@@ -9,7 +9,7 @@ import { applyHttpStatus, TenantView, titleFor } from '../../core/tenant/tenant-
 import { LandingPageComponent } from '../landing/landing-page.component';
 import { PlatformHomeComponent } from '../landing/platform-home.component';
 import { SiteNoticeComponent } from './site-notice.component';
-import { TenantPreviewComponent } from './tenant-preview.component';
+import { SitePageComponent } from './site-page.component';
 
 @Component({
   selector: 'app-tenant-gate',
@@ -17,7 +17,7 @@ import { TenantPreviewComponent } from './tenant-preview.component';
     AsyncPipe,
     LandingPageComponent,
     PlatformHomeComponent,
-    TenantPreviewComponent,
+    SitePageComponent,
     SiteNoticeComponent,
   ],
   templateUrl: './tenant-gate.component.html',

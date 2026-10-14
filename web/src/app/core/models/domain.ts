@@ -71,9 +71,96 @@ export interface Customer {
   cidade: string;
 }
 
+export type SchemaType = 'HairSalon' | 'Restaurant' | 'ProfessionalService';
+
+export type SiteLinkType = 'whatsapp' | 'instagram' | 'maps' | 'tel' | 'url';
+
+export interface SiteProfile {
+  nome: string;
+  slogan?: string;
+  logoUrl?: string;
+  tags?: string[];
+  cidade: string;
+  uf: string;
+}
+
+export interface SiteTheme {
+  p1: string;
+  p2: string;
+  p3: string;
+  fontHeading: string;
+  fontBody: string;
+}
+
+export interface SiteWhatsapp {
+  numero: string;
+  mensagem: string;
+}
+
+export interface SiteLink {
+  tipo: SiteLinkType;
+  titulo: string;
+  url: string;
+}
+
+export interface SiteHours {
+  dias: string;
+  abre?: string;
+  fecha?: string;
+  fechado?: boolean;
+}
+
+export interface SiteProduct {
+  nome: string;
+  precoTexto: string;
+  fotoUrl?: string;
+}
+
+export interface SitePromo {
+  titulo: string;
+  texto: string;
+  terminaEm: string;
+}
+
+export interface SiteGoogle {
+  placeId: string;
+}
+
+export interface SiteAddress {
+  logradouro: string;
+  cidade: string;
+  uf: string;
+  cep?: string;
+}
+
+export interface SitePix {
+  chave: string;
+  nome: string;
+  qrUrl?: string;
+}
+
+export interface SiteSeo {
+  title?: string;
+  description?: string;
+  about?: string;
+  ogImageUrl?: string;
+}
+
 export interface SiteContent {
   businessName: string;
-  theme?: { primary: string };
+  profile: SiteProfile;
+  theme: SiteTheme;
+  whatsapp?: SiteWhatsapp;
+  links?: SiteLink[];
+  hours?: SiteHours[];
+  gallery?: string[];
+  products?: SiteProduct[];
+  promo?: SitePromo;
+  google?: SiteGoogle;
+  address?: SiteAddress;
+  phone?: string;
+  pix?: SitePix;
+  seo?: SiteSeo;
 }
 
 export interface Site {
@@ -97,6 +184,7 @@ export interface Template {
   key: string;
   nome: string;
   ramo: string;
+  schemaType: SchemaType;
   schema: Record<string, unknown>;
   ativo: boolean;
 }

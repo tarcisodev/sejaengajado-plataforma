@@ -23,6 +23,7 @@ import {
   User,
   WebhookEvent,
 } from '../core/models/domain';
+import { contentForSite } from './site-bios';
 
 export interface MockDatabase {
   users: User[];
@@ -109,6 +110,7 @@ export function createUberabaSeed(): MockDatabase {
       key: 'barbearia',
       nome: 'Barbearia',
       ramo: 'barbearia',
+      schemaType: 'HairSalon',
       schema: emptySchema,
       ativo: true,
     },
@@ -117,6 +119,7 @@ export function createUberabaSeed(): MockDatabase {
       key: 'restaurante',
       nome: 'Restaurante',
       ramo: 'restaurante',
+      schemaType: 'Restaurant',
       schema: emptySchema,
       ativo: true,
     },
@@ -125,6 +128,7 @@ export function createUberabaSeed(): MockDatabase {
       key: 'servicos',
       nome: 'Serviços',
       ramo: 'servicos',
+      schemaType: 'ProfessionalService',
       schema: emptySchema,
       ativo: true,
     },
@@ -172,6 +176,7 @@ export function createUberabaSeed(): MockDatabase {
     customer('cust_mercado', null, RESELLER_CENTRO, 'Lanchonete do Mercado', '34999990005'),
     customer('cust_padaria', null, RESELLER_ATRASADO, 'Padaria São Benedito', '34999990006'),
     customer('cust_arquivo', null, RESELLER_ATRASADO, 'Mercearia do Arquivo', '34999990007'),
+    customer('cust_estudio', null, null, 'Estúdio Linha Verde', '34999990008'),
   ];
 
   const sites: Site[] = [
@@ -299,6 +304,20 @@ export function createUberabaSeed(): MockDatabase {
       editable: false,
       publishedAt: '2025-01-01',
       hostingRenewsAt: null,
+      plaqueFidelityEndsAt: null,
+    }),
+    site({
+      id: 'site_estudio',
+      customerId: 'cust_estudio',
+      resellerId: null,
+      slug: 'estudio-linha-verde',
+      templateId: 'tpl_servicos',
+      businessName: 'Estúdio Linha Verde',
+      status: 'PUBLISHED',
+      planId: PLAN_PRONTO,
+      editable: false,
+      publishedAt: '2026-08-01',
+      hostingRenewsAt: '2027-08-01',
       plaqueFidelityEndsAt: null,
     }),
   ];
@@ -499,7 +518,7 @@ function site(input: {
     slug: input.slug,
     customDomain: null,
     templateId: input.templateId,
-    content: { businessName: input.businessName, theme: { primary: '#1f6b4a' } },
+    content: contentForSite(input.slug, input.businessName, input.templateId),
     status: input.status,
     planId: input.planId,
     editable: input.editable,
