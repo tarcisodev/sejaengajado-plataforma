@@ -1,0 +1,32 @@
+import { AsyncPipe, PlatformLocation } from '@angular/common';
+import { Component, RESPONSE_INIT, inject } from '@angular/core';
+import { Title } from '@angular/platform-browser';
+import { Observable, tap } from 'rxjs';
+
+import { hostFromLocation } from '../../core/tenant/resolve-host';
+import { TenantResolver } from '../../core/tenant/tenant-resolver';
+import { applyHttpStatus, TenantView, titleFor } from '../../core/tenant/tenant-view';
+import { PlatformHomeComponent } from '../landing/platform-home.component';
+import { SiteNoticeComponent } from './site-notice.component';
+import { TenantPreviewComponent } from './tenant-preview.component';
+
+@Component({
+  selector: 'app-tenant-gate',
+  imports: [AsyncPipe, PlatformHomeComponent, TenantPreviewComponent, SiteNoticeComponent],
+  templateUrl: './tenant-gate.component.html',
+})
+export class TenantGateComponent {
+  private readonly resolver = inject(TenantResolver);
+  private readonly location = inject(PlatformLocation);
+  private readonly title = inject(Title);
+  private readonly response = inject(RESPONSE_INIT, { optional: true });
+
+  readonly view$: Observable<TenantView> = this.resolver
+    .resolve(hostFromLocation(this.location), this.location.search)
+    .pipe(
+      tap((view) => {
+        applyHttpStatus(this.response, view);
+        this.title.setTitle(titleFor(view));
+      }),
+    );
+}

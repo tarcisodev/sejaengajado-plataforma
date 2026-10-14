@@ -1,2 +1,1 @@
-/** Landing feature. Implemented in a later block. */
-export {};
+export * from './platform-home.component';

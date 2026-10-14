@@ -171,6 +171,7 @@ export function createUberabaSeed(): MockDatabase {
     customer('cust_oficina', null, RESELLER_TRIANGULO, 'Oficina do Bairro', '34999990004'),
     customer('cust_mercado', null, RESELLER_CENTRO, 'Lanchonete do Mercado', '34999990005'),
     customer('cust_padaria', null, RESELLER_ATRASADO, 'Padaria São Benedito', '34999990006'),
+    customer('cust_arquivo', null, RESELLER_ATRASADO, 'Mercearia do Arquivo', '34999990007'),
   ];
 
   const sites: Site[] = [
@@ -284,6 +285,20 @@ export function createUberabaSeed(): MockDatabase {
       editable: false,
       publishedAt: '2026-07-01',
       hostingRenewsAt: '2027-07-01',
+      plaqueFidelityEndsAt: null,
+    }),
+    site({
+      id: 'site_arquivo',
+      customerId: 'cust_arquivo',
+      resellerId: RESELLER_ATRASADO,
+      slug: 'mercearia-do-arquivo',
+      templateId: 'tpl_servicos',
+      businessName: 'Mercearia do Arquivo',
+      status: 'ARCHIVED',
+      planId: PLAN_PRONTO,
+      editable: false,
+      publishedAt: '2025-01-01',
+      hostingRenewsAt: null,
       plaqueFidelityEndsAt: null,
     }),
   ];

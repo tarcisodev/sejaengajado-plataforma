@@ -1,0 +1,24 @@
+@if (view$ | async; as view) {
+  <div [attr.data-tenant-view]="view.kind">
+    @switch (view.kind) {
+      @case ('landing') {
+        <app-platform-home mode="landing" />
+      }
+      @case ('app') {
+        <app-platform-home mode="app" />
+      }
+      @case ('site') {
+        <app-tenant-preview [site]="view.site" />
+      }
+      @case ('suspended') {
+        <app-site-notice [view]="view" />
+      }
+      @case ('archived') {
+        <app-site-notice [view]="view" />
+      }
+      @case ('not-found') {
+        <app-site-notice [view]="view" />
+      }
+    }
+  </div>
+}

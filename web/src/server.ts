@@ -1,8 +1,10 @@
 import { APP_BASE_HREF } from '@angular/common';
+import { RESPONSE_INIT } from '@angular/core';
 import { CommonEngine, isMainModule } from '@angular/ssr/node';
 import express from 'express';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveHost } from './app/core/tenant/resolve-host';
 import bootstrap from './main.server';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
@@ -10,7 +12,15 @@ const browserDistFolder = resolve(serverDistFolder, '../browser');
 const indexHtml = join(serverDistFolder, 'index.server.html');
 
 const app = express();
-const commonEngine = new CommonEngine();
+const commonEngine = new CommonEngine({
+  allowedHosts: [
+    'localhost',
+    '127.0.0.1',
+    '*.localhost',
+    'sejaengajado.com.br',
+    '*.sejaengajado.com.br',
+  ],
+});
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -25,13 +35,14 @@ const commonEngine = new CommonEngine();
  */
 
 /**
- * Serve static files from /browser
+ * Serve hashed assets only. `index: false` keeps `/` and `?tenant=` on the SSR handler,
+ * so a prerendered landing is not returned for a tenant host.
  */
 app.get(
   '**',
   express.static(browserDistFolder, {
     maxAge: '1y',
-    index: 'index.html'
+    index: false,
   }),
 );
 
@@ -40,16 +51,23 @@ app.get(
  */
 app.get('**', (req, res, next) => {
   const { protocol, originalUrl, baseUrl, headers } = req;
+  const responseInit: ResponseInit = { status: 200 };
+  const host = headers.host ?? '';
+  const search = originalUrl.includes('?') ? originalUrl.slice(originalUrl.indexOf('?')) : '';
+  const decision = resolveHost(host, search);
 
   commonEngine
     .render({
       bootstrap,
       documentFilePath: indexHtml,
-      url: `${protocol}://${headers.host}${originalUrl}`,
-      publicPath: browserDistFolder,
-      providers: [{ provide: APP_BASE_HREF, useValue: baseUrl }],
+      url: `${protocol}://${host}${originalUrl}`,
+      publicPath: decision.kind === 'landing' ? browserDistFolder : undefined,
+      providers: [
+        { provide: APP_BASE_HREF, useValue: baseUrl },
+        { provide: RESPONSE_INIT, useValue: responseInit },
+      ],
     })
-    .then((html) => res.send(html))
+    .then((html) => res.status(responseInit.status ?? 200).send(html))
     .catch((err) => next(err));
 });
 

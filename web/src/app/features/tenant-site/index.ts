@@ -1,2 +1,1 @@
-/** Tenant site renderer. Implemented in a later block. */
-export {};
+export * from './tenant-gate.component';

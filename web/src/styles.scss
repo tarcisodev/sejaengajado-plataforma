@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --paper: #f3ecdf;
+  --ink: #1c1915;
+  --seal: #0e6b52;
+  --stamp: #8c3a2f;
+  --font-display: 'Fraunces', 'Iowan Old Style', Palatino, serif;
+  --font-body: 'Literata', Georgia, serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(14, 107, 82, 0.08), transparent 28rem),
+    linear-gradient(180deg, #f7f1e6 0%, var(--paper) 40%, #efe4d2 100%);
+  font-family: var(--font-body);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background: transparent;
+}

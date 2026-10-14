@@ -1,0 +1,20 @@
+<article class="notice">
+  <p class="stamp" aria-hidden="true">{{ stamp() }}</p>
+  @switch (view.kind) {
+    @case ('suspended') {
+      <h1>Temporariamente indisponível</h1>
+      <p>{{ view.businessName }} está fora do ar por um momento.</p>
+    }
+    @case ('archived') {
+      <h1>Indisponível permanente</h1>
+      <p>{{ view.businessName }} não está mais neste endereço.</p>
+    }
+    @case ('not-found') {
+      <h1>Não encontramos esse negócio</h1>
+      <p>
+        O endereço <strong>{{ view.slug }}</strong> não corresponde a um site publicado.
+      </p>
+      <a href="https://sejaengajado.com.br/">Ir para a Seja Engajado</a>
+    }
+  }
+</article>
