@@ -2,10 +2,10 @@
   <div [attr.data-tenant-view]="view.kind">
     @switch (view.kind) {
       @case ('landing') {
-        <app-platform-home mode="landing" />
+        <app-landing-page />
       }
       @case ('app') {
-        <app-platform-home mode="app" />
+        <app-platform-home />
       }
       @case ('site') {
         <app-tenant-preview [site]="view.site" />

@@ -1,0 +1,60 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { API_PORT } from '../../core/api/api-port';
+import { MockApiService } from '../../mocks/mock-api.service';
+import { LandingPageComponent } from './landing-page.component';
+import { LANDING_DESCRIPTION, LANDING_TITLE, formatBrl } from './landing-seo';
+
+describe('LandingPageComponent', () => {
+  let fixture: ComponentFixture<LandingPageComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [LandingPageComponent],
+      providers: [MockApiService, { provide: API_PORT, useExisting: MockApiService }],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(LandingPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  it('renders the landing sections and mock prices marked as configurable', () => {
+    const text = (fixture.nativeElement.textContent as string).replace(/\u00a0/g, ' ');
+
+    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain(
+      'na porta e na internet',
+    );
+    expect(fixture.nativeElement.querySelectorAll('#como-funciona li').length).toBe(3);
+    expect(text).toContain('A placa que conta a visita');
+    expect(text).toContain('configuráveis no painel');
+    expect(text).toContain(formatBrl(34_700).replace(/\u00a0/g, ' '));
+    expect(text).toContain(formatBrl(5_990).replace(/\u00a0/g, ' '));
+    expect(text).toContain(formatBrl(12_900).replace(/\u00a0/g, ' '));
+    expect(text).toContain('12 meses');
+    expect(text).toContain('Primeiro ano de hospedagem incluso');
+    expect(text.toLowerCase()).not.toContain('white label');
+    expect(text.toLowerCase()).not.toMatch(/(?<!sub)domínio próprio/);
+  });
+
+  it('links the call to action to WhatsApp and publishes SEO tags', () => {
+    const link = fixture.nativeElement.querySelector('a.seal-link-large') as HTMLAnchorElement;
+    const description = document.head
+      .querySelector('meta[name="description"]')
+      ?.getAttribute('content');
+    const canonical = document.head
+      .querySelector('link[data-landing-canonical]')
+      ?.getAttribute('href');
+    const jsonLd =
+      document.head.querySelector('script[type="application/ld+json"]')?.textContent ?? '';
+
+    expect(link.getAttribute('href')).toContain('https://wa.me/5534999990000');
+    expect(link.textContent).toContain('WhatsApp');
+    expect(document.title).toBe(LANDING_TITLE);
+    expect(description).toBe(LANDING_DESCRIPTION);
+    expect(canonical).toBe('https://sejaengajado.com.br/');
+    expect(jsonLd).toContain('Uberaba');
+    expect(fixture.nativeElement.querySelectorAll('#faq details').length).toBe(5);
+  });
+});

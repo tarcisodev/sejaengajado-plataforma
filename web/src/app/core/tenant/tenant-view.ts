@@ -41,7 +41,7 @@ export function applyHttpStatus(response: ResponseInit | null, view: TenantView)
 export function titleFor(view: TenantView): string {
   switch (view.kind) {
     case 'landing':
-      return 'Seja Engajado';
+      return 'Seja Engajado | Site e placa de avaliação em Uberaba';
     case 'app':
       return 'Painel · Seja Engajado';
     case 'site':

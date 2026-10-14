@@ -1,0 +1,105 @@
+<a class="skip" href="#conteudo">Ir para o conteúdo</a>
+
+<header class="top">
+  <a class="brand" href="/" aria-label="Seja Engajado, início">Seja Engajado</a>
+  <nav aria-label="Seções">
+    <a href="#como-funciona">Como funciona</a>
+    <a href="#placa">A placa</a>
+    <a href="#planos">Planos</a>
+    <a href="#faq">Perguntas</a>
+  </nav>
+  <a class="seal-link" [href]="whatsappHref">Chamar no WhatsApp</a>
+</header>
+
+<main id="conteudo">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Uberaba, MG</p>
+      <h1>O endereço do seu negócio, na porta e na internet.</h1>
+      <p class="lead">
+        Mini site em subdomínio próprio, entregue com a placa que pede avaliação no Google. Feito
+        para quem atende do outro lado do balcão.
+      </p>
+      <a class="seal-link seal-link-large" [href]="whatsappHref">Pedir o site no WhatsApp</a>
+    </div>
+    <div class="plate" aria-hidden="true">
+      <p class="plate-kicker">Avalie a gente</p>
+      <p class="plate-mark">Google</p>
+      <span class="qr"></span>
+      <p class="plate-foot">QR + NFC</p>
+    </div>
+  </section>
+
+  <section id="como-funciona" class="steps" aria-labelledby="como-titulo">
+    <h2 id="como-titulo">Como funciona</h2>
+    <ol>
+      @for (step of steps; track step.n) {
+        <li [style.animation-delay]="step.n === '01' ? '0ms' : step.n === '02' ? '80ms' : '160ms'">
+          <span>{{ step.n }}</span>
+          <h3>{{ step.title }}</h3>
+          <p>{{ step.text }}</p>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section id="placa" class="plaque" aria-labelledby="placa-titulo">
+    <div>
+      <p class="eyebrow">Na maçaneta, não só no anúncio</p>
+      <h2 id="placa-titulo">A placa que conta a visita</h2>
+      <p>
+        QR e NFC na mesma peça. O código abre o endereço de avaliação do negócio e segue para o
+        Google. Cada leitura fica registrada, então a placa deixa de ser um adesivo mudo.
+      </p>
+    </div>
+    <p class="pull">cliente.sejaengajado.com.br/avaliar</p>
+  </section>
+
+  <section id="planos" class="plans" aria-labelledby="planos-titulo">
+    <h2 id="planos-titulo">Planos</h2>
+    <p class="configurable">Preços de exemplo, configuráveis no painel.</p>
+    @if (offer$ | async; as offer) {
+      <div class="plan-grid">
+        <article>
+          <h3>Pronto</h3>
+          <p class="price">{{ offer.pronto ? formatBrl(offer.pronto.precoCentavos) : '—' }}</p>
+          <p class="cadence">pagamento único</p>
+          <ul>
+            <li>Site entregue, com alterações pelo suporte</li>
+            <li>Primeiro ano de hospedagem incluso</li>
+            <li>Renovação anual de {{ formatBrl(offer.renewalCentavos) }}</li>
+            <li>Placa de avaliação como adicional</li>
+          </ul>
+        </article>
+        <article class="featured">
+          <p class="ribbon">Placa de brinde</p>
+          <h3>Engajado Pro</h3>
+          <p class="price">{{ offer.pro ? formatBrl(offer.pro.precoCentavos) : '—' }}</p>
+          <p class="cadence">por mês</p>
+          <ul>
+            <li>Painel para editar catálogo, Pix e promoções</li>
+            <li>Placa de brinde vinculada a 12 meses do plano</li>
+            <li>O site continua no ar no começo de um atraso</li>
+          </ul>
+        </article>
+      </div>
+    }
+  </section>
+
+  <section id="faq" class="faq" aria-labelledby="faq-titulo">
+    <h2 id="faq-titulo">Perguntas</h2>
+    @for (item of questions; track item.q) {
+      <details>
+        <summary>
+          <h3>{{ item.q }}</h3>
+        </summary>
+        <p>{{ item.a }}</p>
+      </details>
+    }
+  </section>
+</main>
+
+<footer>
+  <p>Seja Engajado · Uberaba, MG</p>
+  <a [href]="whatsappHref">Falar com a Seja Engajado no WhatsApp</a>
+</footer>

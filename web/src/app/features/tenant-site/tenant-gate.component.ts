@@ -6,13 +6,20 @@ import { Observable, tap } from 'rxjs';
 import { hostFromLocation } from '../../core/tenant/resolve-host';
 import { TenantResolver } from '../../core/tenant/tenant-resolver';
 import { applyHttpStatus, TenantView, titleFor } from '../../core/tenant/tenant-view';
+import { LandingPageComponent } from '../landing/landing-page.component';
 import { PlatformHomeComponent } from '../landing/platform-home.component';
 import { SiteNoticeComponent } from './site-notice.component';
 import { TenantPreviewComponent } from './tenant-preview.component';
 
 @Component({
   selector: 'app-tenant-gate',
-  imports: [AsyncPipe, PlatformHomeComponent, TenantPreviewComponent, SiteNoticeComponent],
+  imports: [
+    AsyncPipe,
+    LandingPageComponent,
+    PlatformHomeComponent,
+    TenantPreviewComponent,
+    SiteNoticeComponent,
+  ],
   templateUrl: './tenant-gate.component.html',
 })
 export class TenantGateComponent {

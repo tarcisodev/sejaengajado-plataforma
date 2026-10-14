@@ -1,0 +1,321 @@
+:host {
+  display: block;
+}
+
+.skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.6rem 0.8rem;
+}
+
+.skip:focus {
+  top: 1rem;
+  z-index: 2;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 1.25rem 7vw;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-right: auto;
+}
+
+nav a,
+footer a {
+  color: var(--ink);
+}
+
+.seal-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.55rem 0.95rem;
+  background: var(--seal);
+  color: #f7f1e6;
+  text-decoration: none;
+  font-weight: 560;
+}
+
+.seal-link-large {
+  margin-top: 1.5rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(14rem, 0.7fr);
+  gap: 2rem;
+  align-items: end;
+  padding: 4vh 7vw 3rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  color: var(--seal);
+}
+
+h1 {
+  margin: 0;
+  max-width: 12ch;
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 7vw, 5.4rem);
+  font-weight: 560;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  max-width: 36rem;
+  margin: 1.25rem 0 0;
+  font-size: 1.2rem;
+  line-height: 1.45;
+}
+
+.plate {
+  justify-self: end;
+  width: min(100%, 16rem);
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.1rem 1rem;
+  background: #f7f3ea;
+  border: 1px solid rgba(28, 25, 21, 0.2);
+  box-shadow: 8px 12px 0 rgba(14, 107, 82, 0.18);
+  transform: rotate(2.5deg);
+  animation: plate-in 500ms ease-out both;
+}
+
+.plate-kicker,
+.plate-foot {
+  margin: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.plate-mark {
+  margin: 0.35rem 0 0.8rem;
+  font-family: var(--font-display);
+  font-size: 2rem;
+}
+
+.qr {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  background:
+    linear-gradient(var(--ink) 0 0) 0 0 / 38% 38% no-repeat,
+    linear-gradient(var(--ink) 0 0) 100% 0 / 38% 38% no-repeat,
+    linear-gradient(var(--ink) 0 0) 0 100% / 38% 38% no-repeat,
+    repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(var(--ink) 0 2px, transparent 2px 7px);
+}
+
+.steps,
+.plans,
+.faq,
+.plaque {
+  padding: 2.5rem 7vw;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 560;
+  line-height: 1;
+}
+
+.steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  animation: rise 500ms ease-out both;
+}
+
+.steps span {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: var(--stamp);
+}
+
+.steps h3,
+.plans h3,
+.faq h3 {
+  margin: 0.35rem 0 0;
+  font-size: 1.25rem;
+}
+
+.plaque {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr;
+  gap: 1.5rem;
+  align-items: end;
+  background: rgba(14, 107, 82, 0.08);
+}
+
+.plaque p,
+.plans li,
+.faq p {
+  line-height: 1.45;
+}
+
+.pull {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  line-height: 1.1;
+}
+
+.configurable {
+  margin-top: 0;
+  color: var(--stamp);
+  font-weight: 560;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.plan-grid article {
+  padding: 1.4rem 1.3rem 1.5rem;
+  background: rgba(255, 252, 247, 0.78);
+  border: 1px solid rgba(28, 25, 21, 0.12);
+}
+
+.featured {
+  margin-top: 1.5rem;
+  box-shadow: 10px 12px 0 rgba(140, 58, 47, 0.16);
+}
+
+.ribbon {
+  margin: 0 0 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--stamp);
+}
+
+.price {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+}
+
+.cadence {
+  margin: 0 0 0.8rem;
+}
+
+.plans ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.faq details {
+  border-top: 1px solid rgba(28, 25, 21, 0.16);
+  padding: 0.8rem 0;
+}
+
+.faq summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.faq summary h3 {
+  font-weight: 560;
+}
+
+.faq details p {
+  margin: 0.2rem 0 0.6rem;
+  max-width: 40rem;
+}
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  justify-content: space-between;
+  padding: 2rem 7vw 3rem;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 3px;
+}
+
+@keyframes plate-in {
+  from {
+    opacity: 0;
+    transform: rotate(8deg) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(2.5deg) translateY(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .hero,
+  .plaque,
+  .steps ol,
+  .plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plate,
+  .featured {
+    justify-self: start;
+    margin-top: 0;
+  }
+
+  h1 {
+    max-width: 14ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plate,
+  .steps li {
+    animation: none;
+  }
+}
