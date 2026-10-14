@@ -1,2 +1,2 @@
-/** Mock API data. Implemented in a later block. */
-export {};
+export * from './mock-api.service';
+export * from './uberaba-seed';

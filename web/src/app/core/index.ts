@@ -1,2 +1,3 @@
-/** Shared application core. Implemented in a later block. */
-export {};
+export * from './api/api-port';
+export * from './api/plaque-penalty';
+export * from './models/domain';
