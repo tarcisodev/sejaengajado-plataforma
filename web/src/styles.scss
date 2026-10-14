@@ -111,6 +111,12 @@ body {
   padding: 0.8rem;
 }
 
+.desk .board strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+}
+
 .desk .mark {
   font-family: var(--font-display);
 }
