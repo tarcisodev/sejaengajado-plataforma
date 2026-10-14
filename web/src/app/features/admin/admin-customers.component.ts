@@ -1,10 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { API_PORT } from '../../core/api/api-port';
 import { Customer } from '../../core/models/domain';
 
 @Component({
   selector: 'app-admin-customers',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-customers.component.html',
 })
 export class AdminCustomersComponent {

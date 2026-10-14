@@ -1,5 +1,5 @@
 import { AsyncPipe, PlatformLocation } from '@angular/common';
-import { Component, RESPONSE_INIT, inject } from '@angular/core';
+import { Component, RESPONSE_INIT, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { Observable, tap } from 'rxjs';
 
@@ -20,6 +20,7 @@ import { SitePageComponent } from './site-page.component';
     SitePageComponent,
     SiteNoticeComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './tenant-gate.component.html',
 })
 export class TenantGateComponent {

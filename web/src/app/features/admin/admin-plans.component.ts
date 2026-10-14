@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { API_PORT } from '../../core/api/api-port';
 import { Plan, PlanType } from '../../core/models/domain';
@@ -6,6 +6,7 @@ import { formatBrl } from '../landing/landing-seo';
 
 @Component({
   selector: 'app-admin-plans',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-plans.component.html',
 })
 export class AdminPlansComponent {

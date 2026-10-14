@@ -1,5 +1,5 @@
 import { PlatformLocation } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs';
 
@@ -28,6 +28,7 @@ import { AdminSitesComponent } from './admin-sites.component';
     AdminRevenueComponent,
   ],
   templateUrl: './admin-shell.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-shell.component.scss',
 })
 export class AdminShellComponent {

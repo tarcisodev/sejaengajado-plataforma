@@ -1,5 +1,13 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, Renderer2, inject, DOCUMENT } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  Renderer2,
+  inject,
+  DOCUMENT,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { Observable, combineLatest, map } from 'rxjs';
 
@@ -23,6 +31,7 @@ interface LandingOffer {
   selector: 'app-landing-page',
   imports: [AsyncPipe],
   templateUrl: './landing-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './landing-page.component.scss',
 })
 export class LandingPageComponent implements OnInit, OnDestroy {

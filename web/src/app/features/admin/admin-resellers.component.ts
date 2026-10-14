@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { forkJoin } from 'rxjs';
 
 import { migrationAvailable } from '../../core/admin/migration';
@@ -9,6 +9,7 @@ const ACTOR = 'user_admin';
 
 @Component({
   selector: 'app-admin-resellers',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-resellers.component.html',
 })
 export class AdminResellersComponent {

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 import { TenantView } from '../../core/tenant/tenant-view';
 
@@ -7,6 +7,7 @@ type NoticeView = Extract<TenantView, { kind: 'suspended' | 'archived' | 'not-fo
 @Component({
   selector: 'app-site-notice',
   templateUrl: './site-notice.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-notice.component.scss',
 })
 export class SiteNoticeComponent {

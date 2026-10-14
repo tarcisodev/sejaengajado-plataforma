@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -7,6 +7,7 @@ import { formatBrl } from '../landing/landing-seo';
 
 @Component({
   selector: 'app-admin-revenue',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-revenue.component.html',
 })
 export class AdminRevenueComponent {

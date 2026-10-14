@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit, Renderer2, afterNextRender, inject, signal, DOCUMENT } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, Renderer2, afterNextRender, inject, signal, DOCUMENT, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 
@@ -26,6 +26,7 @@ import {
   selector: 'app-site-page',
   templateUrl: './site-page.component.html',
   styleUrl: './site-page.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class SitePageComponent implements OnInit, OnDestroy {
   private readonly api = inject(API_PORT);

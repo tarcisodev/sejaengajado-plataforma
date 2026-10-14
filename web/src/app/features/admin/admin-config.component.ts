@@ -1,10 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { API_PORT } from '../../core/api/api-port';
 import { PlatformConfig } from '../../core/models/domain';
 
 @Component({
   selector: 'app-admin-config',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-config.component.html',
 })
 export class AdminConfigComponent {

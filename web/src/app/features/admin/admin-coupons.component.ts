@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -6,6 +6,7 @@ import { Coupon, Plan } from '../../core/models/domain';
 
 @Component({
   selector: 'app-admin-coupons',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-coupons.component.html',
 })
 export class AdminCouponsComponent {
