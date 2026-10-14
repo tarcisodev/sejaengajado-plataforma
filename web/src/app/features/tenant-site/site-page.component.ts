@@ -1,5 +1,4 @@
-import { DOCUMENT } from '@angular/common';
-import { Component, Input, OnDestroy, OnInit, Renderer2, afterNextRender, inject, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, Renderer2, afterNextRender, inject, signal, DOCUMENT } from '@angular/core';
 import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 

@@ -1,5 +1,5 @@
-import { AsyncPipe, DOCUMENT } from '@angular/common';
-import { Component, OnDestroy, OnInit, Renderer2, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, OnDestroy, OnInit, Renderer2, inject, DOCUMENT } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { Observable, combineLatest, map } from 'rxjs';
 
