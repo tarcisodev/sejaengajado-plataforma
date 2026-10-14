@@ -5,8 +5,12 @@
   [style.--p1]="site.content.theme.p1"
   [style.--p2]="site.content.theme.p2"
   [style.--p3]="site.content.theme.p3"
+  [style.--on3]="site.content.theme.on3"
+  [style.--hi]="site.content.theme.hi"
   [style.--fh]="site.content.theme.fontHeading"
   [style.--fb]="site.content.theme.fontBody"
+  [style.--fs]="site.content.theme.fontScale"
+  [style.--fi]="site.content.theme.italic"
 >
   <header class="hero">
     <div class="ring" aria-hidden="true">
@@ -30,6 +34,9 @@
       </ul>
     }
     <span class="loc">{{ site.content.profile.cidade }}/{{ site.content.profile.uf }}</span>
+    <svg class="wave" viewBox="0 0 480 36" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 18c80 22 160-22 240 0s160 22 240 0v18H0z" />
+    </svg>
   </header>
 
   @if (site.content.whatsapp || site.content.links?.length) {
@@ -119,7 +126,9 @@
   @if (site.content.address) {
     <section data-block="map">
       <h2>Onde estamos</h2>
-      <iframe class="map" [src]="mapsEmbed()" title="Mapa do negócio"></iframe>
+      @if (mapSrc) {
+        <iframe class="map" [src]="mapSrc" title="Mapa do negócio"></iframe>
+      }
       <p class="actions">
         <a [href]="mapsLink()">Como chegar</a>
         @if (site.content.phone) {

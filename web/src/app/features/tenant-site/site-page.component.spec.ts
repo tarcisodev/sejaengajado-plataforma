@@ -87,10 +87,14 @@ describe('SitePageComponent', () => {
       profile: { nome: 'Oficina do Bairro', cidade: 'Uberaba', uf: 'MG' },
       theme: {
         p1: '#1e3a5f',
-        p2: '#0e6b52',
-        p3: '#f4efe4',
+        p2: '#3d5a4c',
+        p3: '#d5e2dc',
+        on3: '#102018',
+        hi: '#f4f7f6',
         fontHeading: 'Fraunces, serif',
         fontBody: 'Literata, serif',
+        fontScale: 1,
+        italic: 'normal',
       },
     };
     const site: Site = {

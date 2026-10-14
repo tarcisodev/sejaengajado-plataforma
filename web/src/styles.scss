@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: Fraunces;
+  font-style: normal;
+  font-weight: 560 680;
+  font-display: swap;
+  src: url('./fonts/fraunces-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Literata;
+  font-style: normal;
+  font-weight: 400 560;
+  font-display: swap;
+  src: url('./fonts/literata-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Newsreader;
+  font-style: normal;
+  font-weight: 560;
+  font-display: swap;
+  src: url('./fonts/newsreader-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Newsreader;
+  font-style: italic;
+  font-weight: 560;
+  font-display: swap;
+  src: url('./fonts/newsreader-italic-latin.woff2') format('woff2');
+}
+
 :root {
   --paper: #f3ecdf;
   --ink: #1c1915;

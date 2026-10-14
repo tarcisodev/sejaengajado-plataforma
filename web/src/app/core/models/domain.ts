@@ -88,8 +88,12 @@ export interface SiteTheme {
   p1: string;
   p2: string;
   p3: string;
+  on3: string;
+  hi: string;
   fontHeading: string;
   fontBody: string;
+  fontScale: number;
+  italic: 'normal' | 'italic';
 }
 
 export interface SiteWhatsapp {

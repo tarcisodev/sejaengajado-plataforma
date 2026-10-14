@@ -44,6 +44,7 @@ export class SitePageComponent implements OnInit, OnDestroy {
   readonly schemaType = signal('LocalBusiness');
   readonly clock = signal<ClockParts | null>(null);
   readonly copied = signal(false);
+  mapSrc: SafeResourceUrl | null = null;
 
   constructor() {
     afterNextRender(() => {
@@ -52,6 +53,9 @@ export class SitePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (this.site.content.address) {
+      this.mapSrc = this.sanitizer.bypassSecurityTrustResourceUrl(mapsEmbedUrl(this.site.content));
+    }
     this.refreshClock();
     this.applyHead(this.schemaType());
     this.templatesSub = this.api.listTemplates().subscribe((templates) => {
@@ -88,10 +92,6 @@ export class SitePageComponent implements OnInit, OnDestroy {
 
   addressLine(): string {
     return addressLine(this.site.content);
-  }
-
-  mapsEmbed(): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(mapsEmbedUrl(this.site.content));
   }
 
   mapsLink(): string {

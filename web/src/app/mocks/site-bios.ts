@@ -5,27 +5,39 @@ const HEADING_MENU = 'Newsreader, Palatino, serif';
 const BODY = 'Literata, Georgia, serif';
 
 const THEME_BARBER: SiteTheme = {
-  p1: '#1c3d34',
+  p1: '#161410',
   p2: '#8c3a2f',
-  p3: '#f4efe4',
+  p3: '#e6d3a3',
+  on3: '#161410',
+  hi: '#f6f1e7',
   fontHeading: HEADING_SHOP,
   fontBody: BODY,
+  fontScale: 1,
+  italic: 'normal',
 };
 
 const THEME_KITCHEN: SiteTheme = {
   p1: '#8c3a2f',
   p2: '#c47a2c',
-  p3: '#1c1915',
+  p3: '#f3e6c8',
+  on3: '#2a120c',
+  hi: '#fff8ef',
   fontHeading: HEADING_MENU,
   fontBody: BODY,
+  fontScale: 1.02,
+  italic: 'italic',
 };
 
 const THEME_SERVICE: SiteTheme = {
   p1: '#1e3a5f',
-  p2: '#0e6b52',
-  p3: '#f4efe4',
+  p2: '#3d5a4c',
+  p3: '#d5e2dc',
+  on3: '#102018',
+  hi: '#f4f7f6',
   fontHeading: HEADING_SHOP,
   fontBody: BODY,
+  fontScale: 0.96,
+  italic: 'normal',
 };
 
 function themeFor(templateId: string): SiteTheme {
