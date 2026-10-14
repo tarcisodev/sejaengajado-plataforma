@@ -1,2 +1,1 @@
-/** Admin panel feature. Implemented in a later block. */
-export {};
+export { AdminShellComponent } from './admin-shell.component';

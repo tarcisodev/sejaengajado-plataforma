@@ -1,0 +1,50 @@
+<form (submit)="save($event)">
+  <label>
+    Código
+    <input name="code" [value]="draft().code" required />
+  </label>
+  <label>
+    Nome
+    <input name="nome" [value]="draft().nome" required />
+  </label>
+  <label>
+    Tipo
+    <select name="tipo" [value]="draft().tipo">
+      <option value="ONE_TIME">Pagamento único</option>
+      <option value="RECURRING">Mensal</option>
+      <option value="ANNUAL_HOSTING">Renovação anual</option>
+    </select>
+  </label>
+  <label>
+    Preço em centavos
+    <input name="precoCentavos" type="number" [value]="draft().precoCentavos" required />
+  </label>
+  <label>
+    Intervalo
+    <input name="intervalo" [value]="draft().intervalo ?? ''" placeholder="MONTH, YEAR ou vazio" />
+  </label>
+  <button type="submit">Salvar plano</button>
+</form>
+<table>
+  <caption>
+    Planos
+  </caption>
+  <thead>
+    <tr>
+      <th>Plano</th>
+      <th>Tipo</th>
+      <th>Preço</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.id) {
+      <tr>
+        <td>{{ row.nome }}</td>
+        <td>{{ row.tipo }}</td>
+        <td>{{ formatBrl(row.precoCentavos) }}</td>
+        <td><button type="button" (click)="edit(row)">Editar</button></td>
+      </tr>
+    }
+  </tbody>
+</table>

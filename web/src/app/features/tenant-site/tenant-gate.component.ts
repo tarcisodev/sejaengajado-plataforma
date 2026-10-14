@@ -6,8 +6,8 @@ import { Observable, tap } from 'rxjs';
 import { hostFromLocation } from '../../core/tenant/resolve-host';
 import { TenantResolver } from '../../core/tenant/tenant-resolver';
 import { applyHttpStatus, TenantView, titleFor } from '../../core/tenant/tenant-view';
+import { AdminShellComponent } from '../admin/admin-shell.component';
 import { LandingPageComponent } from '../landing/landing-page.component';
-import { PlatformHomeComponent } from '../landing/platform-home.component';
 import { SiteNoticeComponent } from './site-notice.component';
 import { SitePageComponent } from './site-page.component';
 
@@ -16,7 +16,7 @@ import { SitePageComponent } from './site-page.component';
   imports: [
     AsyncPipe,
     LandingPageComponent,
-    PlatformHomeComponent,
+    AdminShellComponent,
     SitePageComponent,
     SiteNoticeComponent,
   ],

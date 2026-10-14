@@ -1,0 +1,65 @@
+<label>
+  De
+  <input type="date" [value]="from()" (input)="from.set(inputValue($event))" />
+</label>
+<label>
+  Até
+  <input type="date" [value]="to()" (input)="to.set(inputValue($event))" />
+</label>
+<label>
+  Revendedor
+  <select [value]="resellerId()" (change)="resellerId.set(inputValue($event))">
+    <option value="all">Todos</option>
+    <option value="direct">Venda direta</option>
+    @for (reseller of resellers(); track reseller.id) {
+      <option [value]="reseller.id">{{ reseller.nome }}</option>
+    }
+  </select>
+</label>
+<p>
+  Total no período: <strong data-revenue-total>{{ formatBrl(total()) }}</strong>
+</p>
+<table>
+  <caption>
+    Pagamentos pagos no período
+  </caption>
+  <thead>
+    <tr>
+      <th>Pago em</th>
+      <th>Valor</th>
+      <th>Método</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of visible(); track row.id) {
+      <tr>
+        <td>{{ row.paidAt }}</td>
+        <td>{{ formatBrl(row.valor) }}</td>
+        <td>{{ row.metodo }}</td>
+      </tr>
+    }
+  </tbody>
+</table>
+<h2>Fatura do revendedor</h2>
+<p>A foto do fechamento guarda os sites publicados e em só leitura daquele instante.</p>
+<label>
+  Revendedor
+  <select [value]="closeResellerId()" (change)="closeResellerId.set(inputValue($event))">
+    @for (reseller of resellers(); track reseller.id) {
+      <option [value]="reseller.id">{{ reseller.nome }}</option>
+    }
+  </select>
+</label>
+<label>
+  Mês
+  <input [value]="closeMonth()" (input)="closeMonth.set(inputValue($event))" />
+</label>
+<button type="button" (click)="close()">Fechar fatura</button>
+@if (invoice(); as invoice) {
+  <p data-invoice-total>{{ formatBrl(invoice.totalCentavos) }}</p>
+  <ul>
+    @for (siteId of invoice.activeSiteIds; track siteId) {
+      <li>{{ siteName(siteId) }}</li>
+    }
+  </ul>
+}

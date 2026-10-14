@@ -1,0 +1,19 @@
+<section class="board" aria-label="Resumo">
+  <article>
+    <p>Receita do mês</p>
+    <strong>{{ formatBrl(revenue()) }}</strong>
+    <small>{{ month() }}</small>
+  </article>
+  <article>
+    <p>Sites ativos</p>
+    <strong data-active-sites>{{ activeSites() }}</strong>
+  </article>
+  <article>
+    <p>MRR</p>
+    <strong data-mrr>{{ formatBrl(mrr()) }}</strong>
+  </article>
+  <article>
+    <p>Inadimplentes</p>
+    <strong data-delinquent>{{ delinquent() }}</strong>
+  </article>
+</section>

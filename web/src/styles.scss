@@ -54,3 +54,69 @@ body {
   color: var(--ink);
   background: transparent;
 }
+
+.desk table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.desk caption {
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.desk th,
+.desk td {
+  text-align: left;
+  padding: 0.45rem 0.3rem;
+  border-bottom: 1px solid rgba(28, 25, 21, 0.16);
+  vertical-align: top;
+}
+
+.desk label,
+.desk fieldset {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.45rem 0;
+}
+
+.desk input,
+.desk select,
+.desk button {
+  font: inherit;
+}
+
+.desk button {
+  background: var(--seal);
+  color: var(--paper);
+  border: 0;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.desk .warn {
+  color: var(--stamp);
+}
+
+.desk .note {
+  color: var(--seal);
+}
+
+.desk .board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.8rem;
+}
+
+.desk .board article {
+  border: 1px solid rgba(28, 25, 21, 0.16);
+  padding: 0.8rem;
+}
+
+.desk .board strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+}

@@ -3,6 +3,7 @@ import { Observable, of } from 'rxjs';
 
 import { ApiPort, BlockResellerCommand, NoticeRecord } from '../core/api/api-port';
 import { calculatePlaquePenalty, PlaquePenaltyQuote } from '../core/api/plaque-penalty';
+import { migrationAvailable } from '../core/admin/migration';
 import {
   AuditLog,
   Cancellation,
@@ -217,6 +218,89 @@ export class MockApiService implements ApiPort {
       diff: { reason, siteIds: [...command.siteIds], status: 'BLOCKED' },
     });
     return of(structuredClone(reseller));
+  }
+
+  unblockReseller(resellerId: string, actorId: string, unblockedAt: string): Observable<Reseller> {
+    const reseller = this.state.resellers.find((item) => item.id === resellerId);
+    if (!reseller) {
+      throw new Error('reseller not found');
+    }
+    if (reseller.status !== 'BLOCKED') {
+      throw new Error('reseller is not blocked');
+    }
+    const suspendedIds = this.state.sites
+      .filter((site) => site.resellerId === resellerId && site.status === 'SUSPENDED')
+      .map((site) => site.id);
+    reseller.status = 'ACTIVE';
+    reseller.blockedAt = null;
+    this.state.auditLogs.push({
+      actor: actorId,
+      acao: 'reseller.unblock',
+      entidade: `Reseller:${resellerId}`,
+      diff: { unblockedAt, status: 'ACTIVE', stillSuspended: suspendedIds },
+    });
+    return of(structuredClone(reseller));
+  }
+
+  offerMigration(resellerId: string, actorId: string, today: Date): Observable<AuditLog> {
+    const reseller = this.state.resellers.find((item) => item.id === resellerId);
+    if (!reseller) {
+      throw new Error('reseller not found');
+    }
+    if (
+      !migrationAvailable(
+        reseller.status,
+        reseller.delinquentSince,
+        today,
+        this.state.platformConfig.resellerGraceDays,
+      )
+    ) {
+      throw new Error('migration is not available');
+    }
+    const log: AuditLog = {
+      actor: actorId,
+      acao: 'reseller.offer-migration',
+      entidade: `Reseller:${resellerId}`,
+      diff: { delinquentSince: reseller.delinquentSince },
+    };
+    this.state.auditLogs.push(log);
+    return of(structuredClone(log));
+  }
+
+  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site> {
+    const site = this.requireSite(siteId);
+    if (site.status === 'ARCHIVED' || site.status === 'DRAFT') {
+      throw new Error('site cannot change status');
+    }
+    site.status = status;
+    return of(structuredClone(site));
+  }
+
+  savePlan(plan: Plan): Observable<Plan> {
+    const next = { ...plan, id: plan.id || `plan_${plan.code.toLowerCase()}` };
+    const index = this.state.plans.findIndex((item) => item.id === next.id);
+    if (index >= 0) {
+      this.state.plans[index] = next;
+    } else {
+      this.state.plans.push(next);
+    }
+    return of(structuredClone(next));
+  }
+
+  saveCoupon(coupon: Coupon): Observable<Coupon> {
+    const next = { ...coupon, id: coupon.id || `cup_${coupon.code.toLowerCase()}` };
+    const index = this.state.coupons.findIndex((item) => item.id === next.id);
+    if (index >= 0) {
+      this.state.coupons[index] = next;
+    } else {
+      this.state.coupons.push(next);
+    }
+    return of(structuredClone(next));
+  }
+
+  deleteCoupon(couponId: string): Observable<void> {
+    this.state.coupons = this.state.coupons.filter((item) => item.id !== couponId);
+    return of(undefined);
   }
 
   listAuditLogs(): Observable<AuditLog[]> {

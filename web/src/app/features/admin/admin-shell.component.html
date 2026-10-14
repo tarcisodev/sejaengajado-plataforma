@@ -1,0 +1,42 @@
+<div class="desk">
+  <nav aria-label="Painel admin">
+    <p class="mark">Seja Engajado</p>
+    <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Início</a>
+    <a routerLink="/clientes" routerLinkActive="on">Clientes</a>
+    <a routerLink="/revendedores" routerLinkActive="on">Revendedores</a>
+    <a routerLink="/sites" routerLinkActive="on">Sites</a>
+    <a routerLink="/planos" routerLinkActive="on">Planos</a>
+    <a routerLink="/configuracoes" routerLinkActive="on">Configurações</a>
+    <a routerLink="/cupons" routerLinkActive="on">Cupons</a>
+    <a routerLink="/receita" routerLinkActive="on">Receita</a>
+  </nav>
+  <main>
+    <h1>Painel</h1>
+    @switch (section()) {
+      @case ('inicio') {
+        <app-admin-dashboard />
+      }
+      @case ('clientes') {
+        <app-admin-customers />
+      }
+      @case ('revendedores') {
+        <app-admin-resellers />
+      }
+      @case ('sites') {
+        <app-admin-sites />
+      }
+      @case ('planos') {
+        <app-admin-plans />
+      }
+      @case ('configuracoes') {
+        <app-admin-config />
+      }
+      @case ('cupons') {
+        <app-admin-coupons />
+      }
+      @case ('receita') {
+        <app-admin-revenue />
+      }
+    }
+  </main>
+</div>

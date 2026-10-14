@@ -1,0 +1,48 @@
+<form (submit)="save($event)">
+  <label>Código <input name="code" required /></label>
+  <label>
+    Tipo
+    <select name="tipo">
+      <option value="PCT">Percentual</option>
+      <option value="FIXED">Valor fixo</option>
+    </select>
+  </label>
+  <label>Valor <input name="valor" type="number" required /></label>
+  <label>Validade <input name="validade" type="date" required /></label>
+  <label>Máximo de usos <input name="maxUsos" type="number" value="1" required /></label>
+  <fieldset>
+    <legend>Planos</legend>
+    @for (plan of plans(); track plan.id) {
+      <label>
+        <input type="checkbox" name="planId" [value]="plan.id" />
+        {{ plan.nome }}
+      </label>
+    }
+  </fieldset>
+  <button type="submit">Salvar cupom</button>
+</form>
+<table>
+  <caption>
+    Cupons
+  </caption>
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Tipo</th>
+      <th>Valor</th>
+      <th>Usos</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.id) {
+      <tr>
+        <td>{{ row.code }}</td>
+        <td>{{ row.tipo }}</td>
+        <td>{{ row.valor }}</td>
+        <td>{{ row.usos }}/{{ row.maxUsos }}</td>
+        <td><button type="button" (click)="remove(row.id)">Excluir</button></td>
+      </tr>
+    }
+  </tbody>
+</table>

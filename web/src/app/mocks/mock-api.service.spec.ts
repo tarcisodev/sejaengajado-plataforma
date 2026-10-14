@@ -132,6 +132,41 @@ describe('MockApiService', () => {
     expect(logs[0].diff['reason']).toBe('site clonado de marca');
   });
 
+  it('unblocks a reseller without republishing the suspended sites', async () => {
+    await firstValueFrom(
+      service.blockReseller(RESELLER_CENTRO, {
+        actorId: 'user_admin',
+        reason: 'site clonado de marca',
+        siteIds: ['site_mercado'],
+        blockedAt: '2026-10-14T12:00:00.000Z',
+      }),
+    );
+
+    const restored = await firstValueFrom(
+      service.unblockReseller(RESELLER_CENTRO, 'user_admin', '2026-10-20T12:00:00.000Z'),
+    );
+    const sites = await firstValueFrom(service.listSites(RESELLER_CENTRO));
+
+    expect(restored.status).toBe('ACTIVE');
+    expect(restored.blockedAt).toBeNull();
+    expect(sites.find((site) => site.id === 'site_mercado')?.status).toBe('SUSPENDED');
+    expect(await firstValueFrom(service.canCreateSite(RESELLER_CENTRO))).toBeTrue();
+  });
+
+  it('offers migration only after the grace period and refuses archived sites', async () => {
+    expect(() =>
+      service.offerMigration(RESELLER_ATRASADO, 'user_admin', new Date('2026-09-20T15:00:00.000Z')),
+    ).toThrowError('migration is not available');
+
+    const log = await firstValueFrom(
+      service.offerMigration(RESELLER_ATRASADO, 'user_admin', new Date('2026-10-14T15:00:00.000Z')),
+    );
+    expect(log.acao).toBe('reseller.offer-migration');
+    expect(() => service.setSiteStatus('site_arquivo', 'PUBLISHED')).toThrowError(
+      'site cannot change status',
+    );
+  });
+
   it('records one notice per entity, kind and São Paulo date', async () => {
     const notice = {
       entityType: 'Site',

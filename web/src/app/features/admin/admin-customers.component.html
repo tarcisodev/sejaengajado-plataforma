@@ -1,0 +1,27 @@
+<label>
+  Buscar cliente
+  <input [value]="query()" (input)="query.set(inputValue($event))" />
+</label>
+<table>
+  <caption>
+    Clientes
+  </caption>
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>WhatsApp</th>
+      <th>Cidade</th>
+      <th>Revendedor</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of visible(); track row.id) {
+      <tr>
+        <td>{{ row.nome }}</td>
+        <td>{{ row.whatsapp }}</td>
+        <td>{{ row.cidade }}</td>
+        <td>{{ resellerName(row.resellerId) }}</td>
+      </tr>
+    }
+  </tbody>
+</table>

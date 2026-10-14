@@ -52,6 +52,12 @@ export interface ApiPort {
   recordNotice(notice: NoticeLog): Observable<NoticeRecord>;
   canCreateSite(resellerId: string): Observable<boolean>;
   blockReseller(resellerId: string, command: BlockResellerCommand): Observable<Reseller>;
+  unblockReseller(resellerId: string, actorId: string, unblockedAt: string): Observable<Reseller>;
+  offerMigration(resellerId: string, actorId: string, today: Date): Observable<AuditLog>;
+  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site>;
+  savePlan(plan: Plan): Observable<Plan>;
+  saveCoupon(coupon: Coupon): Observable<Coupon>;
+  deleteCoupon(couponId: string): Observable<void>;
   listAuditLogs(): Observable<AuditLog[]>;
 }
 

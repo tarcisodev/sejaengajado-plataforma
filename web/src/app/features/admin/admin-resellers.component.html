@@ -1,0 +1,50 @@
+@if (error()) {
+  <p class="warn" role="alert">{{ error() }}</p>
+}
+@if (message()) {
+  <p class="note">{{ message() }}</p>
+}
+<table>
+  <caption>
+    Revendedores
+  </caption>
+  <thead>
+    <tr>
+      <th>Revendedor</th>
+      <th>Status</th>
+      <th>Sites</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.id) {
+      <tr>
+        <td>{{ row.nome }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ owned(row.id).length }}</td>
+        <td>
+          @if (canMigrate(row)) {
+            <button type="button" (click)="offer(row.id)">Oferecer migração</button>
+          }
+          @if (row.status === 'BLOCKED') {
+            <button type="button" (click)="unblock(row.id)">Desbloquear</button>
+          } @else {
+            <form (submit)="block(row.id, $event)">
+              <label>
+                Motivo
+                <input name="reason" />
+              </label>
+              @for (site of owned(row.id); track site.id) {
+                <label>
+                  <input type="checkbox" name="siteId" [value]="site.id" />
+                  {{ site.content.businessName }}
+                </label>
+              }
+              <button type="submit">Bloquear</button>
+            </form>
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

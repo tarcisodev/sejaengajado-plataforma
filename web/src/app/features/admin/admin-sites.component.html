@@ -1,0 +1,47 @@
+<label>
+  Buscar site
+  <input [value]="query()" (input)="query.set(inputValue($event))" />
+</label>
+<label>
+  Status
+  <select [value]="status()" (change)="status.set(statusValue($event))">
+    <option value="">Todos</option>
+    <option value="PUBLISHED">Publicado</option>
+    <option value="READ_ONLY">Só leitura</option>
+    <option value="SUSPENDED">Suspenso</option>
+    <option value="DRAFT">Rascunho</option>
+    <option value="ARCHIVED">Arquivado</option>
+  </select>
+</label>
+<table>
+  <caption>
+    Sites da plataforma
+  </caption>
+  <thead>
+    <tr>
+      <th>Negócio</th>
+      <th>Endereço</th>
+      <th>Status</th>
+      <th>Plano</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of visible(); track row.id) {
+      <tr>
+        <td>{{ row.content.businessName }}</td>
+        <td>{{ row.slug }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ planName(row.planId) }}</td>
+        <td>
+          @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+            <button type="button" (click)="suspend(row)">Suspender</button>
+          }
+          @if (row.status === 'SUSPENDED') {
+            <button type="button" (click)="reactivate(row)">Reativar</button>
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
