@@ -1,0 +1,12 @@
+---
+description: Padrão Angular deste repositório — seguir as skills oficiais antes de gerar ou alterar código
+alwaysApply: true
+---
+
+# Angular skills como padrão
+
+Antes de criar ou alterar código Angular, leia e siga `.agents/skills/angular-developer/SKILL.md` e a referência da tarefa em `.agents/skills/angular-developer/references/`. App novo só com `.agents/skills/angular-new-app/SKILL.md`.
+
+Este app é Angular 22.2, standalone, SSR e Tailwind 4, em `web/`. Formulários que já existem continuam no estilo atual do projeto. Formulários novos podem usar Signal Forms. Testes seguem Karma/Jasmine, não Vitest.
+
+Depois de gerar código Angular, rode `npx ng build` em `web/` e corrija o que quebrar.
