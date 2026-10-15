@@ -6,6 +6,7 @@ import {
   HostAttributeToken,
   inject,
   Injector,
+  NgZone,
   PLATFORM_ID,
   runInInjectionContext,
 } from '@angular/core';
@@ -53,6 +54,7 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
     const elementRef = options.elementRef ?? inject(ElementRef);
     const platformId = inject(PLATFORM_ID);
     const destroyRef = inject(DestroyRef);
+    const zone = inject(NgZone);
     const baseClasses = inject(new HostAttributeToken('class'), { optional: true });
 
     const element = elementRef.nativeElement;
@@ -86,7 +88,7 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
       elementClassManagers.set(element, manager);
 
       // Setup global observer if needed and register this element
-      setupGlobalObserver(platformId);
+      setupGlobalObserver(platformId, zone);
       observedElements.add(element);
 
       // Suppress transitions until the first effect writes correct classes and
@@ -121,9 +123,11 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
       // with transitions disabled first, then re-enables them.
       if (manager!.transitionsSuppressed) {
         manager!.transitionsSuppressed = false;
-        manager!.restoreRafId = requestAnimationFrame(() => {
-          manager!.restoreRafId = null;
-          restoreTransitionSuppression(manager!);
+        zone.runOutsideAngular(() => {
+          manager!.restoreRafId = requestAnimationFrame(() => {
+            manager!.restoreRafId = null;
+            restoreTransitionSuppression(manager!);
+          });
         });
       }
     }
@@ -175,50 +179,52 @@ function restoreTransitionSuppression(manager: ElementClassManager): void {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
-function setupGlobalObserver(platformId: Object): void {
+function setupGlobalObserver(platformId: Object, zone: NgZone): void {
   if (isPlatformBrowser(platformId) && !globalObserver) {
-    // Create single global observer that watches the entire document
-    globalObserver = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          const element = mutation.target as HTMLElement;
-          const manager = elementClassManagers.get(element);
+    zone.runOutsideAngular(() => {
+      // Create single global observer that watches the entire document
+      globalObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            const element = mutation.target as HTMLElement;
+            const manager = elementClassManagers.get(element);
 
-          // Only process elements we're managing
-          if (manager && observedElements.has(element)) {
-            if (manager.isUpdating) continue; // Ignore changes we're making
+            // Only process elements we're managing
+            if (manager && observedElements.has(element)) {
+              if (manager.isUpdating) continue; // Ignore changes we're making
 
-            // Update base classes to include any externally added classes
-            const currentClasses = toClassList(element.className);
-            const allSourceClasses = new Set<string>();
+              // Update base classes to include any externally added classes
+              const currentClasses = toClassList(element.className);
+              const allSourceClasses = new Set<string>();
 
-            // Collect all classes from all sources
-            for (const source of manager.sources.values()) {
-              for (const className of source.classes) {
-                allSourceClasses.add(className);
+              // Collect all classes from all sources
+              for (const source of manager.sources.values()) {
+                for (const className of source.classes) {
+                  allSourceClasses.add(className);
+                }
               }
-            }
 
-            // Any classes not from sources become new base classes
-            manager.baseClasses.clear();
+              // Any classes not from sources become new base classes
+              manager.baseClasses.clear();
 
-            for (const className of currentClasses) {
-              if (!allSourceClasses.has(className)) {
-                manager.baseClasses.add(className);
+              for (const className of currentClasses) {
+                if (!allSourceClasses.has(className)) {
+                  manager.baseClasses.add(className);
+                }
               }
-            }
 
-            updateElement(manager);
+              updateElement(manager);
+            }
           }
         }
-      }
-    });
+      });
 
-    // Start observing the entire document for class attribute changes
-    globalObserver.observe(document, {
-      attributes: true,
-      attributeFilter: ['class'],
-      subtree: true, // Watch all descendants
+      // Start observing the entire document for class attribute changes
+      globalObserver.observe(document, {
+        attributes: true,
+        attributeFilter: ['class'],
+        subtree: true, // Watch all descendants
+      });
     });
   }
 }

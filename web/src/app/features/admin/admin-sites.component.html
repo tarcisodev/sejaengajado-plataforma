@@ -18,7 +18,7 @@
     <div class="grid gap-2 text-sm">
       <span id="site-status">Status</span>
       <hlm-select [value]="status()" [itemToString]="statusLabel" (valueChange)="setStatus($event)">
-        <hlm-select-trigger class="h-11 w-full" aria-labelledby="site-status">
+        <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-status">
           <hlm-select-value placeholder="Todos" />
         </hlm-select-trigger>
         <hlm-select-content>
