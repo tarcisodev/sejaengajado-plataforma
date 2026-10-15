@@ -21,11 +21,14 @@ Em `api/.env`, `DATABASE_URL=postgres://sejaengajado:local-dev-only@localhost:54
 ```bash
 npm ci
 npx prisma migrate deploy
+npx prisma db seed
 npm test
 npm run test:int
 npm run lint
 npm run build
 npm start
 ```
+
+O seed é idempotente. O e-mail do admin vem de `SEED_ADMIN_EMAIL` (padrão `admin@sejaengajado.com.br`). Não há senha no seed: o login é pelo Supabase Auth.
 
 `test:int` sobe `postgres:16-alpine` via Testcontainers (Docker local), aplica as migrations, usa o role `se_app` e trunca as tabelas entre os casos.

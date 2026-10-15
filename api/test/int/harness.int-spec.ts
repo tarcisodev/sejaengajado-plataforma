@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 
-import { buildUser, insertProbe } from '../setup/factories';
+import { insertUser } from '../setup/factories';
 import { createTestApp } from '../setup/create-test-app';
 import { FakeGateway } from '../setup/fake-gateway';
 import { loginAs } from '../setup/login-as';
@@ -11,25 +11,19 @@ describe('testcontainers harness', () => {
   it('uses a real Postgres 16, not SQLite and not a Prisma mock', async () => {
     const { prisma, appUrl } = getHarnessPostgres();
     const rows = await prisma.$queryRaw<{ v: string }[]>`SELECT version() AS v`;
-    const engine = await prisma.$queryRaw<{ name: string }[]>`
-      SELECT name FROM pg_settings WHERE name = 'server_version_num'
-    `;
 
     expect(appUrl).toMatch(/^postgresql:/);
     expect(appUrl).not.toMatch(/sqlite/i);
     expect(rows[0]?.v).toMatch(/PostgreSQL 16/);
-    expect(engine[0]?.name).toBe('server_version_num');
     expect(jest.isMockFunction(prisma.$queryRaw)).toBe(false);
-    expect(jest.isMockFunction(prisma.harnessProbe.create)).toBe(false);
-    expect(typeof prisma.harnessProbe.create).toBe('function');
+    expect(jest.isMockFunction(prisma.user.create)).toBe(false);
   });
 
   it('applies migrations and talks through the app role without BYPASSRLS', async () => {
-    const probe = await insertProbe('hello');
+    const user = await insertUser('CUSTOMER');
     const { prisma, adminUrl } = getHarnessPostgres();
-    const listed = await prisma.harnessProbe.findMany();
-    expect(listed.map((row) => row.label)).toEqual(['hello']);
-    expect(probe.label).toBe('hello');
+    const listed = await prisma.user.findMany();
+    expect(listed.map((row) => row.email)).toContain(user.email);
 
     const { PrismaClient } = await import('@prisma/client');
     const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
@@ -44,7 +38,7 @@ describe('testcontainers harness', () => {
   });
 
   it('issues a Supabase-shaped JWT for loginAs and registers FakeGateway', async () => {
-    const user = buildUser('RESELLER', { resellerId: '11111111-1111-1111-1111-111111111111' });
+    const user = await insertUser('RESELLER');
     const session = loginAs('RESELLER', {
       supabaseId: user.supabaseId,
       resellerId: user.resellerId,
