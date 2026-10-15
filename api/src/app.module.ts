@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
+import { ProductsModule } from './admin/products/products.module';
 import { ResellersModule } from './admin/resellers/resellers.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
@@ -20,6 +21,7 @@ import { PublicModule } from './public/public.module';
 import { ResellerModule } from './reseller/reseller.module';
 import { PrismaModule } from './tenant/prisma.module';
 import { TenantScopeGuard } from './tenant/tenant-scope.guard';
+import { WholesaleModule } from './wholesale/wholesale.module';
 
 @Module({})
 export class AppModule {
@@ -34,6 +36,8 @@ export class AppModule {
         AuthModule.register(env),
         AuditModule,
         ResellersModule,
+        ProductsModule,
+        WholesaleModule,
         PublicModule,
         ResellerModule,
       ],

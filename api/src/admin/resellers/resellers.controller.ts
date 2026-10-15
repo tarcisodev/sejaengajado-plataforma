@@ -121,16 +121,6 @@ export class ResellersController {
     return this.resellers.impersonate(id);
   }
 
-  @Post('admin/resellers/:id/wholesale')
-  @Audit({
-    action: 'wholesale.create',
-    entity: 'WholesalePrice',
-    entityId: (result) => (result as { id: string }).id,
-  })
-  wholesale(@Param('id') id: string, @Body() body: unknown) {
-    return this.resellers.createWholesale(id, body);
-  }
-
   @Post('admin/plaques/movements')
   @Audit({
     action: 'plaque.movement',

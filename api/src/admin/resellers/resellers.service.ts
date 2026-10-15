@@ -26,13 +26,6 @@ export const blockSchema = z.object({
   reason: z.string().min(1),
 });
 
-export const wholesaleSchema = z.object({
-  productId: z.string().uuid(),
-  priceCents: z.number().int().positive(),
-  validFrom: z.string().datetime(),
-  validTo: z.string().datetime().nullable().optional(),
-});
-
 export const plaqueMovementSchema = z.object({
   resellerId: z.string().uuid(),
   type: z.enum(['IN', 'OUT', 'ADJUST']),
@@ -270,45 +263,6 @@ export class ResellersService {
       name: before.name,
       status: before.status,
     };
-  }
-
-  async createWholesale(resellerId: string, body: unknown) {
-    const parsed = wholesaleSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new BadRequestException({
-        code: 'VALIDATION_FAILED',
-        message: 'Dados inválidos',
-        fields: parsed.error.issues.map((issue) => ({
-          path: issue.path.join('.'),
-          code: issue.code,
-          message: issue.message,
-        })),
-      });
-    }
-    await this.get(resellerId);
-    const input = parsed.data;
-    const validFrom = new Date(input.validFrom);
-    const validTo = input.validTo ? new Date(input.validTo) : null;
-
-    return this.db.$transaction(async (tx) => {
-      await tx.wholesalePrice.updateMany({
-        where: {
-          resellerId,
-          productId: input.productId,
-          validTo: null,
-        },
-        data: { validTo: validFrom },
-      });
-      return tx.wholesalePrice.create({
-        data: {
-          resellerId,
-          productId: input.productId,
-          priceCents: input.priceCents,
-          validFrom,
-          validTo,
-        },
-      });
-    });
   }
 
   async createPlaqueMovement(body: unknown) {
