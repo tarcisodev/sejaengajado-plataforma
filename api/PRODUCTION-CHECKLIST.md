@@ -33,11 +33,14 @@ Base: `producao/contrib-nucleo.md` (Bloco 17), com `/health/ready` e mesma orige
 - [x] **`infra/stack.yml`** (PRODUCAO-06 B2): sem Postgres/Redis; `cfdns`; `se-app` PathPrefix `/api` prio 200; `restart_policy: any`; reservas 96+128+32 MB.
 - [x] **`infra/secrets.md`** (PRODUCAO-06 B3): só nomes + como criar; existentes `se_supabase_jwt_secret_v1`, `se_s3_*_v1`; `.env.example` api/web com placeholders.
 
+- [x] **CI/CD** (PRODUCAO-06 B4): `.github/workflows/deploy.yml` — GHCR tag=SHA (sem `:latest`); deploy self-hosted + `environment: production`; rollback = `rollback_tag` / Swarm rollback; só `GITHUB_TOKEN`.
+- [x] **Wildcard produção** (PRODUCAO-06 B5): `infra/runbooks/06-cert-producao.md` (`cfdns`, sem alterar DNS no runbook).
+- [x] **Backup R2 `se-backup`** (PRODUCAO-06 B6): `pg-backup.sh` (age + rclone); lifecycle 30d no bucket; `restore-test.sh` + `restore-test.yml`; RTO em `docs/runbooks/restore.md`.
+
 ## Pendências (PRODUCAO-06 restante)
 
-- [ ] CI/CD GHCR + deploy self-hosted (PRODUCAO-06 B4) — deploy na VPS é do Tarciso.
-- [ ] Wildcard produção + backup R2 `se-backup` + restore testado (PRODUCAO-06 B5–B6).
 - [ ] Sentry (release=SHA), Uptime/Healthchecks (PRODUCAO-06 B7).
 - [ ] Go-live checklist + valores reais PlatformConfig/atacado (⏳P6) (PRODUCAO-06 B8).
+- [ ] Aplicar deploy/wildcard/backup na VPS (Tarciso) e preencher RTO medido.
 
 

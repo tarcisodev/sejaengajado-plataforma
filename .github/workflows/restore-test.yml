@@ -1,0 +1,53 @@
+# Restore mensal fora da VPS — chave privada age só em GitHub Secret (nunca no Swarm).
+# Secrets: BACKUP_AGE_PRIVKEY, RCLONE_CONF_RESTORE (e opcional HC_RESTORE_URL).
+
+name: restore-test
+
+on:
+  schedule:
+    # 05:00 UTC no dia 2 de cada mês
+    - cron: "0 5 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install age + rclone
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age rclone
+
+      - name: Materialize secrets (tmpfs files)
+        env:
+          BACKUP_AGE_PRIVKEY: ${{ secrets.BACKUP_AGE_PRIVKEY }}
+          RCLONE_CONF_RESTORE: ${{ secrets.RCLONE_CONF_RESTORE }}
+        run: |
+          test -n "$BACKUP_AGE_PRIVKEY" || { echo "BACKUP_AGE_PRIVKEY ausente"; exit 1; }
+          test -n "$RCLONE_CONF_RESTORE" || { echo "RCLONE_CONF_RESTORE ausente"; exit 1; }
+          printf '%s' "$BACKUP_AGE_PRIVKEY" > "$RUNNER_TEMP/age.key"
+          printf '%s' "$RCLONE_CONF_RESTORE" > "$RUNNER_TEMP/rclone.conf"
+          chmod 600 "$RUNNER_TEMP/age.key" "$RUNNER_TEMP/rclone.conf"
+
+      - name: Restore test (Postgres descartável)
+        env:
+          BACKUP_AGE_PRIVKEY_FILE: ${{ runner.temp }}/age.key
+          RCLONE_CONFIG: ${{ runner.temp }}/rclone.conf
+          BACKUP_RCLONE_REMOTE: r2:se-backup
+          HC_RESTORE_URL: ${{ secrets.HC_RESTORE_URL }}
+        run: |
+          chmod +x infra/backup/restore-test.sh
+          infra/backup/restore-test.sh | tee "$RUNNER_TEMP/restore.log"
+          grep -E '^RESTORE_RTO_SECONDS=' "$RUNNER_TEMP/restore.log" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "RTO registrado no log do job (atualizar docs/runbooks/restore.md após o 1º ensaio)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Scrub key material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/age.key" "$RUNNER_TEMP/rclone.conf" || true

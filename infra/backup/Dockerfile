@@ -15,9 +15,9 @@ RUN apk add --no-cache \
     && mkdir -p /work /etc/supercronic \
     && chown -R backup:backup /work /etc/supercronic
 
-COPY --chown=backup:backup pg-backup.sh /usr/local/bin/pg-backup.sh
+COPY --chown=backup:backup pg-backup.sh restore-test.sh /usr/local/bin/
 COPY --chown=backup:backup crontab /etc/supercronic/crontab
-RUN chmod +x /usr/local/bin/pg-backup.sh
+RUN chmod +x /usr/local/bin/pg-backup.sh /usr/local/bin/restore-test.sh
 
 USER backup
 WORKDIR /work

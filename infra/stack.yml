@@ -146,19 +146,22 @@ services:
       resources: { limits: { memory: 256M } }
 
   backup:
-    image: ghcr.io/tarcisodev/sejaengajado-backup:${BACKUP_TAG:-1}
+    # Mesmo SHA do deploy (nunca :latest). CI exporta BACKUP_TAG=$IMAGE_TAG.
+    image: ghcr.io/tarcisodev/sejaengajado-backup:${BACKUP_TAG:?BACKUP_TAG required}
     environment:
       TZ: UTC
       BACKUP_DATABASE_URL_FILE: /run/secrets/se_backup_database_url
       BACKUP_AGE_PUBKEY_FILE: /run/secrets/se_backup_age_pubkey
       RCLONE_CONFIG: /run/secrets/se_rclone_conf
       HC_BACKUP_URL_FILE: /run/secrets/se_hc_backup_url
+      BACKUP_RCLONE_REMOTE: r2:se-backup
     secrets:
       - se_backup_database_url
       - se_backup_age_pubkey
       - se_rclone_conf
       - se_hc_backup_url
-    networks: [supabase_network]
+    # supabase_network = Postgres; TarcisoDevNet = egress R2/Healthchecks
+    networks: [supabase_network, TarcisoDevNet]
     logging: *logging
     deploy:
       <<: *deploy_common

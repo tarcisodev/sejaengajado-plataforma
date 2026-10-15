@@ -29,17 +29,20 @@ read -rs V && printf '%s' "$V" | docker secret create <nome> - && unset V
 | `se_asaas_api_key_v1` | Asaas (produção no go-live) → `ASAAS_API_KEY_FILE` | Sandbox só local via arquivo |
 | `se_asaas_webhook_token_v1` | Header `asaas-access-token` → `ASAAS_WEBHOOK_TOKEN_FILE` | |
 | `se_backup_age_pubkey_v1` | age recipient do dump | Privkey só fora da VPS / GitHub restore |
-| `se_rclone_conf_v1` | rclone → R2 `se-backups` | |
+| `se_rclone_conf_v1` | rclone → R2 `se-backup` (lifecycle 30d no bucket) | |
 | `se_hc_backup_url_v1` | Healthchecks ping backup diário | |
 | `se_hc_jobs_url_v1` | Healthchecks ping jobs Nest | |
 | `se_sentry_dsn_v1` | Sentry API/SSR → `SENTRY_DSN_FILE` | |
 
-### GitHub Secrets (só restore-test, runner hosted)
+### GitHub Secrets (só restore-test / CI — nunca no Swarm)
 
 | Nome | Uso |
 | --- | --- |
-| `BACKUP_AGE_PRIVKEY` | Decriptar dump no restore-test mensal |
-| `RCLONE_CONF_RESTORE` | rclone read-only para baixar do R2 |
+| `BACKUP_AGE_PRIVKEY` | Decriptar dump no restore-test mensal (hosted) |
+| `RCLONE_CONF_RESTORE` | rclone read-only para baixar do R2 `se-backup` |
+| `HC_RESTORE_URL` | (opcional) ping Healthchecks do restore-test |
+
+Deploy (`.github/workflows/deploy.yml`) usa **apenas** `secrets.GITHUB_TOKEN` para login GHCR.
 
 ## Rotação `_vN`
 
