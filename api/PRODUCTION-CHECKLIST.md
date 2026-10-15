@@ -28,11 +28,16 @@ Base: `producao/contrib-nucleo.md` (Bloco 17), com `/health/ready` e mesma orige
 - [x] **Checkout/faturas no front** (PRODUCAO-05 B6): `POST /api/billing/checkout/pronto`, `GET /api/billing/payments/:id` (polling), `GET /api/reseller/invoices`; web `/conta/checkout` + `/faturas`; centavos só da API; cartão = link Asaas hospedado; JWT via supabase-js interceptor.
 - [x] **E2E sandbox** (PRODUCAO-05 B7): `api/test/e2e/mvp.sandbox.spec.ts` (só com `ASAAS_SANDBOX=1`) + `docs/e2e-sandbox.md`; chave via `ASAAS_API_KEY_FILE` local.
 
-## Pendências (PRODUCAO-06)
+- [x] **SYSTEM_PRISMA** só webhooks/jobs (+ auth bootstrap, public by-host, ledger): `lint:system-prisma`; controller HTTP falha o lint; ledger do webhook usa `resellerId` do pagamento reconsultado.
+- [x] **Dockerfiles** (PRODUCAO-06 B1): `api/Dockerfile` (node non-root, entrypoint `*_FILE`, health `/api/health/ready`), `web/Dockerfile` (SSR porta 4000, `/healthz`), `infra/backup/Dockerfile` (pg16 + age + rclone + supercronic).
+- [x] **`infra/stack.yml`** (PRODUCAO-06 B2): sem Postgres/Redis; `cfdns`; `se-app` PathPrefix `/api` prio 200; `restart_policy: any`; reservas 96+128+32 MB.
+- [x] **`infra/secrets.md`** (PRODUCAO-06 B3): só nomes + como criar; existentes `se_supabase_jwt_secret_v1`, `se_s3_*_v1`; `.env.example` api/web com placeholders.
 
-- [ ] Dockerfiles api/web/backup + stack Swarm (PRODUCAO-06 B1–B2).
-- [ ] Inventário de secrets + CI/CD GHCR (PRODUCAO-06 B3–B4).
+## Pendências (PRODUCAO-06 restante)
+
+- [ ] CI/CD GHCR + deploy self-hosted (PRODUCAO-06 B4) — deploy na VPS é do Tarciso.
 - [ ] Wildcard produção + backup R2 `se-backup` + restore testado (PRODUCAO-06 B5–B6).
-- [ ] Sentry (release=SHA), Uptime/Healthchecks, Traefik HSTS/rate-limit (PRODUCAO-06 B7).
+- [ ] Sentry (release=SHA), Uptime/Healthchecks (PRODUCAO-06 B7).
 - [ ] Go-live checklist + valores reais PlatformConfig/atacado (⏳P6) (PRODUCAO-06 B8).
+
 

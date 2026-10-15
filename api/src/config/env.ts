@@ -14,6 +14,7 @@ const fileBacked = [
   'S3_SECRET_KEY',
   'GOOGLE_PLACES_API_KEY',
   'HC_JOBS_URL',
+  'SENTRY_DSN',
 ] as const;
 
 const schema = z.object({
