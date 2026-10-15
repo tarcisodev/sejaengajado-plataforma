@@ -1,0 +1,77 @@
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import type { Response } from 'express';
+import { ZodError } from 'zod';
+
+export interface FieldError {
+  path: string;
+  code: string;
+  message: string;
+}
+
+export interface ErrorBody {
+  code: string;
+  message: string;
+  fields?: FieldError[];
+}
+
+const statusMap: Record<number, { code: string; message: string }> = {
+  [HttpStatus.BAD_REQUEST]: { code: 'BAD_REQUEST', message: 'Requisição inválida' },
+  [HttpStatus.UNAUTHORIZED]: { code: 'UNAUTHORIZED', message: 'Não autenticado' },
+  [HttpStatus.FORBIDDEN]: { code: 'FORBIDDEN', message: 'Sem permissão' },
+  [HttpStatus.NOT_FOUND]: { code: 'NOT_FOUND', message: 'Não encontrado' },
+  [HttpStatus.SERVICE_UNAVAILABLE]: { code: 'UNAVAILABLE', message: 'Serviço indisponível' },
+};
+
+export function toErrorBody(exception: unknown): { status: number; body: ErrorBody } {
+  if (exception instanceof ZodError) {
+    return {
+      status: HttpStatus.BAD_REQUEST,
+      body: {
+        code: 'VALIDATION_FAILED',
+        message: 'Dados inválidos',
+        fields: exception.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          code: issue.code,
+          message: 'Valor inválido',
+        })),
+      },
+    };
+  }
+
+  if (exception instanceof HttpException) {
+    const status = exception.getStatus();
+    const known = statusMap[status] ?? {
+      code: 'INTERNAL_ERROR',
+      message: 'Erro interno',
+    };
+    const response = exception.getResponse();
+    const fields =
+      typeof response === 'object' && response !== null && 'fields' in response
+        ? (response as { fields?: FieldError[] }).fields
+        : undefined;
+    return {
+      status,
+      body: fields ? { ...known, fields } : known,
+    };
+  }
+
+  return {
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    body: { code: 'INTERNAL_ERROR', message: 'Erro interno' },
+  };
+}
+
+@Catch()
+export class ApiExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost): void {
+    const response = host.switchToHttp().getResponse<Response>();
+    const { status, body } = toErrorBody(exception);
+    response.status(status).json(body);
+  }
+}

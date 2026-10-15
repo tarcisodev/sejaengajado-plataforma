@@ -5,14 +5,14 @@ Monorepo local.
 | Pasta | Conteúdo |
 |---|---|
 | `web/` | Angular 22.2, SSR, Tailwind 4.3 |
-| `api/` | NestJS 11 (esqueleto no bloco seguinte) |
+| `api/` | NestJS 11 |
 | `infra/` | Runbooks e trechos de infra |
 
 As versões estão em `docs/versions.md`. Node 22, conforme `.nvmrc`.
 
 ## Desenvolvimento local
 
-O `ng serve` sobe o frontend. Com `apiUrl` vazio ele usa o mock em memória. A build de produção troca esse mock pelo cliente HTTP e não inclui a semente. O banco não entra no compose de desenvolvimento.
+O `ng serve` sobe o frontend. Com `apiUrl` vazio ele usa o mock em memória. A build de produção troca esse mock pelo cliente HTTP e não inclui a semente. O Postgres local sobe à parte, com `docker compose -f docker-compose.dev.yml up`.
 
 ## Subir
 

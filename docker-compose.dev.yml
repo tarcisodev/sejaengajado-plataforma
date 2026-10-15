@@ -1,0 +1,16 @@
+# Postgres 16 só para desenvolvimento local (⏳P3).
+# A senha abaixo é um placeholder deste compose. Não use em produção.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sejaengajado
+      POSTGRES_PASSWORD: local-dev-only
+      POSTGRES_DB: sejaengajado
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sejaengajado -d sejaengajado"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
