@@ -1,6 +1,18 @@
-# Seja Engajado — desenvolvimento local
+# Seja Engajado
 
-Sobe só o frontend. A API Nest ainda não está neste repositório, e o banco não entra neste compose: com `apiUrl` vazio o `ng serve` usa o mock em memória. A build de produção troca esse mock pelo cliente HTTP e não inclui a semente.
+Monorepo local.
+
+| Pasta | Conteúdo |
+|---|---|
+| `web/` | Angular 22.2, SSR, Tailwind 4.3 |
+| `api/` | NestJS 11 (esqueleto no bloco seguinte) |
+| `infra/` | Runbooks e trechos de infra |
+
+As versões estão em `docs/versions.md`. Node 22, conforme `.nvmrc`.
+
+## Desenvolvimento local
+
+O `ng serve` sobe o frontend. Com `apiUrl` vazio ele usa o mock em memória. A build de produção troca esse mock pelo cliente HTTP e não inclui a semente. O banco não entra no compose de desenvolvimento.
 
 ## Subir
 
@@ -16,7 +28,7 @@ O painel e a landing ficam em `http://127.0.0.1:4200/`. O admin local é `http:/
 
 Em `web/src/environments/environment.development.ts`, defina `apiUrl` com a base da API, por exemplo `http://localhost:3000`. Reinicie o `ng serve`. O cliente chama essa origem; os caminhos estão em `HttpApiService`.
 
-Sem `apiUrl`, o desenvolvimento continua no mock. A chave do Google Places, se existir, vai em `googlePlacesApiKey` no mesmo arquivo. Não commite segredo: use o `.env.example` só como lembrete.
+Sem `apiUrl`, o desenvolvimento continua no mock. A chave do Google Places fica em `web/.env` como `GOOGLE_PLACES_API_KEY`. O `npm start` copia essa chave para um arquivo local que o git ignora. Não commite segredo.
 
 Fora do Docker, na pasta `web`:
 
