@@ -31,13 +31,15 @@
           <hlm-select-trigger class="h-11! w-full" aria-labelledby="revenue-reseller">
             <hlm-select-value />
           </hlm-select-trigger>
-          <hlm-select-content>
-            <hlm-select-item value="all">Todos</hlm-select-item>
-            <hlm-select-item value="direct">Venda direta</hlm-select-item>
-            @for (reseller of resellers(); track reseller.id) {
-              <hlm-select-item [value]="reseller.id">{{ reseller.nome }}</hlm-select-item>
-            }
-          </hlm-select-content>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              <hlm-select-item value="all">Todos</hlm-select-item>
+              <hlm-select-item value="direct">Venda direta</hlm-select-item>
+              @for (reseller of resellers(); track reseller.id) {
+                <hlm-select-item [value]="reseller.id">{{ reseller.nome }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
         </hlm-select>
       </div>
       <p class="sm:col-span-2">
@@ -91,11 +93,13 @@
           <hlm-select-trigger class="h-11! w-full" aria-labelledby="invoice-reseller">
             <hlm-select-value />
           </hlm-select-trigger>
-          <hlm-select-content>
-            @for (reseller of resellers(); track reseller.id) {
-              <hlm-select-item [value]="reseller.id">{{ reseller.nome }}</hlm-select-item>
-            }
-          </hlm-select-content>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (reseller of resellers(); track reseller.id) {
+                <hlm-select-item [value]="reseller.id">{{ reseller.nome }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
         </hlm-select>
       </div>
       <label class="grid gap-2 text-sm">

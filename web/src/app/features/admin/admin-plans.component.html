@@ -16,11 +16,13 @@
             <hlm-select-trigger class="h-11! w-full" aria-labelledby="plan-tipo">
               <hlm-select-value />
             </hlm-select-trigger>
-            <hlm-select-content>
-              <hlm-select-item value="ONE_TIME">Pagamento único</hlm-select-item>
-              <hlm-select-item value="RECURRING">Mensal</hlm-select-item>
-              <hlm-select-item value="ANNUAL_HOSTING">Renovação anual</hlm-select-item>
-            </hlm-select-content>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                <hlm-select-item value="ONE_TIME">Pagamento único</hlm-select-item>
+                <hlm-select-item value="RECURRING">Mensal</hlm-select-item>
+                <hlm-select-item value="ANNUAL_HOSTING">Renovação anual</hlm-select-item>
+              </hlm-select-content>
+            </ng-template>
           </hlm-select>
         </div>
         <label class="grid gap-2 text-sm">

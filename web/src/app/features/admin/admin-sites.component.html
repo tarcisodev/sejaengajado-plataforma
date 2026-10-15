@@ -21,14 +21,16 @@
         <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-status">
           <hlm-select-value placeholder="Todos" />
         </hlm-select-trigger>
-        <hlm-select-content>
-          <hlm-select-item value="">Todos</hlm-select-item>
-          <hlm-select-item value="PUBLISHED">Publicado</hlm-select-item>
-          <hlm-select-item value="READ_ONLY">Só leitura</hlm-select-item>
-          <hlm-select-item value="SUSPENDED">Suspenso</hlm-select-item>
-          <hlm-select-item value="DRAFT">Rascunho</hlm-select-item>
-          <hlm-select-item value="ARCHIVED">Arquivado</hlm-select-item>
-        </hlm-select-content>
+        <ng-template hlmSelectPortal>
+          <hlm-select-content>
+            <hlm-select-item value="">Todos</hlm-select-item>
+            <hlm-select-item value="PUBLISHED">Publicado</hlm-select-item>
+            <hlm-select-item value="READ_ONLY">Só leitura</hlm-select-item>
+            <hlm-select-item value="SUSPENDED">Suspenso</hlm-select-item>
+            <hlm-select-item value="DRAFT">Rascunho</hlm-select-item>
+            <hlm-select-item value="ARCHIVED">Arquivado</hlm-select-item>
+          </hlm-select-content>
+        </ng-template>
       </hlm-select>
     </div>
   </div>
