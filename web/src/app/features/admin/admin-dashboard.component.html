@@ -45,3 +45,103 @@
     </div>
   </article>
 </section>
+
+<section class="mt-6 grid gap-4" aria-labelledby="period-heading">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <h2 id="period-heading" class="font-display text-xl">Período</h2>
+    <div class="flex flex-wrap gap-2">
+      <button
+        hlmBtn
+        class="h-11"
+        type="button"
+        [variant]="preset() === '30' ? 'default' : 'outline'"
+        [attr.aria-pressed]="preset() === '30'"
+        (click)="setPreset('30')"
+      >
+        30 dias
+      </button>
+      <button
+        hlmBtn
+        class="h-11"
+        type="button"
+        [variant]="preset() === '7' ? 'default' : 'outline'"
+        [attr.aria-pressed]="preset() === '7'"
+        (click)="setPreset('7')"
+      >
+        7 dias
+      </button>
+      <button
+        hlmBtn
+        class="h-11"
+        type="button"
+        [variant]="preset() === 'custom' ? 'default' : 'outline'"
+        [attr.aria-pressed]="preset() === 'custom'"
+        (click)="setPreset('custom')"
+      >
+        Personalizado
+      </button>
+    </div>
+  </div>
+  @if (preset() === 'custom') {
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="grid gap-2 text-sm">
+        Data inicial
+        <input
+          hlmInput
+          class="h-11"
+          type="date"
+          [value]="from()"
+          (input)="from.set(inputValue($event))"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        Data final
+        <input
+          hlmInput
+          class="h-11"
+          type="date"
+          [value]="to()"
+          (input)="to.set(inputValue($event))"
+        />
+      </label>
+    </div>
+  }
+  <article hlmCard>
+    <header hlmCardHeader>
+      <p>Total do período</p>
+    </header>
+    <div hlmCardContent class="grid gap-1">
+      <strong class="font-display text-2xl tabular-nums" data-period-total>{{
+        formatBrl(ranking().total)
+      }}</strong>
+      <small class="text-sm text-muted-foreground">{{ from() }} a {{ to() }}</small>
+    </div>
+  </article>
+  <article hlmCard>
+    <header hlmCardHeader>
+      <h3 class="font-display text-lg">Ranking de revendedores</h3>
+    </header>
+    <div hlmCardContent>
+      @if (ranking().rows.length === 0) {
+        <p>Nenhuma venda de revendedor no período.</p>
+      } @else {
+        <ol class="grid gap-4">
+          @for (row of ranking().rows; track row.id) {
+            <li class="grid gap-1">
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span>{{ row.nome }}</span>
+                <span class="tabular-nums">{{ formatBrl(row.valor) }}</span>
+              </div>
+              <div class="h-3 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                <div
+                  class="h-3 rounded-full bg-primary"
+                  [style.width.%]="barWidth(row.valor)"
+                ></div>
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    </div>
+  </article>
+</section>
