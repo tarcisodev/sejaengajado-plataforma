@@ -10,6 +10,8 @@ import { PgReadyProbe, READY_PROBE } from './health/ready';
 import { loggerParams } from './logging/redact';
 import { FakeGateway } from './payments/fake-gateway';
 import { PAYMENT_GATEWAY } from './payments/payment-gateway';
+import { PrismaModule } from './tenant/prisma.module';
+import { TenantScopeGuard } from './tenant/tenant-scope.guard';
 
 @Module({})
 export class AppModule {
@@ -19,6 +21,7 @@ export class AppModule {
       imports: [
         LoggerModule.forRoot(loggerParams),
         ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+        PrismaModule.register(env),
       ],
       controllers: [HealthController],
       providers: [
@@ -29,8 +32,9 @@ export class AppModule {
         { provide: PAYMENT_GATEWAY, useExisting: FakeGateway },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
+        { provide: APP_GUARD, useClass: TenantScopeGuard },
       ],
-      exports: [PAYMENT_GATEWAY, FakeGateway],
+      exports: [PAYMENT_GATEWAY, FakeGateway, PrismaModule],
     };
   }
 }
