@@ -19,4 +19,10 @@ describe('checkReady', () => {
   it('is false when the queue is down', async () => {
     await expect(checkReady({ query: async () => ({ rows: [] }) }, false)).resolves.toBe(false);
   });
+
+  it('is false when storage (R2) is down', async () => {
+    await expect(checkReady({ query: async () => ({ rows: [] }) }, true, false)).resolves.toBe(
+      false,
+    );
+  });
 });

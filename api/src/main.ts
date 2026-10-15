@@ -7,6 +7,7 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { loadEnv, type Env } from './config/env';
+import { initSentry } from './observability/sentry';
 import { setupOpenApi, shouldEnableDocs } from './openapi/openapi';
 
 const BODY_LIMIT = '100kb';
@@ -19,6 +20,7 @@ export async function boot(
   ) => Promise<void>,
 ): Promise<void> {
   const env = loadEnv(source);
+  initSentry(env, source.SENTRY_RELEASE || source.IMAGE_TAG || source.GITHUB_SHA);
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule.register(env),
     { bufferLogs: true },

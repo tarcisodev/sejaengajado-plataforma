@@ -8,6 +8,7 @@ import {
 import { provideRouter } from '@angular/router';
 
 import { authTokenInterceptor } from './core/auth/auth-token.interceptor';
+import { provideSentry } from './core/sentry/provide-sentry';
 import { provideSpartanHlm } from './shared/ui/utils/src/lib/provide-spartan-hlm';
 import { routes } from './app.routes';
 
@@ -18,5 +19,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch(), withInterceptors([authTokenInterceptor])),
     provideClientHydration(withEventReplay(), withNoIncrementalHydration()),
     provideSpartanHlm(),
+    provideSentry(),
   ],
 };

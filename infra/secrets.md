@@ -32,7 +32,8 @@ read -rs V && printf '%s' "$V" | docker secret create <nome> - && unset V
 | `se_rclone_conf_v1` | rclone → R2 `se-backup` (lifecycle 30d no bucket) | |
 | `se_hc_backup_url_v1` | Healthchecks ping backup diário | |
 | `se_hc_jobs_url_v1` | Healthchecks ping jobs Nest | |
-| `se_sentry_dsn_v1` | Sentry API/SSR → `SENTRY_DSN_FILE` | |
+| `se_sentry_dsn_v1` | Sentry API + web SSR/browser → `SENTRY_DSN_FILE` | Mesmo secret montado em `api` e `web-ssr` |
+| `se_hc_host_url_v1` | (host, não Swarm) URL ping `vps-host` → `HC_HOST_URL_FILE` no cron | Só no host; ver `infra/scripts/host-check.sh` |
 
 ### GitHub Secrets (só restore-test / CI — nunca no Swarm)
 

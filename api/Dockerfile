@@ -25,6 +25,7 @@ COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 USER node
 EXPOSE 3000
+# Liveness only — readiness (DB+R2) is Traefik LB /api/health/ready.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health/ready || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 ENTRYPOINT ["./docker-entrypoint.sh"]

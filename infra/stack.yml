@@ -33,6 +33,9 @@ services:
       PORT: "4000"
       API_INTERNAL_URL: http://api:3000
       NODE_OPTIONS: --max-old-space-size=192
+      SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
+      SENTRY_RELEASE: ${IMAGE_TAG:?IMAGE_TAG required}
+    secrets: [se_sentry_dsn]
     networks: [TarcisoDevNet, se_internal]
     logging: *logging
     healthcheck:
@@ -59,6 +62,7 @@ services:
         - traefik.http.routers.se-web.middlewares=se-headers,se-ratelimit
         - traefik.http.services.se-web.loadbalancer.server.port=4000
         - traefik.http.services.se-web.loadbalancer.healthcheck.path=/healthz
+        # HSTS + headers (compartilhados com se-app*)
         - traefik.http.middlewares.se-headers.headers.stsSeconds=31536000
         - traefik.http.middlewares.se-headers.headers.stsIncludeSubdomains=true
         - traefik.http.middlewares.se-headers.headers.contentTypeNosniff=true
@@ -66,6 +70,7 @@ services:
         - traefik.http.middlewares.se-headers.headers.referrerPolicy=strict-origin-when-cross-origin
         - traefik.http.middlewares.se-ratelimit.ratelimit.average=50
         - traefik.http.middlewares.se-ratelimit.ratelimit.burst=100
+        - traefik.http.middlewares.se-ratelimit.ratelimit.period=1s
 
   api:
     image: ghcr.io/tarcisodev/sejaengajado-api:${IMAGE_TAG:?IMAGE_TAG required}
@@ -91,6 +96,7 @@ services:
       SMTP_URL_FILE: /run/secrets/se_smtp_url
       HC_JOBS_URL_FILE: /run/secrets/se_hc_jobs_url
       SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
+      SENTRY_RELEASE: ${IMAGE_TAG:?IMAGE_TAG required}
       ENABLE_DOCS: "false"
     secrets:
       - se_database_url
@@ -107,7 +113,8 @@ services:
     networks: [TarcisoDevNet, se_internal, supabase_network]
     logging: *logging
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health/ready"]
+      # Liveness — readiness (DB+R2) fica no Traefik LB abaixo.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -121,6 +128,22 @@ services:
       labels:
         - traefik.enable=true
         - traefik.swarm.network=TarcisoDevNet
+        # Rate-limit mais forte em webhooks e auth (prioridade > se-app).
+        - traefik.http.middlewares.se-ratelimit-strict.ratelimit.average=10
+        - traefik.http.middlewares.se-ratelimit-strict.ratelimit.burst=20
+        - traefik.http.middlewares.se-ratelimit-strict.ratelimit.period=1s
+        - traefik.http.routers.se-app-webhooks.rule=Host(`app.sejaengajado.com.br`) && PathPrefix(`/api/webhooks`)
+        - traefik.http.routers.se-app-webhooks.priority=300
+        - traefik.http.routers.se-app-webhooks.entrypoints=websecure
+        - traefik.http.routers.se-app-webhooks.tls.certresolver=cfdns
+        - traefik.http.routers.se-app-webhooks.middlewares=se-headers,se-ratelimit-strict
+        - traefik.http.routers.se-app-webhooks.service=se-app
+        - traefik.http.routers.se-app-auth.rule=Host(`app.sejaengajado.com.br`) && (PathPrefix(`/api/auth`) || PathPrefix(`/api/admin/auth`))
+        - traefik.http.routers.se-app-auth.priority=290
+        - traefik.http.routers.se-app-auth.entrypoints=websecure
+        - traefik.http.routers.se-app-auth.tls.certresolver=cfdns
+        - traefik.http.routers.se-app-auth.middlewares=se-headers,se-ratelimit-strict
+        - traefik.http.routers.se-app-auth.service=se-app
         # API sob app./api (sem host api.) — prioridade acima do se-web.
         - traefik.http.routers.se-app.rule=Host(`app.sejaengajado.com.br`) && PathPrefix(`/api`)
         - traefik.http.routers.se-app.priority=200
