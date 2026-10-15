@@ -16,6 +16,7 @@ import { PgReadyProbe, READY_PROBE } from './health/ready';
 import { loggerParams } from './logging/redact';
 import { FakeGateway } from './payments/fake-gateway';
 import { PAYMENT_GATEWAY } from './payments/payment-gateway';
+import { ResellerModule } from './reseller/reseller.module';
 import { PrismaModule } from './tenant/prisma.module';
 import { TenantScopeGuard } from './tenant/tenant-scope.guard';
 
@@ -32,6 +33,7 @@ export class AppModule {
         AuthModule.register(env),
         AuditModule,
         ResellersModule,
+        ResellerModule,
       ],
       controllers: [HealthController],
       providers: [

@@ -7,11 +7,13 @@ import {
   OnModuleInit,
   type DynamicModule,
 } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaClient } from '@prisma/client';
 
 import type { Env } from '../config/env';
 import { createAdminPrismaProxy } from './admin-prisma.proxy';
 import { createTenantPrismaProxy } from './prisma-tenant.extension';
+import { TenantContextInterceptor } from './tenant-context.interceptor';
 
 export const PRISMA = Symbol('PRISMA');
 export const ADMIN_PRISMA = Symbol('ADMIN_PRISMA');
@@ -72,6 +74,7 @@ export class PrismaModule {
           },
         },
         PrismaLifecycle,
+        { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },
       ],
       exports: [PRISMA, ADMIN_PRISMA, SYSTEM_PRISMA],
     };

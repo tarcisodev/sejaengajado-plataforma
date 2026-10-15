@@ -88,18 +88,12 @@ export function createTenantExtensionFor(resellerId: string) {
       name: 'tenant-scope',
       query: {
         $allModels: {
-          async $allOperations({ model, operation, args }) {
+          async $allOperations({ model, operation, args, query }) {
+            // Non-scoped tables (Reseller, ReservedSlug, Plan, …) have no RLS —
+            // pass through. Wrapping them in withResellerRls nested another
+            // $transaction and broke callers already inside one.
             if (!model || !isScopedModel(model)) {
-              return withResellerRls(
-                client as unknown as Parameters<typeof withResellerRls>[0],
-                resellerId,
-                async (tx) => {
-                  if (!model) {
-                    throw new Error('Prisma operation missing model name');
-                  }
-                  return delegateOf(tx, model)[operation](args);
-                },
-              );
+              return query(args);
             }
 
             const next = { ...asArgs(args) };
