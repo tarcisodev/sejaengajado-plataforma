@@ -15,6 +15,8 @@ import { AsaasWebhookController } from './webhooks/asaas-webhook.controller';
 import { AsaasWebhookService } from './webhooks/asaas-webhook.service';
 import { WebhookQueueService } from './webhooks/webhook-queue.service';
 import { WebhookRateLimit } from './webhooks/webhook-rate-limit';
+import { WebhookRecoveryScheduler } from './webhooks/webhook-recovery.scheduler';
+import { WebhookRecoveryService } from './webhooks/webhook-recovery.service';
 
 export function resolvePaymentGateway(
   env: Env,
@@ -60,14 +62,23 @@ export class PaymentsModule {
       WebhookQueueService,
       WebhookRateLimit,
       AsaasWebhookService,
+      WebhookRecoveryService,
+      WebhookRecoveryScheduler,
     ];
 
     return {
       module: PaymentsModule,
+      global: true,
       imports: [LedgerModule],
       controllers: [AsaasWebhookController],
       providers,
-      exports: [PAYMENT_GATEWAY, FakeGateway, AsaasWebhookService, WebhookQueueService],
+      exports: [
+        PAYMENT_GATEWAY,
+        FakeGateway,
+        AsaasWebhookService,
+        WebhookQueueService,
+        WebhookRecoveryService,
+      ],
     };
   }
 }

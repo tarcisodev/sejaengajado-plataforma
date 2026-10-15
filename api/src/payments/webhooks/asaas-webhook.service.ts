@@ -225,7 +225,76 @@ export class AsaasWebhookService implements OnModuleInit {
           data: { status: 'PAID', closedAt: new Date() },
         });
       }
+      if (payment.resellerId) {
+        await this.ensurePlatformInvoiceLedger(payment);
+        await this.db.reseller.updateMany({
+          where: { id: payment.resellerId, status: 'DELINQUENT' },
+          data: { status: 'ACTIVE', delinquentSince: null },
+        });
+      }
+      // Direct-customer site reactivation (Pronto/Pro) when Order.site linked later via ref.
+      await this.reactivateSitesForPayment(payment.id, payment.resellerId);
     }
+  }
+
+  private async ensurePlatformInvoiceLedger(payment: {
+    id: string;
+    resellerId: string | null;
+    amountCents: number;
+  }): Promise<void> {
+    if (!payment.resellerId || payment.amountCents <= 0) {
+      return;
+    }
+    const existing = await this.db.ledgerEntry.findFirst({
+      where: {
+        resellerId: payment.resellerId,
+        refType: 'Payment',
+        refId: payment.id,
+        category: 'PLATFORM_INVOICE',
+        type: 'OUT',
+      },
+    });
+    if (existing) {
+      return;
+    }
+    await this.ledger.appendForReseller(payment.resellerId, {
+      type: 'OUT',
+      category: 'PLATFORM_INVOICE',
+      amountCents: payment.amountCents,
+      refType: 'Payment',
+      refId: payment.id,
+    });
+  }
+
+  private async reactivateSitesForPayment(
+    paymentId: string,
+    resellerId: string | null,
+  ): Promise<void> {
+    const payment = await this.db.payment.findUnique({
+      where: { id: paymentId },
+      include: { order: true },
+    });
+    if (!payment?.order) {
+      return;
+    }
+    // Orders for direct sites store siteId in coupon-less external flow via plan;
+    // reactivate sites on the same reseller that were READ_ONLY/SUSPENDED for overdue.
+    if (!resellerId) {
+      return;
+    }
+    const platform = await this.db.reseller.findFirst({
+      where: { isPlatform: true },
+    });
+    if (!platform || platform.id !== resellerId) {
+      return;
+    }
+    await this.db.site.updateMany({
+      where: {
+        resellerId,
+        status: { in: ['READ_ONLY', 'SUSPENDED'] },
+      },
+      data: { status: 'PUBLISHED', editable: true },
+    });
   }
 
   private async reverseLedgerForPayment(payment: {

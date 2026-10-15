@@ -18,6 +18,8 @@ describe('AsaasWebhookService', () => {
     payment: { findUnique: jest.Mock; update: jest.Mock };
     resellerInvoice: { findUnique: jest.Mock; update: jest.Mock };
     ledgerEntry: { findFirst: jest.Mock };
+    reseller: { findFirst: jest.Mock; updateMany: jest.Mock };
+    site: { updateMany: jest.Mock };
   };
   let gateway: FakeGateway;
   let queue: WebhookQueueService;
@@ -35,7 +37,12 @@ describe('AsaasWebhookService', () => {
       },
       payment: { findUnique: jest.fn(), update: jest.fn() },
       resellerInvoice: { findUnique: jest.fn(), update: jest.fn() },
-      ledgerEntry: { findFirst: jest.fn() },
+      ledgerEntry: { findFirst: jest.fn().mockResolvedValue(null) },
+      reseller: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      site: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
     };
     gateway = new FakeGateway();
     queue = new WebhookQueueService();
@@ -155,13 +162,14 @@ describe('AsaasWebhookService', () => {
       attempts: 1,
       payload: { paymentId: 'pay_1' },
     });
-    db.payment.findUnique.mockResolvedValue({
+    db.payment.findUnique.mockImplementation(async () => ({
       id: 'p-local',
       resellerId: 'r1',
       status: 'PENDING',
       amountCents: 500,
       gatewayPaymentId: 'pay_1',
-    });
+      order: null,
+    }));
     db.payment.update.mockResolvedValue({});
     db.resellerInvoice.findUnique.mockResolvedValue(null);
     db.webhookEvent.update.mockResolvedValue({});
@@ -171,21 +179,23 @@ describe('AsaasWebhookService', () => {
       where: { id: 'p-local' },
       data: expect.objectContaining({ status: 'PAID' }),
     });
+    expect(ledger.appendForReseller).toHaveBeenCalled();
 
     // Second event (RECEIVED) after CONFIRMED — no regression / no update.
-    db.payment.findUnique.mockResolvedValue({
-      id: 'p-local',
-      resellerId: 'r1',
-      status: 'PAID',
-      amountCents: 500,
-      gatewayPaymentId: 'pay_1',
-    });
     gateway.setPaymentStatus('pay_1', 'RECEIVED', 500);
     db.webhookEvent.findUniqueOrThrow.mockResolvedValue({
       id: 'wh-2',
       attempts: 1,
       payload: { paymentId: 'pay_1' },
     });
+    db.payment.findUnique.mockImplementation(async () => ({
+      id: 'p-local',
+      resellerId: 'r1',
+      status: 'PAID',
+      amountCents: 500,
+      gatewayPaymentId: 'pay_1',
+      order: null,
+    }));
     db.payment.update.mockClear();
     await expect(service.processEvent('wh-2')).resolves.toBe('PROCESSED');
     expect(db.payment.update).not.toHaveBeenCalled();
