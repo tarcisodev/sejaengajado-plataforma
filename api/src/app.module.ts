@@ -10,6 +10,7 @@ import { ProductsModule } from './admin/products/products.module';
 import { ResellersModule } from './admin/resellers/resellers.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { BillingModule } from './billing/billing.module';
 import { RolesGuard } from './auth/roles.guard';
 import { SupabaseJwtGuard } from './auth/supabase-jwt.guard';
 import { ApiExceptionFilter } from './common/api-exception.filter';
@@ -56,6 +57,7 @@ export class AppModule {
         PublicModule,
         ResellerModule,
         PaymentsModule.register(),
+        BillingModule,
       ],
       controllers: [HealthController],
       providers: [

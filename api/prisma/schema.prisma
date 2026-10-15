@@ -155,17 +155,18 @@ model ResellerPlan {
 }
 
 model Reseller {
-  id              String         @id @default(uuid()) @db.Uuid
-  name            String
-  status          ResellerStatus @default(ACTIVE)
-  resellerPlanId  String         @map("reseller_plan_id") @db.Uuid
-  isPlatform      Boolean        @default(false) @map("is_platform")
-  delinquentSince DateTime?      @map("delinquent_since") @db.Timestamptz(3)
-  blockedAt       DateTime?      @map("blocked_at") @db.Timestamptz(3)
-  blockedReason   String?        @map("blocked_reason")
-  blockedById     String?        @map("blocked_by_id") @db.Uuid
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                String         @id @default(uuid()) @db.Uuid
+  name              String
+  status            ResellerStatus @default(ACTIVE)
+  resellerPlanId    String         @map("reseller_plan_id") @db.Uuid
+  isPlatform        Boolean        @default(false) @map("is_platform")
+  gatewayCustomerId String?        @map("gateway_customer_id")
+  delinquentSince   DateTime?      @map("delinquent_since") @db.Timestamptz(3)
+  blockedAt         DateTime?      @map("blocked_at") @db.Timestamptz(3)
+  blockedReason     String?        @map("blocked_reason")
+  blockedById       String?        @map("blocked_by_id") @db.Uuid
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   plan             ResellerPlan      @relation(fields: [resellerPlanId], references: [id])
   users            User[]
@@ -549,6 +550,7 @@ model ResellerInvoice {
   status           InvoiceStatus @default(DRAFT)
   totalCents       Int           @default(0) @map("total_cents")
   gatewayPaymentId String?       @unique @map("gateway_payment_id")
+  dueDate          DateTime?     @map("due_date") @db.Timestamptz(3)
   closedAt         DateTime?     @map("closed_at") @db.Timestamptz(3)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)

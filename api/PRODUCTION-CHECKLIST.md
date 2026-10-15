@@ -21,11 +21,12 @@ Base: `producao/contrib-nucleo.md` (Bloco 17), com `/health/ready` e mesma orige
 - [x] **Storage R2 (documentado):** `S3_ENDPOINT` (placeholder, sem account id no example), `S3_REGION=auto`, `S3_BUCKET=se-uploads`, `S3_BACKUP_BUCKET=se-backup`, `S3_ACCESS_KEY_FILE=/run/secrets/se_s3_access_key_v1`, `S3_SECRET_KEY_FILE=/run/secrets/se_s3_secret_key_v1`.
 - [x] **PaymentGateway port + FakeGateway** (PRODUCAO-05 B1); lint de fronteira `lint:payments-boundary` (domínio não importa `adapters/asaas`).
 - [x] **Adapter Asaas sandbox** (PRODUCAO-05 B2): `ASAAS_BASE_URL`, chave só via `ASAAS_API_KEY_FILE`, Idempotency-Key nas cobranças/assinaturas/refund, retries só em GET/idempotentes, logs sem payload sensível; testes nock + contrato.
-- [x] **Webhooks Asaas** (PRODUCAO-05 B3): `POST /api/webhooks/asaas` com `asaas-access-token` via `timingSafeEqual` (`ASAAS_WEBHOOK_TOKEN_FILE`); `WebhookEvent` unique; 200 rápido + fila com retries/backoff; reconsulta no gateway antes de mudar estado; máquina de estados; chargeback/estorno via `LedgerService` + fatura OVERDUE; RL por IP-hash + body ≤32kb sanitizado.
+- [x] **Webhooks Asaas** (PRODUCAO-05 B3): `POST /api/webhooks/asaas` com `asaas-access-token` via `timingSafeEqual` (`ASAAS_WEBHOOK_TOKEN_FILE`); `WebhookEvent` unique; 200 rápido + fila com retries/backoff; reconsulta no gateway antes de mudar estado; máquina de estados; chargeback/estorno via `LedgerService` + fatura OVERDUE; RL por IP-hash + body ≤32kb sanitizado; job de recuperação (lock) para PROCESSING stuck >5 min / FAILED retryable + alerta ao esgotar.
+- [x] **Fatura/inadimplência revendedor** (PRODUCAO-05 B4): job mensal idempotente `(resellerId, period)` + `Idempotency-Key`; foto PUBLISHED/READ_ONLY + mensalidade + placas; overdue → DELINQUENT; grace → elegível migração; faixas 7/8/16/60 do cliente direto ficam no JobsService (B14).
+- [x] **Cobrança cliente direto** (PRODUCAO-05 B5): Pronto / Pro / renovação / multa via `PaymentGateway`; centavos; ledger só no webhook confirmado; A↔B (site fora da PLATAFORMA → 404).
 
 ## Pendências (PRODUCAO-05 restante / PRODUCAO-06)
 
-- [ ] Fatura/inadimplência revendedor + cobrança cliente direto (PRODUCAO-05 B4–B5).
 - [ ] Checkout/faturas no web + e2e sandbox (PRODUCAO-05 B6–B7).
 - [ ] Sentry com release = SHA (PRODUCAO-06).
 - [ ] Rate limit Traefik + HSTS no edge (PRODUCAO-06).
