@@ -1,4 +1,7 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideGlobe, lucideRepeat, lucideTriangleAlert, lucideWallet } from '@ng-icons/lucide';
+import { HlmCardImports } from '@spartan-ng/helm/card';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -7,6 +10,8 @@ import { formatBrl } from '../landing/landing-seo';
 
 @Component({
   selector: 'app-admin-dashboard',
+  imports: [NgIcon, HlmCardImports],
+  providers: [provideIcons({ lucideGlobe, lucideRepeat, lucideTriangleAlert, lucideWallet })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-dashboard.component.html',
 })

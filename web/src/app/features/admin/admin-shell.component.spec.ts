@@ -6,7 +6,7 @@ import { MockApiService } from '../../mocks/mock-api.service';
 import { AdminShellComponent } from './admin-shell.component';
 
 describe('AdminShellComponent', () => {
-  it('links every admin section', async () => {
+  it('links every admin section', () => {
     TestBed.configureTestingModule({
       imports: [AdminShellComponent],
       providers: [
@@ -17,10 +17,10 @@ describe('AdminShellComponent', () => {
     });
     const fixture = TestBed.createComponent(AdminShellComponent);
     fixture.detectChanges();
-    await fixture.whenStable();
-    const hrefs = [...fixture.nativeElement.querySelectorAll('a')].map((link) =>
-      (link as HTMLAnchorElement).getAttribute('href'),
-    );
+    const hrefs = [
+      ...fixture.nativeElement.querySelectorAll('nav[aria-label="Painel admin"] a'),
+    ].map((link) => (link as HTMLAnchorElement).getAttribute('href'));
+    fixture.destroy();
 
     expect(hrefs).toEqual([
       '/',

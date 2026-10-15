@@ -1,19 +1,47 @@
-<section class="board" aria-label="Resumo">
-  <article>
-    <p>Receita do mês</p>
-    <strong>{{ formatBrl(revenue()) }}</strong>
-    <small>{{ month() }}</small>
+<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo">
+  <article hlmCard>
+    <header hlmCardHeader>
+      <div class="flex items-center gap-2">
+        <ng-icon name="lucideWallet" />
+        <p>Receita do mês</p>
+      </div>
+    </header>
+    <div hlmCardContent class="grid gap-1">
+      <strong class="font-display text-2xl">{{ formatBrl(revenue()) }}</strong>
+      <small class="text-sm text-muted-foreground">{{ month() }}</small>
+    </div>
   </article>
-  <article>
-    <p>Sites ativos</p>
-    <strong data-active-sites>{{ activeSites() }}</strong>
+  <article hlmCard>
+    <header hlmCardHeader>
+      <div class="flex items-center gap-2">
+        <ng-icon name="lucideGlobe" />
+        <p>Sites ativos</p>
+      </div>
+    </header>
+    <div hlmCardContent>
+      <strong class="font-display text-2xl" data-active-sites>{{ activeSites() }}</strong>
+    </div>
   </article>
-  <article>
-    <p>MRR</p>
-    <strong data-mrr>{{ formatBrl(mrr()) }}</strong>
+  <article hlmCard>
+    <header hlmCardHeader>
+      <div class="flex items-center gap-2">
+        <ng-icon name="lucideRepeat" />
+        <p>MRR</p>
+      </div>
+    </header>
+    <div hlmCardContent>
+      <strong class="font-display text-2xl" data-mrr>{{ formatBrl(mrr()) }}</strong>
+    </div>
   </article>
-  <article>
-    <p>Inadimplentes</p>
-    <strong data-delinquent>{{ delinquent() }}</strong>
+  <article hlmCard>
+    <header hlmCardHeader>
+      <div class="flex items-center gap-2">
+        <ng-icon name="lucideTriangleAlert" />
+        <p>Inadimplentes</p>
+      </div>
+    </header>
+    <div hlmCardContent>
+      <strong class="font-display text-2xl" data-delinquent>{{ delinquent() }}</strong>
+    </div>
   </article>
 </section>

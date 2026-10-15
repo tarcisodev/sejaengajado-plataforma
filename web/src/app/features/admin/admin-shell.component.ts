@@ -1,8 +1,30 @@
 import { PlatformLocation } from '@angular/common';
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideCreditCard,
+  lucideGlobe,
+  lucideHouse,
+  lucideMoon,
+  lucideSettings,
+  lucideStore,
+  lucideSun,
+  lucideTicket,
+  lucideUsers,
+  lucideWallet,
+} from '@ng-icons/lucide';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
+import {
+  HlmSidebarImports,
+  HlmSidebarService,
+  provideHlmSidebarConfig,
+} from '@spartan-ng/helm/sidebar';
 import { filter } from 'rxjs';
 
+import { ThemeService } from '../../core/theme/theme.service';
 import { AdminSection, adminSection } from './admin-section';
 import { AdminConfigComponent } from './admin-config.component';
 import { AdminCouponsComponent } from './admin-coupons.component';
@@ -17,7 +39,11 @@ import { AdminSitesComponent } from './admin-sites.component';
   selector: 'app-admin-shell',
   imports: [
     RouterLink,
-    RouterLinkActive,
+    NgIcon,
+    HlmAvatarImports,
+    HlmButton,
+    HlmDropdownMenuImports,
+    HlmSidebarImports,
     AdminDashboardComponent,
     AdminCustomersComponent,
     AdminResellersComponent,
@@ -27,18 +53,61 @@ import { AdminSitesComponent } from './admin-sites.component';
     AdminCouponsComponent,
     AdminRevenueComponent,
   ],
+  providers: [
+    provideHlmSidebarConfig({
+      mobileBreakpoint: '1023px',
+      closeMobileSidebarOnMenuButtonClick: true,
+    }),
+    HlmSidebarService,
+    provideIcons({
+      lucideCreditCard,
+      lucideGlobe,
+      lucideHouse,
+      lucideMoon,
+      lucideSettings,
+      lucideStore,
+      lucideSun,
+      lucideTicket,
+      lucideUsers,
+      lucideWallet,
+    }),
+  ],
   templateUrl: './admin-shell.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
-  styleUrl: './admin-shell.component.scss',
 })
 export class AdminShellComponent {
   private readonly location = inject(PlatformLocation);
   private readonly router = inject(Router);
+  readonly theme = inject(ThemeService);
   readonly section = signal<AdminSection>(adminSection(this.location.pathname));
+  readonly nav: {
+    section: AdminSection;
+    href: string;
+    label: string;
+    icon: string;
+  }[] = [
+    { section: 'inicio', href: '/', label: 'Início', icon: 'lucideHouse' },
+    { section: 'clientes', href: '/clientes', label: 'Clientes', icon: 'lucideUsers' },
+    { section: 'revendedores', href: '/revendedores', label: 'Revendedores', icon: 'lucideStore' },
+    { section: 'sites', href: '/sites', label: 'Sites', icon: 'lucideGlobe' },
+    { section: 'planos', href: '/planos', label: 'Planos', icon: 'lucideCreditCard' },
+    {
+      section: 'configuracoes',
+      href: '/configuracoes',
+      label: 'Configurações',
+      icon: 'lucideSettings',
+    },
+    { section: 'cupons', href: '/cupons', label: 'Cupons', icon: 'lucideTicket' },
+    { section: 'receita', href: '/receita', label: 'Receita', icon: 'lucideWallet' },
+  ];
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.section.set(adminSection(this.location.pathname));
     });
+  }
+
+  title(): string {
+    return this.nav.find((item) => item.section === this.section())?.label ?? 'Início';
   }
 }

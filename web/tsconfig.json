@@ -33,7 +33,11 @@
       "@spartan-ng/helm/badge": ["./src/app/shared/ui/badge/src/index.ts"],
       "@spartan-ng/helm/avatar": ["./src/app/shared/ui/avatar/src/index.ts"],
       "@spartan-ng/helm/dropdown-menu": ["./src/app/shared/ui/dropdown-menu/src/index.ts"],
-      "@spartan-ng/helm/textarea": ["./src/app/shared/ui/textarea/src/index.ts"]
+      "@spartan-ng/helm/textarea": ["./src/app/shared/ui/textarea/src/index.ts"],
+      "@spartan-ng/helm/sidebar": ["./src/app/shared/ui/sidebar/src/index.ts"],
+      "@spartan-ng/helm/sheet": ["./src/app/shared/ui/sheet/src/index.ts"],
+      "@spartan-ng/helm/skeleton": ["./src/app/shared/ui/skeleton/src/index.ts"],
+      "@spartan-ng/helm/tooltip": ["./src/app/shared/ui/tooltip/src/index.ts"]
     }
   },
   "angularCompilerOptions": {

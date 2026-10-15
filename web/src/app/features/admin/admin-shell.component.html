@@ -1,42 +1,103 @@
-<div class="desk">
-  <nav aria-label="Painel admin">
-    <p class="mark">Seja Engajado</p>
-    <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Início</a>
-    <a routerLink="/clientes" routerLinkActive="on">Clientes</a>
-    <a routerLink="/revendedores" routerLinkActive="on">Revendedores</a>
-    <a routerLink="/sites" routerLinkActive="on">Sites</a>
-    <a routerLink="/planos" routerLinkActive="on">Planos</a>
-    <a routerLink="/configuracoes" routerLinkActive="on">Configurações</a>
-    <a routerLink="/cupons" routerLinkActive="on">Cupons</a>
-    <a routerLink="/receita" routerLinkActive="on">Receita</a>
-  </nav>
-  <main>
-    <h1>Painel</h1>
-    @switch (section()) {
-      @case ('inicio') {
-        <app-admin-dashboard />
+<a
+  class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-10 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-3 focus:ring-ring"
+  href="#conteudo"
+>
+  Ir para o conteúdo
+</a>
+<div hlmSidebarWrapper class="min-h-dvh bg-background text-foreground">
+  <hlm-sidebar srOnlySheetTitle="Painel admin" srOnlySheetDescription="Painel admin">
+    <div hlmSidebarHeader>
+      <p class="px-2 font-display text-sm text-primary">Seja Engajado</p>
+    </div>
+    <div hlmSidebarContent>
+      <nav aria-label="Painel admin">
+        <ul hlmSidebarMenu>
+          @for (item of nav; track item.href) {
+            <li hlmSidebarMenuItem>
+              <a
+                hlmSidebarMenuButton
+                size="lg"
+                [routerLink]="item.href"
+                [isActive]="section() === item.section"
+              >
+                <ng-icon [name]="item.icon" />
+                <span>{{ item.label }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </nav>
+    </div>
+  </hlm-sidebar>
+  <main hlmSidebarInset id="conteudo" class="min-w-0">
+    <header class="flex items-center gap-3 border-b border-border px-4 py-3 md:px-8">
+      <button
+        hlmSidebarTrigger
+        type="button"
+        class="size-11 lg:hidden"
+        srOnlyText="Painel admin"
+        aria-label="Painel admin"
+      ></button>
+      <h1 class="font-display text-2xl md:text-3xl">{{ title() }}</h1>
+      <div class="ms-auto flex items-center gap-2">
+        <button
+          hlmBtn
+          type="button"
+          variant="ghost"
+          size="icon"
+          class="size-11"
+          (click)="theme.toggle()"
+          [attr.aria-pressed]="theme.theme() === 'dark'"
+          aria-label="Tema"
+        >
+          <ng-icon [name]="theme.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" />
+        </button>
+        <button
+          hlmBtn
+          type="button"
+          variant="ghost"
+          class="size-11"
+          [hlmDropdownMenuTrigger]="accountMenu"
+          aria-label="Seja Engajado"
+        >
+          <hlm-avatar class="size-11">
+            <span hlmAvatarFallback>S</span>
+          </hlm-avatar>
+        </button>
+        <ng-template #accountMenu>
+          <div hlmDropdownMenu>
+            <p hlmDropdownMenuLabel>Seja Engajado</p>
+          </div>
+        </ng-template>
+      </div>
+    </header>
+    <div class="mx-auto w-full min-w-0 max-w-6xl overflow-x-auto px-4 py-6 md:px-8">
+      @switch (section()) {
+        @case ('inicio') {
+          <app-admin-dashboard />
+        }
+        @case ('clientes') {
+          <app-admin-customers />
+        }
+        @case ('revendedores') {
+          <app-admin-resellers />
+        }
+        @case ('sites') {
+          <app-admin-sites />
+        }
+        @case ('planos') {
+          <app-admin-plans />
+        }
+        @case ('configuracoes') {
+          <app-admin-config />
+        }
+        @case ('cupons') {
+          <app-admin-coupons />
+        }
+        @case ('receita') {
+          <app-admin-revenue />
+        }
       }
-      @case ('clientes') {
-        <app-admin-customers />
-      }
-      @case ('revendedores') {
-        <app-admin-resellers />
-      }
-      @case ('sites') {
-        <app-admin-sites />
-      }
-      @case ('planos') {
-        <app-admin-plans />
-      }
-      @case ('configuracoes') {
-        <app-admin-config />
-      }
-      @case ('cupons') {
-        <app-admin-coupons />
-      }
-      @case ('receita') {
-        <app-admin-revenue />
-      }
-    }
+    </div>
   </main>
 </div>
