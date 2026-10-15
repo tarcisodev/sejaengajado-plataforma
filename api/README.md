@@ -1,12 +1,10 @@
 # API
 
-Esqueleto NestJS 11. Prefixo `/api`, sem CORS. A config usa zod e aceita segredo em arquivo (`NOME_FILE` vira `NOME`).
+NestJS 11 + Prisma 6. Prefixo `/api`, mesma origem (sem CORS). Config zod; segredos via `NOME_FILE` (Docker secrets). OpenAPI em `/api/docs` e `/api/docs-json`. Checklist: `PRODUCTION-CHECKLIST.md`.
 
-Auth (P2, 15/10/2026): Supabase Auth self-hosted. A API não faz login próprio. O helper `loginAs` do harness gera JWT no formato do Supabase (`sub`, `aal`) para o guard do 02-B4. As chaves `JWT_SIGNING_KEY_FILE` e `MFA_ENC_KEY_FILE` ainda estão reservadas e saem no B4.
+Auth: Supabase Auth self-hosted (JWT HS256). ADMIN exige `aal2`. Banco de produção: Postgres do Supabase (`sejaengajado`), role `se_app` sem `BYPASSRLS`. Local/testes: Postgres 16 (`docker-compose.dev.yml` / Testcontainers).
 
-Banco (P3): em produção, database `sejaengajado` no Postgres do Supabase, usuário de app sem superuser e sem `BYPASSRLS`. Em local e nos testes, Postgres 16 próprio (`docker-compose.dev.yml` e Testcontainers).
-
-A fila pg-boss (⏳P10) entra depois; o readiness trata a fila como pronta até lá. Com Postgres no ar, `GET /api/health/ready` responde 200. Sem banco, 503.
+Prontidão: `GET /api/health` e `GET /api/health/ready`. Body limit 100kb. Migrações só com `npm run migrate:deploy` (manual no deploy).
 
 ## Local
 
@@ -16,19 +14,22 @@ Na raiz do monorepo:
 docker compose -f docker-compose.dev.yml up
 ```
 
-Em `api/.env`, `DATABASE_URL=postgres://sejaengajado:local-dev-only@localhost:5432/sejaengajado`. A senha é só desse compose.
+Em `api/.env`, `DATABASE_URL=postgres://sejaengajado:local-dev-only@localhost:5432/sejaengajado` e `ADMIN_DATABASE_URL` com o role admin de desenvolvimento.
 
 ```bash
 npm ci
-npx prisma migrate deploy
+npm run migrate:deploy
 npx prisma db seed
 npm test
 npm run test:int
+npm run test:cov
 npm run lint
+npm run lint:money
+npm run audit:prod
 npm run build
 npm start
 ```
 
-O seed é idempotente. O e-mail do admin vem de `SEED_ADMIN_EMAIL` (padrão `admin@sejaengajado.com.br`). Não há senha no seed: o login é pelo Supabase Auth.
+O seed é idempotente. O e-mail do admin vem de `SEED_ADMIN_EMAIL` (padrão `admin@sejaengajado.com.br`).
 
-`test:int` sobe `postgres:16-alpine` via Testcontainers (Docker local), aplica as migrations, usa o role `se_app` e trunca as tabelas entre os casos.
+Imagem: `docker build -t se-api .` (usuário não-root; entrypoint monta `DATABASE_URL_FILE`).

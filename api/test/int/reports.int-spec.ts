@@ -237,8 +237,10 @@ describe('reseller dashboard and reports', () => {
       expect(report.body.predictedMarginCents).toBe(3000);
       expect(report.body.realizedMarginCents).toBe(3500);
       expect(report.body.salesCount).toBe(1);
+      expect(report.body.items).toHaveLength(1);
+      expect(report.body.nextCursor).toBeNull();
 
-      // A↔B
+      // A↔B + admin (antes de criar vendas extras de paginação)
       const dashB = await request(app.getHttpServer())
         .get('/api/reseller/dashboard')
         .set('Authorization', `Bearer ${sessionB.token}`)
@@ -264,6 +266,70 @@ describe('reseller dashboard and reports', () => {
           `Bearer ${loginAs('ADMIN', { supabaseId: seeded.admin.supabaseId, aal: 'aal1' }).token}`,
         )
         .expect(403);
+
+      // Intervalo > 366 dias → 400
+      await request(app.getHttpServer())
+        .get('/api/reseller/reports/sales')
+        .query({
+          from: '2024-01-01T00:00:00.000Z',
+          to: '2026-01-10T00:00:00.000Z',
+        })
+        .set('Authorization', `Bearer ${sessionA.token}`)
+        .expect(400)
+        .expect(({ body }) => {
+          expect(body.code).toBe('VALIDATION_FAILED');
+          expect(body.fields.some((f: { path: string }) => f.path === 'to')).toBe(true);
+        });
+
+      // Paginação: create extra sales then limit=1
+      const productId = (
+        await adminPrisma.product.findFirstOrThrow({ where: { code: 'SITE_ONE_TIME' } })
+      ).id;
+      for (let i = 0; i < 3; i += 1) {
+        await adminPrisma.sale.create({
+          data: {
+            resellerId: seeded.resellerA.id,
+            status: 'RECORDED',
+            idempotencyKey: `page-${i}`,
+            createdAt: new Date(seeded.now.getTime() + (i + 1) * 1000),
+            items: {
+              create: [
+                {
+                  productId,
+                  qty: 1,
+                  unitCostCents: 100,
+                  unitPriceCents: 200,
+                },
+              ],
+            },
+          },
+        });
+      }
+      const page1 = await request(app.getHttpServer())
+        .get('/api/reseller/reports/sales')
+        .query({
+          from: new Date(seeded.now.getTime() - 60_000).toISOString(),
+          to: new Date(seeded.now.getTime() + 60_000).toISOString(),
+          limit: '1',
+        })
+        .set('Authorization', `Bearer ${sessionA.token}`)
+        .expect(200);
+      expect(page1.body.items).toHaveLength(1);
+      expect(page1.body.nextCursor).toBeTruthy();
+      expect(page1.body.salesCount).toBe(4);
+
+      const page2 = await request(app.getHttpServer())
+        .get('/api/reseller/reports/sales')
+        .query({
+          from: new Date(seeded.now.getTime() - 60_000).toISOString(),
+          to: new Date(seeded.now.getTime() + 60_000).toISOString(),
+          limit: '10',
+          cursor: page1.body.nextCursor,
+        })
+        .set('Authorization', `Bearer ${sessionA.token}`)
+        .expect(200);
+      expect(page2.body.items.length).toBeGreaterThanOrEqual(1);
+      expect(page2.body.items[0].id).not.toBe(page1.body.items[0].id);
 
       const { from, toExclusive } = spMonthRangeUtc(seeded.now);
       // Force index path (small tables otherwise prefer Seq Scan).

@@ -14,7 +14,12 @@ export class ReportsController {
   }
 
   @Get('reports/sales')
-  salesReport(@Query('from') from?: string, @Query('to') to?: string) {
-    return this.reports.salesReportForCurrent(from, to);
+  salesReport(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.reports.salesReportForCurrent({ from, to, cursor, limit });
   }
 }

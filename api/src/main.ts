@@ -1,21 +1,40 @@
 import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { loadEnv, type Env } from './config/env';
+import { setupOpenApi } from './openapi/openapi';
+
+const BODY_LIMIT = '100kb';
 
 export async function boot(
   source: NodeJS.ProcessEnv,
-  listen: (app: Awaited<ReturnType<typeof NestFactory.create>>, env: Env) => Promise<void>,
+  listen: (
+    app: NestExpressApplication,
+    env: Env,
+  ) => Promise<void>,
 ): Promise<void> {
   const env = loadEnv(source);
-  const app = await NestFactory.create(AppModule.register(env), { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.register(env),
+    { bufferLogs: true },
+  );
   app.useLogger(app.get(Logger));
+  app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+  app.useBodyParser('json', { limit: BODY_LIMIT });
+  app.useBodyParser('urlencoded', { limit: BODY_LIMIT, extended: false });
   app.setGlobalPrefix('api');
-  app.use(helmet());
+  app.use(
+    helmet({
+      hsts: env.NODE_ENV === 'production' ? undefined : false,
+    }),
+  );
+  setupOpenApi(app);
   app.enableShutdownHooks();
   await listen(app, env);
 }

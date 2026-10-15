@@ -18,7 +18,9 @@ export class AdminReportsController {
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.reports.salesReportForReseller(id, from, to);
+    return this.reports.salesReportForReseller(id, { from, to, cursor, limit });
   }
 }

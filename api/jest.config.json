@@ -6,5 +6,31 @@
   "transform": {
     "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }]
   },
-  "testEnvironment": "node"
+  "testEnvironment": "node",
+  "collectCoverageFrom": [
+    "src/sales/**/*.ts",
+    "src/ledger/**/*.ts",
+    "src/stock/**/*.ts",
+    "src/jobs/**/*.ts",
+    "src/tenant/**/*.ts",
+    "!**/*.spec.ts",
+    "!**/index.ts"
+  ],
+  "coverageDirectory": "coverage",
+  "coverageReporters": ["text", "lcov"],
+  "coverageThreshold": {
+    "src/jobs/penalty.ts": {
+      "statements": 85,
+      "lines": 85,
+      "functions": 100
+    },
+    "src/jobs/overdue-days.ts": {
+      "statements": 90,
+      "lines": 90,
+      "functions": 100
+    },
+    "src/sales/sales.service.ts": {
+      "statements": 10
+    }
+  }
 }

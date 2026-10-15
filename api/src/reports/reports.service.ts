@@ -1,5 +1,10 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 
+import {
+  decodeTimeIdCursor,
+  encodeTimeIdCursor,
+  paginate,
+} from '../common/cursor';
 import { spMonthRangeUtc } from '../common/sao-paulo-time';
 import { LedgerService } from '../ledger/ledger.service';
 import { predictedMarginCents as computePredictedMargin } from '../sales/sales.service';
@@ -11,6 +16,11 @@ import {
   type TenantPrisma,
 } from '../tenant/prisma.module';
 import { requireTenantResellerId } from '../tenant/tenant.context';
+
+/** Max inclusive span for /reports/sales (calendar days). */
+export const SALES_REPORT_MAX_DAYS = 366;
+/** Max sales rows per page (project cursor pagination). */
+export const SALES_REPORT_MAX_LIMIT = 100;
 
 function parseRange(fromRaw?: string, toRaw?: string): { from: Date; to: Date } {
   const fields: { path: string; code: string; message: string }[] = [];
@@ -37,10 +47,41 @@ function parseRange(fromRaw?: string, toRaw?: string): { from: Date; to: Date } 
     });
   }
   const now = new Date();
-  return {
+  const resolved = {
     from: from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
     to: to ?? now,
   };
+  const spanMs = resolved.to.getTime() - resolved.from.getTime();
+  const maxMs = SALES_REPORT_MAX_DAYS * 24 * 60 * 60 * 1000;
+  if (spanMs > maxMs) {
+    throw new BadRequestException({
+      code: 'VALIDATION_FAILED',
+      message: 'Dados inválidos',
+      fields: [
+        {
+          path: 'to',
+          code: 'range_too_long',
+          message: `Intervalo máximo de ${SALES_REPORT_MAX_DAYS} dias`,
+        },
+      ],
+    });
+  }
+  return resolved;
+}
+
+function parseLimit(limitRaw?: string): number {
+  if (limitRaw === undefined || limitRaw === '') {
+    return 20;
+  }
+  const n = Number(limitRaw);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new BadRequestException({
+      code: 'VALIDATION_FAILED',
+      message: 'Dados inválidos',
+      fields: [{ path: 'limit', code: 'invalid', message: 'limit deve ser inteiro ≥ 1' }],
+    });
+  }
+  return Math.min(n, SALES_REPORT_MAX_LIMIT);
 }
 
 @Injectable()
@@ -61,15 +102,37 @@ export class ReportsService {
     return this.buildDashboard(resellerId, at, 'admin');
   }
 
-  salesReportForCurrent(fromRaw?: string, toRaw?: string) {
-    const range = parseRange(fromRaw, toRaw);
-    return this.buildSalesReport(requireTenantResellerId(), range.from, range.to, 'tenant');
+  salesReportForCurrent(options: {
+    from?: string;
+    to?: string;
+    cursor?: string;
+    limit?: string;
+  }) {
+    const range = parseRange(options.from, options.to);
+    return this.buildSalesReport(
+      requireTenantResellerId(),
+      range.from,
+      range.to,
+      'tenant',
+      options.cursor,
+      parseLimit(options.limit),
+    );
   }
 
-  async salesReportForReseller(resellerId: string, fromRaw?: string, toRaw?: string) {
+  async salesReportForReseller(
+    resellerId: string,
+    options: { from?: string; to?: string; cursor?: string; limit?: string },
+  ) {
     await this.requireReseller(resellerId);
-    const range = parseRange(fromRaw, toRaw);
-    return this.buildSalesReport(resellerId, range.from, range.to, 'admin');
+    const range = parseRange(options.from, options.to);
+    return this.buildSalesReport(
+      resellerId,
+      range.from,
+      range.to,
+      'admin',
+      options.cursor,
+      parseLimit(options.limit),
+    );
   }
 
   private async requireReseller(id: string) {
@@ -167,29 +230,48 @@ export class ReportsService {
     from: Date,
     to: Date,
     mode: 'tenant' | 'admin',
+    cursorRaw: string | undefined,
+    limit: number,
   ) {
     const db = this.client(mode);
-    const sales = await db.sale.findMany({
+    let cursor: { createdAt: Date; id: string } | null = null;
+    if (cursorRaw) {
+      try {
+        cursor = decodeTimeIdCursor(cursorRaw);
+      } catch {
+        throw new BadRequestException({
+          code: 'VALIDATION_FAILED',
+          message: 'Dados inválidos',
+          fields: [{ path: 'cursor', code: 'invalid', message: 'Cursor inválido' }],
+        });
+      }
+    }
+
+    const rows = await db.sale.findMany({
       where: {
         ...(mode === 'admin' ? { resellerId } : {}),
         status: 'RECORDED',
         createdAt: { gte: from, lte: to },
+        ...(cursor
+          ? {
+              OR: [
+                { createdAt: { gt: cursor.createdAt } },
+                { createdAt: cursor.createdAt, id: { gt: cursor.id } },
+              ],
+            }
+          : {}),
       },
       include: { items: true },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: limit + 1,
     });
 
-    let costCents = 0;
-    let chargedCents = 0;
-    let predicted = 0;
-    for (const sale of sales) {
-      for (const item of sale.items) {
-        costCents += item.qty * item.unitCostCents;
-        chargedCents += item.qty * item.unitPriceCents;
-      }
-      predicted += computePredictedMargin(sale.items);
-    }
+    const page = paginate(rows, limit, (row) =>
+      encodeTimeIdCursor(row.createdAt, row.id),
+    );
 
+    // Totals for the full range (not just the page) via aggregates + ledger.
+    const totals = await this.salesTotals(db, resellerId, mode, from, to);
     const saleIn = await this.sumLedger(db, resellerId, mode, 'IN', 'SALE', from, to);
     const invoiceOut = await this.sumLedger(
       db,
@@ -204,11 +286,96 @@ export class ReportsService {
     return {
       from: from.toISOString(),
       to: to.toISOString(),
-      salesCount: sales.length,
+      salesCount: totals.salesCount,
+      costCents: totals.costCents,
+      chargedCents: totals.chargedCents,
+      predictedMarginCents: totals.predictedMarginCents,
+      realizedMarginCents: saleIn - invoiceOut,
+      items: page.items.map((sale) => {
+        const costCents = sale.items.reduce(
+          (sum, item) => sum + item.qty * item.unitCostCents,
+          0,
+        );
+        const chargedCents = sale.items.reduce(
+          (sum, item) => sum + item.qty * item.unitPriceCents,
+          0,
+        );
+        return {
+          id: sale.id,
+          createdAt: sale.createdAt.toISOString(),
+          costCents,
+          chargedCents,
+          predictedMarginCents: computePredictedMargin(sale.items),
+          items: sale.items.map((item) => ({
+            productId: item.productId,
+            qty: item.qty,
+            unitCostCents: item.unitCostCents,
+            unitPriceCents: item.unitPriceCents,
+          })),
+        };
+      }),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  private async salesTotals(
+    db: TenantPrisma | AdminPrisma,
+    resellerId: string,
+    mode: 'tenant' | 'admin',
+    from: Date,
+    to: Date,
+  ) {
+    const salesCount = await db.sale.count({
+      where: {
+        ...(mode === 'admin' ? { resellerId } : {}),
+        status: 'RECORDED',
+        createdAt: { gte: from, lte: to },
+      },
+    });
+
+    // Integer money: SUM(qty * unit_*) in SQL — avoids loading every SaleItem.
+    const runSum = () =>
+      db.$queryRaw<
+        { cost_cents: bigint | number | null; charged_cents: bigint | number | null }[]
+      >`
+        SELECT
+          COALESCE(SUM(si.qty * si.unit_cost_cents), 0) AS cost_cents,
+          COALESCE(SUM(si.qty * si.unit_price_cents), 0) AS charged_cents
+        FROM sale_items si
+        INNER JOIN sales s ON s.id = si.sale_id
+        WHERE s.status = 'RECORDED'
+          AND s.reseller_id = ${resellerId}::uuid
+          AND s.created_at >= ${from}
+          AND s.created_at <= ${to}
+      `;
+
+    const scoped =
+      mode === 'tenant'
+        ? await db.$transaction(async (tx) =>
+            tx.$queryRaw<
+              { cost_cents: bigint | number | null; charged_cents: bigint | number | null }[]
+            >`
+              SELECT
+                COALESCE(SUM(si.qty * si.unit_cost_cents), 0) AS cost_cents,
+                COALESCE(SUM(si.qty * si.unit_price_cents), 0) AS charged_cents
+              FROM sale_items si
+              INNER JOIN sales s ON s.id = si.sale_id
+              WHERE s.status = 'RECORDED'
+                AND s.reseller_id = ${resellerId}::uuid
+                AND s.created_at >= ${from}
+                AND s.created_at <= ${to}
+            `,
+          )
+        : await runSum();
+
+    const costCents = Number(scoped[0]?.cost_cents ?? 0);
+    const chargedCents = Number(scoped[0]?.charged_cents ?? 0);
+
+    return {
+      salesCount,
       costCents,
       chargedCents,
-      predictedMarginCents: predicted,
-      realizedMarginCents: saleIn - invoiceOut,
+      predictedMarginCents: chargedCents - costCents,
     };
   }
 
