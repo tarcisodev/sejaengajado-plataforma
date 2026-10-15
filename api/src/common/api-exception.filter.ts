@@ -26,6 +26,10 @@ const statusMap: Record<number, { code: string; message: string }> = {
   [HttpStatus.FORBIDDEN]: { code: 'FORBIDDEN', message: 'Sem permissão' },
   [HttpStatus.NOT_FOUND]: { code: 'NOT_FOUND', message: 'Não encontrado' },
   [HttpStatus.SERVICE_UNAVAILABLE]: { code: 'UNAVAILABLE', message: 'Serviço indisponível' },
+  [HttpStatus.TOO_MANY_REQUESTS]: {
+    code: 'RATE_LIMITED',
+    message: 'Muitas solicitações. Tente novamente em breve.',
+  },
 };
 
 export function toErrorBody(exception: unknown): { status: number; body: ErrorBody } {

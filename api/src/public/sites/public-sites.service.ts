@@ -7,6 +7,7 @@ import {
 import { createHash } from 'node:crypto';
 
 import { SYSTEM_PRISMA, type SystemPrisma } from '../../tenant/prisma.module';
+import { AvaliarRateLimit, hashClientIp } from './avaliar-rate-limit';
 import { ByHostCache } from './by-host.cache';
 import { parseTenantSlugFromHost } from './host';
 
@@ -23,6 +24,7 @@ export class PublicSitesService {
   constructor(
     @Inject(SYSTEM_PRISMA) private readonly db: SystemPrisma,
     private readonly cache: ByHostCache,
+    private readonly avaliarLimit: AvaliarRateLimit,
   ) {}
 
   async byHost(rawHost: string | undefined): Promise<{
@@ -86,6 +88,9 @@ export class PublicSitesService {
   }
 
   async reviewRedirect(slugRaw: string, ip: string | undefined): Promise<string> {
+    const ipHash = hashClientIp(ip ?? 'unknown');
+    this.avaliarLimit.assertAllowed(ipHash);
+
     const slug = slugRaw.trim().toLowerCase();
     const site = await this.db.site.findFirst({
       where: {
@@ -112,19 +117,17 @@ export class PublicSitesService {
       });
     }
 
-    await this.db.scanEvent.create({
-      data: {
-        siteId: site.id,
-        ipHash: hashIp(ip ?? 'unknown'),
-      },
-    });
+    if (this.avaliarLimit.shouldRecordScan(site.id, ipHash)) {
+      await this.db.scanEvent.create({
+        data: {
+          siteId: site.id,
+          ipHash,
+        },
+      });
+    }
 
     return url;
   }
-}
-
-function hashIp(ip: string): string {
-  return createHash('sha256').update(ip).digest('hex');
 }
 
 function weakEtag(body: unknown): string {

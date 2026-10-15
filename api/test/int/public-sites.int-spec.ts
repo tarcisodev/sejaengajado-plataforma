@@ -122,6 +122,12 @@ describe('public by-host and avaliar', () => {
         .expect(302);
       expect(redirect.headers.location).toBe('https://g.page/r/review-demo');
 
+      // Same hashed IP in the window: still redirects, but does not duplicate ScanEvent.
+      await request(app.getHttpServer())
+        .get('/api/public/r/teste/avaliar')
+        .set('X-Forwarded-For', '203.0.113.50')
+        .expect(302);
+
       const scans = await adminPrisma.scanEvent.findMany({
         where: { siteId: seeded.site.id },
       });
