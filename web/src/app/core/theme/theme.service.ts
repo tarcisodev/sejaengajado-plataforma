@@ -1,12 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import {
-  DOCUMENT,
-  Injectable,
-  PLATFORM_ID,
-  afterNextRender,
-  inject,
-  signal,
-} from '@angular/core';
+import { DOCUMENT, Injectable, PLATFORM_ID, afterNextRender, inject, signal } from '@angular/core';
 
 export const THEME_STORAGE_KEY = 'seja.theme';
 
