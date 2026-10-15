@@ -14,6 +14,7 @@ import {
   PlatformConfig,
   Reseller,
   ResellerInvoice,
+  ResellerPlan,
   Site,
   SiteContent,
   Template,
@@ -26,6 +27,12 @@ export interface CreateCustomerCommand {
   whatsapp: string;
   cidade: string;
   resellerId: string | null;
+}
+
+export interface CreateResellerCommand {
+  nome: string;
+  userId: string;
+  resellerPlanId: string;
 }
 
 export interface BlockResellerCommand {
@@ -47,6 +54,8 @@ export interface ApiPort {
   listTemplates(): Observable<Template[]>;
   listCoupons(): Observable<Coupon[]>;
   listResellers(): Observable<Reseller[]>;
+  listResellerPlans(): Observable<ResellerPlan[]>;
+  createReseller(command: CreateResellerCommand): Observable<Reseller>;
   listCustomers(resellerId?: string | null): Observable<Customer[]>;
   createCustomer(command: CreateCustomerCommand): Observable<Customer>;
   listSites(resellerId?: string | null): Observable<Site[]>;

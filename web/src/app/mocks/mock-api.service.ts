@@ -5,6 +5,7 @@ import {
   ApiPort,
   BlockResellerCommand,
   CreateCustomerCommand,
+  CreateResellerCommand,
   NoticeRecord,
 } from '../core/api/api-port';
 import {
@@ -26,6 +27,7 @@ import {
   PlatformConfig,
   Reseller,
   ResellerInvoice,
+  ResellerPlan,
   Site,
   SiteContent,
   Template,
@@ -64,6 +66,26 @@ export class MockApiService implements ApiPort {
 
   listResellers(): Observable<Reseller[]> {
     return of(structuredClone(this.state.resellers));
+  }
+
+  listResellerPlans(): Observable<ResellerPlan[]> {
+    return of(structuredClone(this.state.resellerPlans));
+  }
+
+  createReseller(command: CreateResellerCommand): Observable<Reseller> {
+    const reseller: Reseller = {
+      id: `res_created_${this.state.resellers.length + 1}`,
+      userId: command.userId.trim(),
+      nome: command.nome.trim(),
+      resellerPlanId: command.resellerPlanId,
+      status: 'ACTIVE',
+      delinquentSince: null,
+      blockedAt: null,
+      blockReason: null,
+      asaasWalletId: null,
+    };
+    this.state.resellers.push(reseller);
+    return of(structuredClone(reseller));
   }
 
   listCustomers(resellerId?: string | null): Observable<Customer[]> {

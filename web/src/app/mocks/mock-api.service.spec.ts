@@ -45,6 +45,22 @@ describe('MockApiService', () => {
     expect(customers.map((customer) => customer.nome)).toContain('Padaria Nova');
   });
 
+  it('creates an active reseller on the chosen plan', async () => {
+    const plans = await firstValueFrom(service.listResellerPlans());
+    const created = await firstValueFrom(
+      service.createReseller({
+        nome: 'Placas Novas',
+        userId: 'user_novas',
+        resellerPlanId: plans[0].id,
+      }),
+    );
+    const resellers = await firstValueFrom(service.listResellers());
+
+    expect(created.status).toBe('ACTIVE');
+    expect(created.blockReason).toBeNull();
+    expect(resellers.map((reseller) => reseller.nome)).toContain('Placas Novas');
+  });
+
   it('includes the annual hosting plan and Uberaba businesses', async () => {
     const plans = await firstValueFrom(service.listPlans());
     const sites = await firstValueFrom(service.listSites());
