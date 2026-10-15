@@ -1,0 +1,154 @@
+# Build → GHCR (tag = git SHA only; never :latest in production).
+# Deploy on self-hosted VPS runner after manual approval (environment: production).
+# Rollback = redeploy previous SHA (workflow_dispatch.rollback_tag) or Swarm service rollback.
+# Secrets in this file: only secrets.GITHUB_TOKEN (GHCR login). No Asaas/DB/R2 tokens here.
+
+name: build-and-deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      rollback_tag:
+        description: "SHA already on GHCR to redeploy (skip build/migrate)"
+        required: false
+        type: string
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # Lowercase owner — must match infra/stack.yml (nunca :latest).
+  REGISTRY: ghcr.io/tarcisodev
+
+jobs:
+  migration-guard:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Expand/contract — block DROP/RENAME in new migrations
+        env:
+          BASE_REF: ${{ github.event.before }}
+        run: bash infra/scripts/check-migration-expand.sh
+
+  build:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
+    needs: [migration-guard]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: api
+            context: api
+            file: api/Dockerfile
+          - app: web
+            context: web
+            file: web/Dockerfile
+          - app: backup
+            context: infra/backup
+            file: infra/backup/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push (SHA tag only)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ env.REGISTRY }}/sejaengajado-${{ matrix.app }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  deploy:
+    needs: [build]
+    if: ${{ always() && (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '')) }}
+    runs-on: [self-hosted, linux, vps]
+    environment: production
+    env:
+      IMAGE_TAG: ${{ inputs.rollback_tag || github.sha }}
+      BACKUP_TAG: ${{ inputs.rollback_tag || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Guarda de RAM
+        run: |
+          avail=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
+          echo "MemAvailable=${avail}MiB"
+          test "$avail" -gt 600 || { echo "RAM insuficiente para start-first"; exit 1; }
+
+      - name: Registrar tag anterior (rollback alvo)
+        run: |
+          prev=$(docker service inspect sejaengajado_api --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null | sed 's/.*://;s/@.*//' || true)
+          echo "PREV_TAG=$prev" >> "$GITHUB_ENV"
+          echo "imagem anterior: ${prev:-none}"
+
+      - name: Backup pré-migração
+        if: ${{ inputs.rollback_tag == '' }}
+        run: |
+          cid=$(docker ps -q -f name=sejaengajado_backup | head -1 || true)
+          if [ -n "$cid" ]; then
+            docker exec "$cid" /usr/local/bin/pg-backup.sh "pre-deploy-${IMAGE_TAG::7}"
+          else
+            echo "serviço backup ainda não existe — pulando pré-backup (primeiro deploy)"
+          fi
+
+      - name: Migrations (one-off; skipped on SHA rollback)
+        if: ${{ inputs.rollback_tag == '' }}
+        run: |
+          chmod +x infra/scripts/wait-oneoff.sh
+          export IMAGE_TAG BACKUP_TAG
+          docker service update --detach=false \
+            --image "${REGISTRY}/sejaengajado-api:${IMAGE_TAG}" \
+            --replicas 1 sejaengajado_migrate \
+            || docker stack deploy --with-registry-auth -c infra/stack.yml sejaengajado
+          ./infra/scripts/wait-oneoff.sh sejaengajado_migrate 180
+          docker service scale sejaengajado_migrate=0
+
+      - name: Stack deploy (SHA imutável)
+        run: |
+          export IMAGE_TAG BACKUP_TAG
+          # Fail closed if a :latest tag sneaks into the compose render.
+          if docker stack config -c infra/stack.yml | grep -E ':latest([[:space:]]|$)'; then
+            echo "proibido :latest em produção" >&2
+            exit 1
+          fi
+          docker stack deploy --with-registry-auth --prune=false -c infra/stack.yml sejaengajado
+
+      - name: Gate de saúde
+        run: |
+          for i in $(seq 1 36); do
+            if curl -fsS "https://app.sejaengajado.com.br/api/health/ready" \
+              && curl -fsS -o /dev/null "https://teste.sejaengajado.com.br"; then
+              echo "health ok"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "healthcheck falhou" >&2
+          exit 1
+
+      - name: Rollback automático (redeploy implícito via Swarm + aviso de SHA)
+        if: failure() && env.PREV_TAG != ''
+        run: |
+          docker service rollback sejaengajado_api || true
+          docker service rollback sejaengajado_web-ssr || true
+          echo "::error::rollback Swarm para tag anterior (${PREV_TAG}). Migrations NÃO foram revertidas."
+          echo "Para redeploy explícito de um SHA: workflow_dispatch com rollback_tag=<sha>"
