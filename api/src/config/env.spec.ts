@@ -14,9 +14,33 @@ describe('loadEnv', () => {
     const file = join(dir, 'db');
     writeFileSync(file, 'postgres://local/db\n');
 
-    const env = loadEnv({ DATABASE_URL_FILE: file });
+    const env = loadEnv({
+      DATABASE_URL_FILE: file,
+      SUPABASE_URL: 'http://127.0.0.1',
+      SUPABASE_JWT_SECRET: 'secret',
+      SUPABASE_SERVICE_ROLE_KEY: 'service',
+    });
 
     expect(env.DATABASE_URL).toBe('postgres://local/db');
+  });
+
+  it('loads supabase auth secrets from files', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'se-env-'));
+    const jwtFile = join(dir, 'jwt');
+    const serviceFile = join(dir, 'service');
+    writeFileSync(jwtFile, 'jwt-secret\n');
+    writeFileSync(serviceFile, 'service-role\n');
+
+    const env = loadEnv({
+      DATABASE_URL: 'postgres://local/db',
+      SUPABASE_URL: 'http://127.0.0.1',
+      SUPABASE_JWT_SECRET_FILE: jwtFile,
+      SUPABASE_SERVICE_ROLE_KEY_FILE: serviceFile,
+    });
+
+    expect(env.SUPABASE_JWT_SECRET).toBe('jwt-secret');
+    expect(env.SUPABASE_SERVICE_ROLE_KEY).toBe('service-role');
+    expect(env.SUPABASE_JWT_AUD).toBe('authenticated');
   });
 
   it('does not open a listener when config is invalid', async () => {

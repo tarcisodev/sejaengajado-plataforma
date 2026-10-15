@@ -51,14 +51,28 @@ export function toErrorBody(exception: unknown): { status: number; body: ErrorBo
       message: 'Erro interno',
     };
     const response = exception.getResponse();
-    const fields =
-      typeof response === 'object' && response !== null && 'fields' in response
-        ? (response as { fields?: FieldError[] }).fields
-        : undefined;
-    return {
-      status,
-      body: fields ? { ...known, fields } : known,
-    };
+    if (typeof response === 'object' && response !== null) {
+      const payload = response as {
+        code?: string;
+        message?: string;
+        fields?: FieldError[];
+      };
+      if (typeof payload.code === 'string') {
+        return {
+          status,
+          body: {
+            code: payload.code,
+            message:
+              typeof payload.message === 'string' ? payload.message : known.message,
+            ...(payload.fields ? { fields: payload.fields } : {}),
+          },
+        };
+      }
+      if (payload.fields) {
+        return { status, body: { ...known, fields: payload.fields } };
+      }
+    }
+    return { status, body: known };
   }
 
   return {

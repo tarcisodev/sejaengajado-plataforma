@@ -3,6 +3,9 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
+import { AuthModule } from './auth/auth.module';
+import { RolesGuard } from './auth/roles.guard';
+import { SupabaseJwtGuard } from './auth/supabase-jwt.guard';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { ENV, type Env } from './config/env';
 import { HealthController } from './health/health.controller';
@@ -22,6 +25,7 @@ export class AppModule {
         LoggerModule.forRoot(loggerParams),
         ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
         PrismaModule.register(env),
+        AuthModule.register(env),
       ],
       controllers: [HealthController],
       providers: [
@@ -32,6 +36,8 @@ export class AppModule {
         { provide: PAYMENT_GATEWAY, useExisting: FakeGateway },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
+        { provide: APP_GUARD, useClass: SupabaseJwtGuard },
+        { provide: APP_GUARD, useClass: RolesGuard },
         { provide: APP_GUARD, useClass: TenantScopeGuard },
       ],
       exports: [PAYMENT_GATEWAY, FakeGateway, PrismaModule],

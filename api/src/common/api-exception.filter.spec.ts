@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException } from '@nestjs/common';
 import { z } from 'zod';
 
 import { toErrorBody } from './api-exception.filter';
@@ -44,5 +44,20 @@ describe('toErrorBody', () => {
     expect(toErrorBody(exception).body.fields).toEqual([
       { path: 'slug', code: 'taken', message: 'Valor inválido' },
     ]);
+  });
+
+  it('preserves explicit api error codes from http exceptions', () => {
+    const { status, body } = toErrorBody(
+      new ForbiddenException({
+        code: 'AUTH_NOT_INVITED',
+        message: 'Usuário não convidado',
+      }),
+    );
+
+    expect(status).toBe(403);
+    expect(body).toEqual({
+      code: 'AUTH_NOT_INVITED',
+      message: 'Usuário não convidado',
+    });
   });
 });
