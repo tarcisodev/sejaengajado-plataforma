@@ -21,7 +21,10 @@ describe('site seo helpers', () => {
   };
 
   it('rounds the countdown down to whole units', () => {
-    const parts = countdownParts('2027-06-01T23:59:00-03:00', new Date('2027-05-31T21:59:00-03:00'));
+    const parts = countdownParts(
+      '2027-06-01T23:59:00-03:00',
+      new Date('2027-05-31T21:59:00-03:00'),
+    );
 
     expect(parts).toEqual({ d: '1', h: '02', m: '00', s: '00' });
     expect(countdownParts('2020-01-01T00:00:00Z', new Date('2026-01-01T00:00:00Z'))).toBeNull();
@@ -39,8 +42,6 @@ describe('site seo helpers', () => {
   });
 
   it('builds a WhatsApp link from digits', () => {
-    expect(whatsappHref('(34) 99999-0001', 'Olá')).toBe(
-      'https://wa.me/34999990001?text=Ol%C3%A1',
-    );
+    expect(whatsappHref('(34) 99999-0001', 'Olá')).toBe('https://wa.me/34999990001?text=Ol%C3%A1');
   });
 });

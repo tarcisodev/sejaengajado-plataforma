@@ -32,7 +32,9 @@ describe('SitePageComponent', () => {
   it('renders the barbershop blocks and hides Pix when it is absent', async () => {
     const fixture = await render(seedSite('barbearia-do-ze'));
     const text = fixture.nativeElement.textContent as string;
-    const whatsapp = fixture.nativeElement.querySelector('[data-link="whatsapp"]') as HTMLAnchorElement;
+    const whatsapp = fixture.nativeElement.querySelector(
+      '[data-link="whatsapp"]',
+    ) as HTMLAnchorElement;
 
     expect(text).toContain('Barbearia do Zé');
     expect(text).toContain('Corte');

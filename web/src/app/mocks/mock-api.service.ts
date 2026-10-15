@@ -2,7 +2,11 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
 import { ApiPort, BlockResellerCommand, NoticeRecord } from '../core/api/api-port';
-import { calculatePlaquePenalty, PlaquePenaltyQuote, toCivilDate } from '../core/api/plaque-penalty';
+import {
+  calculatePlaquePenalty,
+  PlaquePenaltyQuote,
+  toCivilDate,
+} from '../core/api/plaque-penalty';
 import { migrationAvailable } from '../core/admin/migration';
 import { canEditSite } from '../core/customer/access';
 import {
@@ -308,7 +312,9 @@ export class MockApiService implements ApiPort {
     return of(undefined);
   }
 
-  requestCustomerOtp(email: string): Observable<{ delivered: boolean; previewCode: string | null }> {
+  requestCustomerOtp(
+    email: string,
+  ): Observable<{ delivered: boolean; previewCode: string | null }> {
     const user = this.customerUser(email);
     this.otpEmail = user?.email ?? null;
     return of({ delivered: Boolean(user), previewCode: user ? CUSTOMER_OTP : null });
@@ -376,10 +382,17 @@ export class MockApiService implements ApiPort {
 
   private customerUser(email: string): User | undefined {
     const normalized = email.trim().toLowerCase();
-    return this.state.users.find((user) => user.email.toLowerCase() === normalized && user.role === 'CUSTOMER');
+    return this.state.users.find(
+      (user) => user.email.toLowerCase() === normalized && user.role === 'CUSTOMER',
+    );
   }
 
-  private audit(actorId: string, acao: string, siteId: string, diff: Record<string, unknown>): AuditLog {
+  private audit(
+    actorId: string,
+    acao: string,
+    siteId: string,
+    diff: Record<string, unknown>,
+  ): AuditLog {
     const log: AuditLog = { actor: actorId, acao, entidade: `Site:${siteId}`, diff };
     this.state.auditLogs.push(log);
     return structuredClone(log);

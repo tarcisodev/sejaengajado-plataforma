@@ -100,7 +100,9 @@ export function countdownParts(endIso: string, now = new Date()): ClockParts | n
 
 export function siteJsonLd(content: SiteContent, slug: string, schemaType: string): string {
   const url = siteCanonical(slug);
-  const sameAs = (content.links ?? []).filter((link) => link.tipo === 'instagram').map((link) => link.url);
+  const sameAs = (content.links ?? [])
+    .filter((link) => link.tipo === 'instagram')
+    .map((link) => link.url);
   const business: Record<string, unknown> = {
     '@type': schemaType,
     name: displayName(content),

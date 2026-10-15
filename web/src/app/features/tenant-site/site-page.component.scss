@@ -248,7 +248,11 @@ h2 {
   padding: 1.1rem 1rem 1rem;
   border-radius: 1.4rem;
   color: var(--hi);
-  background: linear-gradient(140deg, color-mix(in srgb, var(--p2) 55%, #000), color-mix(in srgb, var(--p1) 70%, #000));
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--p2) 55%, #000),
+    color-mix(in srgb, var(--p1) 70%, #000)
+  );
 }
 
 .promo h2 {

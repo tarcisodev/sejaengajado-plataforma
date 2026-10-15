@@ -66,7 +66,11 @@ function plain(businessName: string, templateId: string): SiteContent {
   };
 }
 
-export function contentForSite(slug: string, businessName: string, templateId: string): SiteContent {
+export function contentForSite(
+  slug: string,
+  businessName: string,
+  templateId: string,
+): SiteContent {
   return BIOS[slug] ?? plain(businessName, templateId);
 }
 
@@ -132,7 +136,11 @@ const BIOS: Record<string, SiteContent> = {
     },
     links: [
       { tipo: 'instagram', titulo: 'Instagram', url: 'https://instagram.com/fornodapraca' },
-      { tipo: 'maps', titulo: 'Como chegar', url: 'https://www.google.com/maps?q=Pra%C3%A7a+Rui+Barbosa+Uberaba' },
+      {
+        tipo: 'maps',
+        titulo: 'Como chegar',
+        url: 'https://www.google.com/maps?q=Pra%C3%A7a+Rui+Barbosa+Uberaba',
+      },
     ],
     hours: [{ dias: 'ter a dom', abre: '18:00', fecha: '23:00' }],
     gallery: ['/samples/forno.svg'],
