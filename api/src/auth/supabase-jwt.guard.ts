@@ -10,8 +10,9 @@ import { Reflector } from '@nestjs/core';
 import { jwtVerify } from 'jose';
 
 import { ENV, supabaseIssuer, type Env } from '../config/env';
-import { ADMIN_PRISMA, type AdminPrisma } from '../tenant/prisma.module';
+import { SYSTEM_PRISMA, type SystemPrisma } from '../tenant/prisma.module';
 import type { TenantActor } from '../tenant/tenant.types';
+import { enterAuthUser } from './auth.context';
 import type { AuthUser } from './auth-user';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
@@ -26,7 +27,7 @@ export class SupabaseJwtGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     @Inject(ENV) private readonly env: Env,
-    @Inject(ADMIN_PRISMA) private readonly adminPrisma: AdminPrisma,
+    @Inject(SYSTEM_PRISMA) private readonly systemPrisma: SystemPrisma,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -70,7 +71,7 @@ export class SupabaseJwtGuard implements CanActivate {
       });
     }
 
-    const user = await this.adminPrisma.user.findUnique({
+    const user = await this.systemPrisma.user.findUnique({
       where: { supabaseId: sub },
     });
     if (!user) {
@@ -101,6 +102,7 @@ export class SupabaseJwtGuard implements CanActivate {
       role: authUser.role,
       resellerId: authUser.resellerId,
     };
+    enterAuthUser(authUser);
     return true;
   }
 }

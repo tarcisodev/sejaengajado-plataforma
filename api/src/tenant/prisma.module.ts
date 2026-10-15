@@ -10,13 +10,17 @@ import {
 import { PrismaClient } from '@prisma/client';
 
 import type { Env } from '../config/env';
+import { createAdminPrismaProxy } from './admin-prisma.proxy';
 import { createTenantPrismaProxy } from './prisma-tenant.extension';
 
 export const PRISMA = Symbol('PRISMA');
 export const ADMIN_PRISMA = Symbol('ADMIN_PRISMA');
+/** Ungated se_admin client — only for auth bootstrap (JWT user lookup). */
+export const SYSTEM_PRISMA = Symbol('SYSTEM_PRISMA');
 
 export type AdminPrisma = PrismaClient;
 export type TenantPrisma = PrismaClient;
+export type SystemPrisma = PrismaClient;
 
 @Injectable()
 export class PrismaLifecycle implements OnModuleInit, OnModuleDestroy {
@@ -26,15 +30,15 @@ export class PrismaLifecycle implements OnModuleInit, OnModuleDestroy {
       $connect(): Promise<void>;
       $disconnect(): Promise<void>;
     },
-    @Inject(ADMIN_PRISMA) private readonly adminPrisma: PrismaClient,
+    @Inject(SYSTEM_PRISMA) private readonly systemPrisma: PrismaClient,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    await Promise.all([this.prisma.$connect(), this.adminPrisma.$connect()]);
+    await Promise.all([this.prisma.$connect(), this.systemPrisma.$connect()]);
   }
 
   async onModuleDestroy(): Promise<void> {
-    await Promise.all([this.prisma.$disconnect(), this.adminPrisma.$disconnect()]);
+    await Promise.all([this.prisma.$disconnect(), this.systemPrisma.$disconnect()]);
   }
 }
 
@@ -47,11 +51,16 @@ export class PrismaModule {
       global: true,
       providers: [
         {
-          provide: ADMIN_PRISMA,
-          useFactory: (): AdminPrisma =>
+          provide: SYSTEM_PRISMA,
+          useFactory: (): SystemPrisma =>
             new PrismaClient({
               datasources: { db: { url: env.ADMIN_DATABASE_URL } },
             }),
+        },
+        {
+          provide: ADMIN_PRISMA,
+          inject: [SYSTEM_PRISMA],
+          useFactory: (system: PrismaClient): AdminPrisma => createAdminPrismaProxy(system),
         },
         {
           provide: PRISMA,
@@ -64,7 +73,7 @@ export class PrismaModule {
         },
         PrismaLifecycle,
       ],
-      exports: [PRISMA, ADMIN_PRISMA],
+      exports: [PRISMA, ADMIN_PRISMA, SYSTEM_PRISMA],
     };
   }
 }

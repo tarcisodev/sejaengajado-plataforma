@@ -3,6 +3,8 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
+import { ResellersModule } from './admin/resellers/resellers.module';
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './auth/roles.guard';
 import { SupabaseJwtGuard } from './auth/supabase-jwt.guard';
@@ -28,6 +30,8 @@ export class AppModule {
         ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
         PrismaModule.register(env),
         AuthModule.register(env),
+        AuditModule,
+        ResellersModule,
       ],
       controllers: [HealthController],
       providers: [
