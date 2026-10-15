@@ -5,7 +5,7 @@ import { API_PORT } from '../api/api-port';
 import { HostDecision, resolveHost } from './resolve-host';
 import { TenantView, viewForSite } from './tenant-view';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class TenantResolver {
   private readonly api = inject(API_PORT);
 
