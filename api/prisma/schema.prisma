@@ -177,6 +177,7 @@ model Reseller {
   plaqueMovements  PlaqueMovement[]
   invoices         ResellerInvoice[]
   lifecycleEvents  LifecycleEvent[]
+  jobEmailLogs     JobEmailLog[]
   plaques          Plaque[]
 
   @@index([status])
@@ -586,4 +587,19 @@ model LifecycleEvent {
   @@index([resellerId, createdAt])
   @@index([siteId, createdAt])
   @@map("lifecycle_events")
+}
+
+/** Persisted dedupe for job e-mails: at most one per reseller + band + SP day. */
+model JobEmailLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  resellerId String   @map("reseller_id") @db.Uuid
+  band       String
+  localDate  String   @map("local_date")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reseller Reseller @relation(fields: [resellerId], references: [id])
+
+  @@unique([resellerId, band, localDate])
+  @@index([localDate])
+  @@map("job_email_logs")
 }

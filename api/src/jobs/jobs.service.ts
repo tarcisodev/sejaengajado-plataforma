@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { SiteStatus } from '@prisma/client';
+import { Prisma, type SiteStatus } from '@prisma/client';
 
 import { ENV, type Env } from '../config/env';
-import { spDayStartUtc } from '../common/sao-paulo-time';
+import { spDayStartUtc, spLocalDate } from '../common/sao-paulo-time';
 import { SYSTEM_PRISMA, type SystemPrisma } from '../tenant/prisma.module';
-import { JOB_MAILER, type JobMailer } from './mailer';
+import { JOB_MAILER, type JobEmailBand, type JobMailer } from './mailer';
 import { overdueDaysSp, targetStatusForDays } from './overdue-days';
 import { monthsRemainingFidelity, plaquePenaltyCents } from './penalty';
 
@@ -18,10 +18,22 @@ const STATUS_RANK: Record<SiteStatus, number> = {
 
 const LOCK_KEY = 'jobs:lifecycle';
 
+/** Global e-mail ceiling per job execution (override via JOBS_EMAIL_CAP). */
+export function maxEmailsPerRun(): number {
+  const raw = process.env.JOBS_EMAIL_CAP;
+  if (raw === undefined || raw === '') {
+    return 100;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 100;
+}
+
 export interface JobsRunResult {
   scanned: number;
   transitioned: number;
   warned: number;
+  emailsSent: number;
+  emailsSkippedCap: number;
   renewals: number;
   skippedLock: boolean;
 }
@@ -45,7 +57,15 @@ export class JobsService {
       SELECT pg_try_advisory_lock(hashtext(${LOCK_KEY})) AS ok
     `;
     if (!locked[0]?.ok) {
-      return { scanned: 0, transitioned: 0, warned: 0, renewals: 0, skippedLock: true };
+      return {
+        scanned: 0,
+        transitioned: 0,
+        warned: 0,
+        emailsSent: 0,
+        emailsSkippedCap: 0,
+        renewals: 0,
+        skippedLock: true,
+      };
     }
 
     try {
@@ -61,7 +81,15 @@ export class JobsService {
     const cfg = await this.db.platformConfig.findUnique({ where: { id: 'default' } });
     if (!cfg) {
       this.logger.warn('PlatformConfig ausente — job ignorado');
-      return { scanned: 0, transitioned: 0, warned: 0, renewals: 0, skippedLock: false };
+      return {
+        scanned: 0,
+        transitioned: 0,
+        warned: 0,
+        emailsSent: 0,
+        emailsSkippedCap: 0,
+        renewals: 0,
+        skippedLock: false,
+      };
     }
 
     const sites = await this.db.site.findMany({
@@ -82,6 +110,9 @@ export class JobsService {
     let transitioned = 0;
     let warned = 0;
     let renewals = 0;
+    let emailsSent = 0;
+    let emailsSkippedCap = 0;
+    const emailCap = maxEmailsPerRun();
 
     for (const site of sites) {
       const sub = site.subscriptions[0] ?? null;
@@ -121,9 +152,20 @@ export class JobsService {
       }
 
       if (target === 'WARN') {
-        const sent = await this.warnOnce(site, days, now);
-        if (sent) {
+        await this.markSiteWarn(site, now);
+        const mail = await this.trySendBandEmail({
+          resellerId: site.resellerId,
+          band: 'WARN',
+          daysOverdue: days,
+          now,
+          emailsSent,
+          emailCap,
+        });
+        if (mail === 'sent') {
+          emailsSent += 1;
           warned += 1;
+        } else if (mail === 'capped') {
+          emailsSkippedCap += 1;
         }
         continue;
       }
@@ -169,6 +211,8 @@ export class JobsService {
       scanned: sites.length,
       transitioned,
       warned,
+      emailsSent,
+      emailsSkippedCap,
       renewals,
       skippedLock: false,
     };
@@ -186,20 +230,18 @@ export class JobsService {
     return plaquePenaltyCents(cfg.plaqueValueCents, months, cfg.plaquePenaltyPct);
   }
 
-  private async warnOnce(
-    site: { id: string; resellerId: string; status: SiteStatus; slug: string },
-    days: number,
+  private async markSiteWarn(
+    site: { id: string; resellerId: string; status: SiteStatus },
     now: Date,
-  ): Promise<boolean> {
-    const localDay = spDayStartUtc(now).toISOString().slice(0, 10);
+  ): Promise<void> {
+    const localDay = spLocalDate(now);
     const reason = `OVERDUE_WARN:${localDay}`;
     const existing = await this.db.lifecycleEvent.findFirst({
       where: { siteId: site.id, reason },
     });
     if (existing) {
-      return false;
+      return;
     }
-
     await this.db.lifecycleEvent.create({
       data: {
         resellerId: site.resellerId,
@@ -209,13 +251,68 @@ export class JobsService {
         reason,
       },
     });
+  }
+
+  /**
+   * At most one e-mail per reseller + band + SP day (persisted).
+   * Honors the global per-run cap without writing a log when capped.
+   */
+  private async trySendBandEmail(input: {
+    resellerId: string;
+    band: JobEmailBand;
+    daysOverdue: number;
+    now: Date;
+    emailsSent: number;
+    emailCap: number;
+  }): Promise<'sent' | 'deduped' | 'capped'> {
+    const localDate = spLocalDate(input.now);
+    const existing = await this.db.jobEmailLog.findUnique({
+      where: {
+        resellerId_band_localDate: {
+          resellerId: input.resellerId,
+          band: input.band,
+          localDate,
+        },
+      },
+    });
+    if (existing) {
+      return 'deduped';
+    }
+    if (input.emailsSent >= input.emailCap) {
+      return 'capped';
+    }
+
+    try {
+      await this.db.jobEmailLog.create({
+        data: {
+          resellerId: input.resellerId,
+          band: input.band,
+          localDate,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return 'deduped';
+      }
+      throw error;
+    }
+
+    const user = await this.db.user.findFirst({
+      where: { resellerId: input.resellerId, role: 'RESELLER', status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+    const to = user?.email ?? `reseller-${input.resellerId}@notify.invalid`;
 
     await this.mailer.sendOverdueWarning({
-      to: `site-${site.slug}@notify.invalid`,
-      siteId: site.id,
-      daysOverdue: days,
+      to,
+      resellerId: input.resellerId,
+      band: input.band,
+      daysOverdue: input.daysOverdue,
     });
-    return true;
+    return 'sent';
   }
 
   private async ensureProntoRenewalMarker(
@@ -238,7 +335,6 @@ export class JobsService {
     if (existing) {
       return false;
     }
-    // Only mark once the renew day has arrived (period end day or after).
     if (spDayStartUtc(now).getTime() < spDayStartUtc(site.hostingRenewsAt).getTime()) {
       return false;
     }

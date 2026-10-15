@@ -18,3 +18,27 @@ export function spDayStartUtc(date: Date): Date {
 export function asOfInSaoPaulo(at?: Date): Date {
   return at ?? new Date();
 }
+
+/** SP calendar date as YYYY-MM-DD. */
+export function spLocalDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: SP,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+/** Inclusive start / exclusive end of the SP calendar month containing `at`. */
+export function spMonthRangeUtc(at: Date): { from: Date; toExclusive: Date } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SP,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(at);
+  const year = Number(parts.find((p) => p.type === 'year')?.value);
+  const month = Number(parts.find((p) => p.type === 'month')?.value);
+  const from = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0, 0));
+  const toExclusive = new Date(Date.UTC(year, month, 1, 3, 0, 0, 0));
+  return { from, toExclusive };
+}

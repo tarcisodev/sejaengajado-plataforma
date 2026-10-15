@@ -23,6 +23,7 @@ import { loggerParams } from './logging/redact';
 import { FakeGateway } from './payments/fake-gateway';
 import { PAYMENT_GATEWAY } from './payments/payment-gateway';
 import { PublicModule } from './public/public.module';
+import { ReportsModule } from './reports/reports.module';
 import { ResellerModule } from './reseller/reseller.module';
 import { SalesModule } from './sales/sales.module';
 import { StockModule } from './stock/stock.module';
@@ -52,6 +53,7 @@ export class AppModule {
         StockModule,
         SalesModule,
         JobsModule,
+        ReportsModule,
         PublicModule,
         ResellerModule,
       ],

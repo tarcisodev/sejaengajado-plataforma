@@ -3,6 +3,7 @@ import { getHarnessPostgres } from './postgres';
 const TABLES = [
   'invoice_lines',
   'reseller_invoices',
+  'job_email_logs',
   'lifecycle_events',
   'plaque_movements',
   'ledger_entries',

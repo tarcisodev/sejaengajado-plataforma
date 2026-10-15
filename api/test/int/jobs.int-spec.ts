@@ -167,11 +167,14 @@ describe('jobs overdue lifecycle', () => {
         .send({ now: '2026-03-11T15:00:00.000Z' })
         .expect(201)
         .expect(({ body }) => {
-          expect(body.warned).toBeGreaterThanOrEqual(1);
+          // 1 e-mail per reseller (A has 2 sites; B has 1) → 2
+          expect(body.emailsSent).toBe(2);
+          expect(body.warned).toBe(2);
           expect(body.transitioned).toBe(0);
         });
 
-      expect(jobMailer.sent.length).toBeGreaterThanOrEqual(1);
+      expect(jobMailer.sent).toHaveLength(2);
+      expect(new Set(jobMailer.sent.map((m) => m.resellerId)).size).toBe(2);
 
       const afterWarn = await adminPrisma.site.findUniqueOrThrow({
         where: { id: seeded.sitePro.id },
