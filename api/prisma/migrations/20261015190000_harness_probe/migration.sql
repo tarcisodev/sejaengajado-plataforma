@@ -1,0 +1,22 @@
+-- CreateTable
+CREATE TABLE "HarnessProbe" (
+    "id" UUID NOT NULL,
+    "label" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "HarnessProbe_pkey" PRIMARY KEY ("id")
+);
+
+-- App role for integration tests (no superuser, no BYPASSRLS).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'se_app') THEN
+    CREATE ROLE se_app LOGIN PASSWORD 'se_app' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+  END IF;
+END
+$$;
+
+GRANT USAGE ON SCHEMA public TO se_app;
+GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "HarnessProbe" TO se_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON TABLES TO se_app;

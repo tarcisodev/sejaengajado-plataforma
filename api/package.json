@@ -5,14 +5,19 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "test:int": "jest --runInBand --config jest.int.config.json",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",
     "@nestjs/throttler": "^6.4.0",
+    "@prisma/client": "^6.16.2",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
     "nestjs-pino": "^4.4.0",
     "pg": "^8.16.3",
     "pino": "^9.9.0",
@@ -24,13 +29,17 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@nestjs/testing": "^11.1.6",
+    "@testcontainers/postgresql": "^11.7.1",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.18.0",
     "@types/pg": "^8.15.5",
     "@types/supertest": "^6.0.3",
     "jest": "^30.2.0",
+    "prisma": "^6.16.2",
     "supertest": "^7.1.4",
+    "testcontainers": "^11.7.1",
     "ts-jest": "^29.4.4",
     "typescript": "~5.9.2"
   }

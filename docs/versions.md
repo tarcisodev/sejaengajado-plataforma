@@ -10,7 +10,8 @@ Fonte: `web/package.json` em 15/10/2026. API, Prisma e Postgres ainda não estã
 | spartan | 1.6.3 (`@spartan-ng/brain` e helm, só no painel `app.`) |
 | NestJS | 11 |
 | Prisma | 6 |
-| Postgres | 16 |
+| Postgres | 16 (produção: database `sejaengajado` no Supabase self-hosted; testes: Testcontainers) |
+| Auth | Supabase Auth (OTP por e-mail); API valida JWT (JWKS ou secret) |
 | Node da API | 22 (`.nvmrc`) |
 
 Qualquer menção a Angular 19, Tailwind 3.4 ou TypeORM em documento antigo está errada. O ORM é Prisma.

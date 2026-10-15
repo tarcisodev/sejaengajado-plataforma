@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Temporary probe table for the Testcontainers harness (01-B3).
+/// The production schema replaces this in 02-B1.
+model HarnessProbe {
+  id        String   @id @default(uuid()) @db.Uuid
+  label     String
+  createdAt DateTime @default(now())
+}
