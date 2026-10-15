@@ -1,14 +1,13 @@
 import { Routes } from '@angular/router';
 
-import { API_PORT } from '../../core/api/api-port';
+import { apiProviders } from '../../core/api/api.providers';
 import { TenantResolver } from '../../core/tenant/tenant-resolver';
-import { MockApiService } from '../../mocks/mock-api.service';
 import { TenantGateComponent } from './tenant-gate.component';
 
 export const tenantRoutes: Routes = [
   {
     path: '',
-    providers: [TenantResolver, MockApiService, { provide: API_PORT, useExisting: MockApiService }],
+    providers: [TenantResolver, ...apiProviders],
     children: [
       { path: '', component: TenantGateComponent },
       { path: '**', component: TenantGateComponent },

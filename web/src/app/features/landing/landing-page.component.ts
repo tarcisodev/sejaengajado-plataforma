@@ -9,7 +9,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, catchError, combineLatest, map, of } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { Plan } from '../../core/models/domain';
@@ -93,6 +93,7 @@ export class LandingPageComponent implements OnInit, OnDestroy {
       pro: plans.find((plan) => plan.code === 'ENGAJADO_PRO') ?? null,
       renewalCentavos: config.prontoRenewalCentavos,
     })),
+    catchError(() => of({ pronto: null, pro: null, renewalCentavos: 0 })),
   );
 
   ngOnInit(): void {
