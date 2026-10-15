@@ -4,8 +4,9 @@
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
-    "lint": "tsc --noEmit -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json && node scripts/lint-payments-boundary.mjs",
     "lint:money": "node scripts/lint-money.mjs",
+    "lint:payments-boundary": "node scripts/lint-payments-boundary.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=critical",
     "test": "jest --runInBand",
     "test:cov": "jest --runInBand --coverage",
@@ -51,6 +52,7 @@
     "@types/pg": "^8.15.5",
     "@types/supertest": "^6.0.3",
     "jest": "^30.2.0",
+    "nock": "^13.5.6",
     "prisma": "^6.16.2",
     "supertest": "^7.1.4",
     "testcontainers": "^11.7.1",

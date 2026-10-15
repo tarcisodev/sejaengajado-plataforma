@@ -5,7 +5,7 @@ import { SUPABASE_ADMIN, type SupabaseAdminClient } from '../../src/auth/supabas
 import { AppModule } from '../../src/app.module';
 import { loadEnv } from '../../src/config/env';
 import { FakeJobMailer, JOB_MAILER } from '../../src/jobs/mailer';
-import { FakeGateway } from '../../src/payments/fake-gateway';
+import { FakeGateway } from '../../src/payments/domain/fake-gateway';
 import { getHarnessPostgres } from './postgres';
 
 export interface TestAppOptions {

@@ -20,8 +20,7 @@ import { PgReadyProbe, READY_PROBE } from './health/ready';
 import { JobsModule } from './jobs/jobs.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { loggerParams } from './logging/redact';
-import { FakeGateway } from './payments/fake-gateway';
-import { PAYMENT_GATEWAY } from './payments/payment-gateway';
+import { PaymentsModule } from './payments/payments.module';
 import { PublicModule } from './public/public.module';
 import { ReportsModule } from './reports/reports.module';
 import { ResellerModule } from './reseller/reseller.module';
@@ -56,20 +55,19 @@ export class AppModule {
         ReportsModule,
         PublicModule,
         ResellerModule,
+        PaymentsModule.register(),
       ],
       controllers: [HealthController],
       providers: [
         PgReadyProbe,
         { provide: READY_PROBE, useExisting: PgReadyProbe },
-        FakeGateway,
-        { provide: PAYMENT_GATEWAY, useExisting: FakeGateway },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: SupabaseJwtGuard },
         { provide: APP_GUARD, useClass: RolesGuard },
         { provide: APP_GUARD, useClass: TenantScopeGuard },
       ],
-      exports: [PAYMENT_GATEWAY, FakeGateway, PrismaModule],
+      exports: [PrismaModule, PaymentsModule],
     };
   }
 }

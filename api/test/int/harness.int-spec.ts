@@ -61,7 +61,10 @@ describe('testcontainers harness', () => {
     try {
       expect(gateway).toBeInstanceOf(FakeGateway);
       await gateway.createCharge({
+        gatewayCustomerId: 'cus_probe',
         amountCents: 100,
+        method: 'PIX',
+        dueDate: '2026-10-20',
         idempotencyKey: 'k1',
         description: 'probe',
       });
