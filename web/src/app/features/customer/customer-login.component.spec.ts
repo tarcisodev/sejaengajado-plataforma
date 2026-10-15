@@ -34,7 +34,9 @@ describe('CustomerLoginComponent', () => {
 
     expect(fixture.nativeElement.querySelector('[data-otp]')?.textContent).toBe('482913');
 
-    const code = fixture.nativeElement.querySelector('input[inputmode="numeric"]') as HTMLInputElement;
+    const code = fixture.nativeElement.querySelector(
+      'input[inputmode="numeric"]',
+    ) as HTMLInputElement;
     code.value = '482913';
     code.dispatchEvent(new Event('input'));
     (fixture.nativeElement.querySelectorAll('form')[1] as HTMLFormElement).requestSubmit();

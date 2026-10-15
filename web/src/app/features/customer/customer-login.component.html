@@ -1,23 +1,87 @@
-<form (submit)="request($event)">
-  <label>
-    E-mail
-    <input type="email" [value]="email()" (input)="email.set(inputValue($event))" required />
-  </label>
-  <button type="submit">Receber código</button>
-</form>
-<p>Contas de exemplo: ze&#64;example.com, forno&#64;example.com e ana&#64;example.com.</p>
-@if (previewCode(); as inbox) {
-  <aside aria-label="E-mail simulado">
-    <p>Seu código de acesso é <strong data-otp>{{ inbox }}</strong>.</p>
-  </aside>
-  <form (submit)="verify($event)">
-    <label>
-      Código
-      <input inputmode="numeric" [value]="code()" (input)="code.set(inputValue($event))" required />
-    </label>
-    <button type="submit">Entrar</button>
-  </form>
-}
-@if (error()) {
-  <p class="warn" role="alert">{{ error() }}</p>
-}
+<section hlmCard>
+  <header hlmCardHeader class="grid grid-cols-[1fr_auto] items-start gap-4">
+    <div class="grid gap-2">
+      <p class="font-display text-sm text-primary">Seja Engajado</p>
+      <h1 hlmCardTitle class="font-display text-2xl md:text-3xl">Sua conta</h1>
+    </div>
+    <button
+      hlmBtn
+      type="button"
+      variant="ghost"
+      size="icon"
+      class="size-11"
+      (click)="theme.toggle()"
+      [attr.aria-pressed]="theme.theme() === 'dark'"
+      aria-label="Tema"
+    >
+      <ng-icon [name]="theme.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" />
+    </button>
+  </header>
+  <div hlmCardContent class="grid gap-4">
+    <form class="grid gap-4" (submit)="request($event)">
+      <div hlmField>
+        <label hlmFieldLabel for="email">E-mail</label>
+        <input
+          hlmInput
+          id="email"
+          class="h-11"
+          type="email"
+          autocomplete="email"
+          [value]="email()"
+          (input)="email.set(inputValue($event))"
+          required
+        />
+      </div>
+      <button
+        hlmBtn
+        class="h-11 w-full"
+        type="submit"
+        [disabled]="pending()"
+        [attr.aria-busy]="pending()"
+      >
+        Receber código
+      </button>
+    </form>
+    <p class="text-sm text-muted-foreground">
+      Contas de exemplo: ze&#64;example.com, forno&#64;example.com e ana&#64;example.com.
+    </p>
+    @if (previewCode(); as inbox) {
+      <aside class="grid gap-2 rounded-lg bg-muted p-4 text-sm" aria-label="E-mail simulado">
+        <p>
+          Seu código de acesso é <strong data-otp>{{ inbox }}</strong
+          >.
+        </p>
+      </aside>
+      <form class="grid gap-4" (submit)="verify($event)">
+        <div hlmField>
+          <label hlmFieldLabel for="code">Código</label>
+          <input
+            hlmInput
+            id="code"
+            class="h-11"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            [value]="code()"
+            (input)="code.set(inputValue($event))"
+            required
+          />
+        </div>
+        <button
+          hlmBtn
+          class="h-11 w-full"
+          type="submit"
+          [disabled]="pending()"
+          [attr.aria-busy]="pending()"
+        >
+          Entrar
+        </button>
+      </form>
+    }
+    @if (error()) {
+      <div hlmAlert variant="destructive">
+        <ng-icon name="lucideTriangleAlert" />
+        <p hlmAlertDescription>{{ error() }}</p>
+      </div>
+    }
+  </div>
+</section>

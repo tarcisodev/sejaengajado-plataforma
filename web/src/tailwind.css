@@ -6,6 +6,10 @@
 @import '@spartan-ng/brain/hlm-tailwind-preset.css';
 @source "./**/*.{html,ts}";
 
+@theme {
+  --font-display: Fraunces, 'Iowan Old Style', Palatino, serif;
+}
+
 :root {
   color-scheme: light;
 
