@@ -1,3 +1,4 @@
+import { PlatformLocation } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSearch } from '@ng-icons/lucide';
@@ -14,6 +15,7 @@ import { API_PORT } from '../../core/api/api-port';
 import { GooglePlacesService } from '../../core/google/google-places.service';
 import { PlaceMatch } from '../../core/google/place-match';
 import { Customer, Plan, Site, SiteStatus, Template } from '../../core/models/domain';
+import { tenantPreviewUrl } from '../../core/tenant/resolve-host';
 
 @Component({
   selector: 'app-admin-sites',
@@ -34,6 +36,7 @@ import { Customer, Plan, Site, SiteStatus, Template } from '../../core/models/do
 export class AdminSitesComponent {
   private readonly api = inject(API_PORT);
   private readonly places = inject(GooglePlacesService);
+  private readonly platform = inject(PlatformLocation);
   readonly query = signal('');
   readonly status = signal<SiteStatus | ''>('');
   readonly ready = signal(false);
@@ -90,6 +93,14 @@ export class AdminSitesComponent {
         (!query || name.includes(query) || row.slug.includes(query)) &&
         (!status || row.status === status)
       );
+    });
+  }
+
+  previewHref(slug: string): string {
+    return tenantPreviewUrl(slug, {
+      protocol: this.platform.protocol,
+      hostname: this.platform.hostname,
+      port: this.platform.port,
     });
   }
 

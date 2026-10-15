@@ -1,4 +1,4 @@
-import { resolveHost } from './resolve-host';
+import { resolveHost, tenantPreviewUrl } from './resolve-host';
 
 describe('resolveHost', () => {
   it('keeps the apex and localhost on the landing', () => {
@@ -38,5 +38,22 @@ describe('resolveHost', () => {
 
   it('does not treat a nested host as a tenant', () => {
     expect(resolveHost('a.b.sejaengajado.com.br').kind).toBe('landing');
+  });
+
+  it('opens the public tenant host for a preview', () => {
+    expect(
+      tenantPreviewUrl('barbearia-do-ze', {
+        protocol: 'http:',
+        hostname: 'app.localhost',
+        port: '4200',
+      }),
+    ).toBe('http://barbearia-do-ze.localhost:4200/');
+    expect(
+      tenantPreviewUrl('barbearia-do-ze', {
+        protocol: 'http:',
+        hostname: '127.0.0.1',
+        port: '4200',
+      }),
+    ).toBe('http://127.0.0.1:4200/?tenant=barbearia-do-ze');
   });
 });

@@ -35,6 +35,23 @@ export function hostFromLocation(location: { hostname: string; port: string }): 
   return location.port ? `${location.hostname}:${location.port}` : location.hostname;
 }
 
+export function tenantPreviewUrl(
+  slug: string,
+  location: { protocol: string; hostname: string; port: string },
+): string {
+  const protocol = location.protocol.endsWith(':') ? location.protocol : `${location.protocol}:`;
+  const port = location.port ? `:${location.port}` : '';
+  const host = location.hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.localhost')) {
+    return `${protocol}//${slug}.localhost${port}/`;
+  }
+  if (host === '127.0.0.1' || host === '::1' || host === '[::1]') {
+    return `${protocol}//${host}${port}/?tenant=${encodeURIComponent(slug)}`;
+  }
+  const apex = host.startsWith('app.') ? host.slice(4) : host;
+  return `${protocol}//${slug}.${apex}${port}/`;
+}
+
 function readTenantQuery(search: string): string | null {
   const raw = search.startsWith('?') ? search.slice(1) : search;
   const tenant = new URLSearchParams(raw).get('tenant')?.trim().toLowerCase() ?? '';

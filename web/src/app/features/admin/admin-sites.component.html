@@ -279,22 +279,34 @@
                   </td>
                   <td hlmTd>{{ planName(row.planId) }}</td>
                   <td hlmTd>
-                    @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
-                      <button
+                    <div class="flex flex-wrap gap-2">
+                      <a
                         hlmBtn
                         class="h-11"
-                        type="button"
-                        variant="destructive"
-                        (click)="suspend(row)"
+                        variant="outline"
+                        target="_blank"
+                        rel="noopener"
+                        [href]="previewHref(row.slug)"
                       >
-                        Suspender
-                      </button>
-                    }
-                    @if (row.status === 'SUSPENDED') {
-                      <button hlmBtn class="h-11" type="button" (click)="reactivate(row)">
-                        Reativar
-                      </button>
-                    }
+                        Prévia
+                      </a>
+                      @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+                        <button
+                          hlmBtn
+                          class="h-11"
+                          type="button"
+                          variant="destructive"
+                          (click)="suspend(row)"
+                        >
+                          Suspender
+                        </button>
+                      }
+                      @if (row.status === 'SUSPENDED') {
+                        <button hlmBtn class="h-11" type="button" (click)="reactivate(row)">
+                          Reativar
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
