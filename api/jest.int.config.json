@@ -2,6 +2,8 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testRegex": "test/int/.*\\.int-spec\\.ts$",
+  "globalSetup": "<rootDir>/test/setup/jest-int.global-setup.cjs",
+  "globalTeardown": "<rootDir>/test/setup/jest-int.global-teardown.cjs",
   "setupFilesAfterEnv": ["<rootDir>/test/setup/jest-int.setup.ts"],
   "transform": {
     "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }]

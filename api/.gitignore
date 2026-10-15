@@ -3,3 +3,4 @@ dist
 coverage
 .env
 test/setup/.container-state.json
+test/setup/.harness-postgres.json
