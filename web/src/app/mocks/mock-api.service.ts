@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
-import { ApiPort, BlockResellerCommand, NoticeRecord } from '../core/api/api-port';
+import {
+  ApiPort,
+  BlockResellerCommand,
+  CreateCustomerCommand,
+  NoticeRecord,
+} from '../core/api/api-port';
 import {
   calculatePlaquePenalty,
   PlaquePenaltyQuote,
@@ -63,6 +68,20 @@ export class MockApiService implements ApiPort {
 
   listCustomers(resellerId?: string | null): Observable<Customer[]> {
     return of(structuredClone(this.byReseller(this.state.customers, resellerId)));
+  }
+
+  createCustomer(command: CreateCustomerCommand): Observable<Customer> {
+    const customer: Customer = {
+      id: `cust_created_${this.state.customers.length + 1}`,
+      userId: null,
+      resellerId: command.resellerId,
+      nome: command.nome.trim(),
+      doc: command.doc.trim(),
+      whatsapp: command.whatsapp.trim(),
+      cidade: command.cidade.trim(),
+    };
+    this.state.customers.push(customer);
+    return of(structuredClone(customer));
   }
 
   listSites(resellerId?: string | null): Observable<Site[]> {

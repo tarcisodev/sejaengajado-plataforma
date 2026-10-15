@@ -29,6 +29,22 @@ describe('MockApiService', () => {
     expect(config.resellerGraceDays).toBe(30);
   });
 
+  it('creates a customer and lists it afterwards', async () => {
+    const created = await firstValueFrom(
+      service.createCustomer({
+        nome: 'Padaria Nova',
+        doc: '123',
+        whatsapp: '34988887777',
+        cidade: 'Uberaba',
+        resellerId: null,
+      }),
+    );
+    const customers = await firstValueFrom(service.listCustomers());
+
+    expect(created.userId).toBeNull();
+    expect(customers.map((customer) => customer.nome)).toContain('Padaria Nova');
+  });
+
   it('includes the annual hosting plan and Uberaba businesses', async () => {
     const plans = await firstValueFrom(service.listPlans());
     const sites = await firstValueFrom(service.listSites());

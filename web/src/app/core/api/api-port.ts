@@ -20,6 +20,14 @@ import {
   User,
 } from '../models/domain';
 
+export interface CreateCustomerCommand {
+  nome: string;
+  doc: string;
+  whatsapp: string;
+  cidade: string;
+  resellerId: string | null;
+}
+
 export interface BlockResellerCommand {
   actorId: string;
   reason: string;
@@ -40,6 +48,7 @@ export interface ApiPort {
   listCoupons(): Observable<Coupon[]>;
   listResellers(): Observable<Reseller[]>;
   listCustomers(resellerId?: string | null): Observable<Customer[]>;
+  createCustomer(command: CreateCustomerCommand): Observable<Customer>;
   listSites(resellerId?: string | null): Observable<Site[]>;
   listPayments(resellerId?: string | null): Observable<Payment[]>;
   getSiteBySlug(slug: string): Observable<Site | null>;
