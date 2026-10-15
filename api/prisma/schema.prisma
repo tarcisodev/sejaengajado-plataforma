@@ -70,6 +70,7 @@ enum SubscriptionStatus {
 
 enum WebhookStatus {
   RECEIVED
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -321,15 +322,16 @@ model Subscription {
 }
 
 model Payment {
-  id          String        @id @default(uuid()) @db.Uuid
-  orderId     String        @unique @map("order_id") @db.Uuid
-  resellerId  String?       @map("reseller_id") @db.Uuid
-  method      PaymentMethod
-  status      PaymentStatus @default(PENDING)
-  amountCents Int           @map("amount_cents")
-  paidAt      DateTime?     @map("paid_at") @db.Timestamptz(3)
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id               String        @id @default(uuid()) @db.Uuid
+  orderId          String        @unique @map("order_id") @db.Uuid
+  resellerId       String?       @map("reseller_id") @db.Uuid
+  method           PaymentMethod
+  status           PaymentStatus @default(PENDING)
+  amountCents      Int           @map("amount_cents")
+  gatewayPaymentId String?       @unique @map("gateway_payment_id")
+  paidAt           DateTime?     @map("paid_at") @db.Timestamptz(3)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   order Order @relation(fields: [orderId], references: [id])
 
@@ -338,14 +340,16 @@ model Payment {
 }
 
 model WebhookEvent {
-  id        String        @id @default(uuid()) @db.Uuid
-  gateway   String
-  eventId   String        @map("event_id")
-  status    WebhookStatus @default(RECEIVED)
-  attempts  Int           @default(0)
-  payload   Json          @default("{}")
-  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id          String        @id @default(uuid()) @db.Uuid
+  gateway     String
+  eventId     String        @map("event_id")
+  status      WebhookStatus @default(RECEIVED)
+  attempts    Int           @default(0)
+  payload     Json          @default("{}")
+  lastError   String?       @map("last_error")
+  processedAt DateTime?     @map("processed_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@unique([gateway, eventId])
   @@map("webhook_events")
@@ -539,14 +543,15 @@ model PlaqueMovement {
 }
 
 model ResellerInvoice {
-  id         String        @id @default(uuid()) @db.Uuid
-  resellerId String        @map("reseller_id") @db.Uuid
-  period     String
-  status     InvoiceStatus @default(DRAFT)
-  totalCents Int           @default(0) @map("total_cents")
-  closedAt   DateTime?     @map("closed_at") @db.Timestamptz(3)
-  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id               String        @id @default(uuid()) @db.Uuid
+  resellerId       String        @map("reseller_id") @db.Uuid
+  period           String
+  status           InvoiceStatus @default(DRAFT)
+  totalCents       Int           @default(0) @map("total_cents")
+  gatewayPaymentId String?       @unique @map("gateway_payment_id")
+  closedAt         DateTime?     @map("closed_at") @db.Timestamptz(3)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   reseller Reseller      @relation(fields: [resellerId], references: [id])
   lines    InvoiceLine[]

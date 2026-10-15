@@ -2,6 +2,7 @@ import { Module, type DynamicModule, type Provider } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 
 import { ENV, type Env } from '../config/env';
+import { LedgerModule } from '../ledger/ledger.module';
 import { AsaasClient } from './adapters/asaas/asaas.client';
 import { AsaasGateway } from './adapters/asaas/asaas.gateway';
 import { FakeGateway } from './domain/fake-gateway';
@@ -10,6 +11,10 @@ import {
   PAYMENT_GATEWAY,
   type PaymentGateway,
 } from './domain/payment-gateway.port';
+import { AsaasWebhookController } from './webhooks/asaas-webhook.controller';
+import { AsaasWebhookService } from './webhooks/asaas-webhook.service';
+import { WebhookQueueService } from './webhooks/webhook-queue.service';
+import { WebhookRateLimit } from './webhooks/webhook-rate-limit';
 
 export function resolvePaymentGateway(
   env: Env,
@@ -52,12 +57,17 @@ export class PaymentsModule {
           resolvePaymentGateway(env, fake, logger),
         inject: [ENV, FakeGateway, { token: Logger, optional: true }],
       },
+      WebhookQueueService,
+      WebhookRateLimit,
+      AsaasWebhookService,
     ];
 
     return {
       module: PaymentsModule,
+      imports: [LedgerModule],
+      controllers: [AsaasWebhookController],
       providers,
-      exports: [PAYMENT_GATEWAY, FakeGateway],
+      exports: [PAYMENT_GATEWAY, FakeGateway, AsaasWebhookService, WebhookQueueService],
     };
   }
 }

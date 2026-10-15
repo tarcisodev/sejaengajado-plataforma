@@ -98,11 +98,23 @@ export class FakeGateway implements PaymentGateway {
 
   /** Mark a payment as paid (test helper). */
   markPaid(gatewayPaymentId: string): void {
+    this.setPaymentStatus(gatewayPaymentId, 'RECEIVED');
+  }
+
+  /** Seed / update remote payment status for webhook reconsulta tests. */
+  setPaymentStatus(
+    gatewayPaymentId: string,
+    status: GetPaymentResult['status'],
+    amountCents = 100,
+  ): void {
     const current = this.payments.get(gatewayPaymentId);
-    if (!current) {
-      throw new Error(`Pagamento fake não encontrado: ${gatewayPaymentId}`);
-    }
-    this.payments.set(gatewayPaymentId, { ...current, status: 'RECEIVED' });
+    this.payments.set(gatewayPaymentId, {
+      gatewayPaymentId,
+      status,
+      amountCents: current?.amountCents ?? amountCents,
+      invoiceUrl: current?.invoiceUrl ?? null,
+      bankSlipUrl: current?.bankSlipUrl ?? null,
+    });
   }
 
   reset(): void {
