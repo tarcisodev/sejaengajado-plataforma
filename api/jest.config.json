@@ -8,29 +8,25 @@
   },
   "testEnvironment": "node",
   "collectCoverageFrom": [
-    "src/sales/**/*.ts",
-    "src/ledger/**/*.ts",
-    "src/stock/**/*.ts",
-    "src/jobs/**/*.ts",
-    "src/tenant/**/*.ts",
-    "!**/*.spec.ts",
-    "!**/index.ts"
+    "src/auth/auth.context.ts",
+    "src/auth/roles.guard.ts",
+    "src/auth/supabase-jwt.guard.ts",
+    "src/ledger/ledger.service.ts",
+    "src/stock/stock.service.ts",
+    "src/sales/sales.service.ts",
+    "src/jobs/penalty.ts",
+    "src/jobs/overdue-days.ts",
+    "src/tenant/tenant.context.ts",
+    "!**/*.spec.ts"
   ],
   "coverageDirectory": "coverage",
   "coverageReporters": ["text", "lcov"],
   "coverageThreshold": {
-    "src/jobs/penalty.ts": {
-      "statements": 85,
-      "lines": 85,
-      "functions": 100
-    },
-    "src/jobs/overdue-days.ts": {
+    "global": {
       "statements": 90,
-      "lines": 90,
-      "functions": 100
-    },
-    "src/sales/sales.service.ts": {
-      "statements": 10
+      "branches": 80,
+      "functions": 90,
+      "lines": 90
     }
   }
 }

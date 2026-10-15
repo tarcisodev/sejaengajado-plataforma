@@ -7,7 +7,7 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { loadEnv, type Env } from './config/env';
-import { setupOpenApi } from './openapi/openapi';
+import { setupOpenApi, shouldEnableDocs } from './openapi/openapi';
 
 const BODY_LIMIT = '100kb';
 
@@ -34,7 +34,9 @@ export async function boot(
       hsts: env.NODE_ENV === 'production' ? undefined : false,
     }),
   );
-  setupOpenApi(app);
+  if (shouldEnableDocs(env)) {
+    setupOpenApi(app);
+  }
   app.enableShutdownHooks();
   await listen(app, env);
 }

@@ -69,4 +69,27 @@ describe('loadEnv', () => {
     await expect(boot({}, listen)).rejects.toThrow('Configuração inválida');
     expect(listen).not.toHaveBeenCalled();
   });
+
+  it('defaults ENABLE_DOCS to false', () => {
+    const env = loadEnv({
+      DATABASE_URL: 'postgres://local/db',
+      ADMIN_DATABASE_URL: 'postgres://local/admin',
+      SUPABASE_URL: 'http://127.0.0.1',
+      SUPABASE_JWT_SECRET: 'secret',
+      SUPABASE_SERVICE_ROLE_KEY: 'service',
+    });
+    expect(env.ENABLE_DOCS).toBe(false);
+  });
+
+  it('parses ENABLE_DOCS=true from env string', () => {
+    const env = loadEnv({
+      DATABASE_URL: 'postgres://local/db',
+      ADMIN_DATABASE_URL: 'postgres://local/admin',
+      SUPABASE_URL: 'http://127.0.0.1',
+      SUPABASE_JWT_SECRET: 'secret',
+      SUPABASE_SERVICE_ROLE_KEY: 'service',
+      ENABLE_DOCS: 'true',
+    });
+    expect(env.ENABLE_DOCS).toBe(true);
+  });
 });

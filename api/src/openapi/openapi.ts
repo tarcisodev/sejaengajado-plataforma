@@ -1,6 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+import type { Env } from '../config/env';
+
+/** Docs never mount in production; elsewhere only when ENABLE_DOCS=true. */
+export function shouldEnableDocs(env: Pick<Env, 'ENABLE_DOCS' | 'NODE_ENV'>): boolean {
+  if (env.NODE_ENV === 'production') {
+    return false;
+  }
+  return env.ENABLE_DOCS === true;
+}
+
 /**
  * OpenAPI 3 document for the /api surface — error shape, pagination and
  * Idempotency-Key notes for HttpApiService codegen on the web app.
@@ -38,7 +48,6 @@ export function setupOpenApi(app: INestApplication): void {
     operationIdFactory: (_controller, method) => method,
   });
 
-  // Canonical error examples for front codegen
   document.components = document.components ?? {};
   document.components.schemas = {
     ...document.components.schemas,
@@ -74,6 +83,7 @@ export function setupOpenApi(app: INestApplication): void {
 
   // Global prefix is `api` → UI at /api/docs, JSON at /api/docs-json.
   SwaggerModule.setup('docs', app, document, {
+    useGlobalPrefix: true,
     jsonDocumentUrl: 'docs-json',
   });
 }
