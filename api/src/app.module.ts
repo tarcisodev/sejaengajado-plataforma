@@ -3,6 +3,9 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
+import { PlatformConfigModule } from './admin/config/config.module';
+import { CouponsModule } from './admin/coupons/coupons.module';
+import { PlansModule } from './admin/plans/plans.module';
 import { ProductsModule } from './admin/products/products.module';
 import { ResellersModule } from './admin/resellers/resellers.module';
 import { AuditModule } from './audit/audit.module';
@@ -40,6 +43,9 @@ export class AppModule {
         AuditModule,
         ResellersModule,
         ProductsModule,
+        PlansModule,
+        CouponsModule,
+        PlatformConfigModule,
         WholesaleModule,
         LedgerModule,
         StockModule,
