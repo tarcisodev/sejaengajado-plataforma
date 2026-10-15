@@ -1,0 +1,191 @@
+# Stack Swarm `sejaengajado` — single-node Hostinger.
+# Traefik v3.5.3 na rede TarcisoDevNet; certresolver `cfdns` (DNS Cloudflare).
+# `letsencryptresolver` (HTTP challenge) NÃO é usado neste stack.
+# Postgres: banco `sejaengajado` no Supabase self-hosted (sem serviço Postgres aqui).
+# Sem Redis (⏳P11). Sem valores de segredo — só nomes external.
+# Deploy na VPS: Tarciso/Atlas. Validar: docker stack config -c infra/stack.yml
+
+version: "3.8"
+
+x-deploy-common: &deploy_common
+  # `any`: volta após restart do Docker (on-failure não volta).
+  restart_policy: { condition: any, delay: 5s, window: 120s }
+  update_config:
+    {
+      parallelism: 1,
+      order: start-first,
+      failure_action: rollback,
+      monitor: 45s,
+      delay: 5s,
+    }
+  rollback_config: { parallelism: 1, order: start-first, failure_action: pause, monitor: 30s }
+  placement: { constraints: [node.role == manager] }
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  web-ssr:
+    image: ghcr.io/tarcisodev/sejaengajado-web:${IMAGE_TAG:?IMAGE_TAG required}
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      API_INTERNAL_URL: http://api:3000
+      NODE_OPTIONS: --max-old-space-size=192
+    networks: [TarcisoDevNet, se_internal]
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/healthz"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    deploy:
+      <<: *deploy_common
+      replicas: 1
+      resources:
+        reservations: { memory: 96M }
+        limits: { memory: 256M, cpus: "0.50" }
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=TarcisoDevNet
+        - traefik.http.routers.se-web.rule=Host(`sejaengajado.com.br`) || Host(`app.sejaengajado.com.br`) || HostRegexp(`^[a-z0-9-]+\\.sejaengajado\\.com\\.br$$`)
+        - traefik.http.routers.se-web.priority=1
+        - traefik.http.routers.se-web.entrypoints=websecure
+        - traefik.http.routers.se-web.tls.certresolver=cfdns
+        - traefik.http.routers.se-web.tls.domains[0].main=sejaengajado.com.br
+        - traefik.http.routers.se-web.tls.domains[0].sans=*.sejaengajado.com.br
+        - traefik.http.routers.se-web.middlewares=se-headers,se-ratelimit
+        - traefik.http.services.se-web.loadbalancer.server.port=4000
+        - traefik.http.services.se-web.loadbalancer.healthcheck.path=/healthz
+        - traefik.http.middlewares.se-headers.headers.stsSeconds=31536000
+        - traefik.http.middlewares.se-headers.headers.stsIncludeSubdomains=true
+        - traefik.http.middlewares.se-headers.headers.contentTypeNosniff=true
+        - traefik.http.middlewares.se-headers.headers.frameDeny=true
+        - traefik.http.middlewares.se-headers.headers.referrerPolicy=strict-origin-when-cross-origin
+        - traefik.http.middlewares.se-ratelimit.ratelimit.average=50
+        - traefik.http.middlewares.se-ratelimit.ratelimit.burst=100
+
+  api:
+    image: ghcr.io/tarcisodev/sejaengajado-api:${IMAGE_TAG:?IMAGE_TAG required}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      NODE_OPTIONS: --max-old-space-size=256
+      DATABASE_URL_FILE: /run/secrets/se_database_url
+      ADMIN_DATABASE_URL_FILE: /run/secrets/se_admin_database_url
+      SUPABASE_URL: https://auth.sejaengajado.com.br
+      SUPABASE_JWT_AUD: authenticated
+      SUPABASE_JWT_SECRET_FILE: /run/secrets/se_supabase_jwt_secret
+      SUPABASE_SERVICE_ROLE_KEY_FILE: /run/secrets/se_supabase_service_role_key
+      ASAAS_BASE_URL: https://api.asaas.com/v3
+      ASAAS_API_KEY_FILE: /run/secrets/se_asaas_api_key
+      ASAAS_WEBHOOK_TOKEN_FILE: /run/secrets/se_asaas_webhook_token
+      S3_ENDPOINT: https://r2.cloudflarestorage.com
+      S3_REGION: auto
+      S3_BUCKET: se-uploads
+      S3_BACKUP_BUCKET: se-backup
+      S3_ACCESS_KEY_FILE: /run/secrets/se_s3_access_key
+      S3_SECRET_KEY_FILE: /run/secrets/se_s3_secret_key
+      SMTP_URL_FILE: /run/secrets/se_smtp_url
+      HC_JOBS_URL_FILE: /run/secrets/se_hc_jobs_url
+      SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
+      ENABLE_DOCS: "false"
+    secrets:
+      - se_database_url
+      - se_admin_database_url
+      - se_supabase_jwt_secret
+      - se_supabase_service_role_key
+      - se_asaas_api_key
+      - se_asaas_webhook_token
+      - se_s3_access_key
+      - se_s3_secret_key
+      - se_smtp_url
+      - se_hc_jobs_url
+      - se_sentry_dsn
+    networks: [TarcisoDevNet, se_internal, supabase_network]
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      <<: *deploy_common
+      replicas: 1
+      resources:
+        reservations: { memory: 128M }
+        limits: { memory: 320M, cpus: "0.75" }
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=TarcisoDevNet
+        # API sob app./api (sem host api.) — prioridade acima do se-web.
+        - traefik.http.routers.se-app.rule=Host(`app.sejaengajado.com.br`) && PathPrefix(`/api`)
+        - traefik.http.routers.se-app.priority=200
+        - traefik.http.routers.se-app.entrypoints=websecure
+        - traefik.http.routers.se-app.tls.certresolver=cfdns
+        - traefik.http.routers.se-app.middlewares=se-headers,se-ratelimit
+        - traefik.http.services.se-app.loadbalancer.server.port=3000
+        - traefik.http.services.se-app.loadbalancer.healthcheck.path=/api/health/ready
+
+  migrate:
+    image: ghcr.io/tarcisodev/sejaengajado-api:${IMAGE_TAG:?IMAGE_TAG required}
+    command:
+      [
+        "sh",
+        "-c",
+        "export DATABASE_URL=$$(tr -d '\\r\\n' < /run/secrets/se_admin_database_url) && npx prisma migrate deploy",
+      ]
+    secrets: [se_admin_database_url]
+    networks: [supabase_network]
+    deploy:
+      replicas: 0
+      restart_policy: { condition: none }
+      resources: { limits: { memory: 256M } }
+
+  backup:
+    image: ghcr.io/tarcisodev/sejaengajado-backup:${BACKUP_TAG:-1}
+    environment:
+      TZ: UTC
+      BACKUP_DATABASE_URL_FILE: /run/secrets/se_backup_database_url
+      BACKUP_AGE_PUBKEY_FILE: /run/secrets/se_backup_age_pubkey
+      RCLONE_CONFIG: /run/secrets/se_rclone_conf
+      HC_BACKUP_URL_FILE: /run/secrets/se_hc_backup_url
+    secrets:
+      - se_backup_database_url
+      - se_backup_age_pubkey
+      - se_rclone_conf
+      - se_hc_backup_url
+    networks: [supabase_network]
+    logging: *logging
+    deploy:
+      <<: *deploy_common
+      replicas: 1
+      resources:
+        reservations: { memory: 32M }
+        limits: { memory: 128M }
+
+networks:
+  TarcisoDevNet: { external: true }
+  se_internal: { driver: overlay, internal: true, attachable: false }
+  # Nome a confirmar no levantamento F0.1 (rede overlay do Supabase self-hosted).
+  supabase_network: { external: true, name: supabase_network }
+
+secrets:
+  se_database_url: { external: true, name: se_database_url_v1 }
+  se_admin_database_url: { external: true, name: se_admin_database_url_v1 }
+  se_backup_database_url: { external: true, name: se_backup_database_url_v1 }
+  se_supabase_jwt_secret: { external: true, name: se_supabase_jwt_secret_v1 }
+  se_supabase_service_role_key: { external: true, name: se_supabase_service_role_key_v1 }
+  se_smtp_url: { external: true, name: se_smtp_url_v1 }
+  se_asaas_api_key: { external: true, name: se_asaas_api_key_v1 }
+  se_asaas_webhook_token: { external: true, name: se_asaas_webhook_token_v1 }
+  se_s3_access_key: { external: true, name: se_s3_access_key_v1 }
+  se_s3_secret_key: { external: true, name: se_s3_secret_key_v1 }
+  se_backup_age_pubkey: { external: true, name: se_backup_age_pubkey_v1 }
+  se_rclone_conf: { external: true, name: se_rclone_conf_v1 }
+  se_hc_backup_url: { external: true, name: se_hc_backup_url_v1 }
+  se_hc_jobs_url: { external: true, name: se_hc_jobs_url_v1 }
+  se_sentry_dsn: { external: true, name: se_sentry_dsn_v1 }
