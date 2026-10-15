@@ -26,15 +26,6 @@ export const blockSchema = z.object({
   reason: z.string().min(1),
 });
 
-export const plaqueMovementSchema = z.object({
-  resellerId: z.string().uuid(),
-  type: z.enum(['IN', 'OUT', 'ADJUST']),
-  plaqueType: z.enum(['QR', 'NFC']),
-  qty: z.number().int().positive(),
-  unitCostCents: z.number().int().nonnegative().optional(),
-  reason: z.string().optional(),
-});
-
 export const planSchema = z.object({
   name: z.string().min(1),
   monthlyFeeCents: z.number().int().nonnegative(),
@@ -263,33 +254,6 @@ export class ResellersService {
       name: before.name,
       status: before.status,
     };
-  }
-
-  async createPlaqueMovement(body: unknown) {
-    const parsed = plaqueMovementSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new BadRequestException({
-        code: 'VALIDATION_FAILED',
-        message: 'Dados inválidos',
-        fields: parsed.error.issues.map((issue) => ({
-          path: issue.path.join('.'),
-          code: issue.code,
-          message: issue.message,
-        })),
-      });
-    }
-    const input = parsed.data;
-    await this.get(input.resellerId);
-    return this.db.plaqueMovement.create({
-      data: {
-        resellerId: input.resellerId,
-        type: input.type,
-        plaqueType: input.plaqueType,
-        qty: input.qty,
-        unitCostCents: input.unitCostCents,
-        reason: input.reason,
-      },
-    });
   }
 
   async listPlans() {

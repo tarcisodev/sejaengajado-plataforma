@@ -20,6 +20,7 @@ import { FakeGateway } from './payments/fake-gateway';
 import { PAYMENT_GATEWAY } from './payments/payment-gateway';
 import { PublicModule } from './public/public.module';
 import { ResellerModule } from './reseller/reseller.module';
+import { StockModule } from './stock/stock.module';
 import { PrismaModule } from './tenant/prisma.module';
 import { TenantScopeGuard } from './tenant/tenant-scope.guard';
 import { WholesaleModule } from './wholesale/wholesale.module';
@@ -40,6 +41,7 @@ export class AppModule {
         ProductsModule,
         WholesaleModule,
         LedgerModule,
+        StockModule,
         PublicModule,
         ResellerModule,
       ],

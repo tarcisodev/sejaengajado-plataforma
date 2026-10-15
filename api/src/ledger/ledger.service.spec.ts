@@ -20,7 +20,7 @@ describe('LedgerService', () => {
         ]),
       },
     };
-    const service = new LedgerService(db as never);
+    const service = new LedgerService(db as never, {} as never);
     await expect(service.balance()).resolves.toBe(700);
   });
 
@@ -45,7 +45,7 @@ describe('LedgerService', () => {
         groupBy: jest.fn(),
       },
     };
-    const service = new LedgerService(db as never);
+    const service = new LedgerService(db as never, {} as never);
     await expect(
       runWithTenantAsync(actor, () => service.reverse('e1')),
     ).rejects.toMatchObject({

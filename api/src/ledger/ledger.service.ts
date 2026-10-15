@@ -9,7 +9,12 @@ import { LedgerCategory, LedgerType, Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../common/cursor';
-import { PRISMA, type TenantPrisma } from '../tenant/prisma.module';
+import {
+  ADMIN_PRISMA,
+  PRISMA,
+  type AdminPrisma,
+  type TenantPrisma,
+} from '../tenant/prisma.module';
 import { requireTenantResellerId } from '../tenant/tenant.context';
 
 const manualEntrySchema = z.object({
@@ -38,10 +43,13 @@ function oppositeType(type: LedgerType): LedgerType {
 
 @Injectable()
 export class LedgerService {
-  constructor(@Inject(PRISMA) private readonly db: TenantPrisma) {}
+  constructor(
+    @Inject(PRISMA) private readonly db: TenantPrisma,
+    @Inject(ADMIN_PRISMA) private readonly adminDb: AdminPrisma,
+  ) {}
 
-  async append(input: AppendLedgerInput) {
-    if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+  private assertPositiveAmount(amountCents: number): void {
+    if (!Number.isInteger(amountCents) || amountCents <= 0) {
       throw new BadRequestException({
         code: 'VALIDATION_FAILED',
         message: 'Dados inválidos',
@@ -54,10 +62,37 @@ export class LedgerService {
         ],
       });
     }
+  }
 
+  async append(input: AppendLedgerInput) {
+    this.assertPositiveAmount(input.amountCents);
     return this.db.ledgerEntry.create({
       data: {
         resellerId: requireTenantResellerId(),
+        type: input.type,
+        category: input.category,
+        amountCents: input.amountCents,
+        refType: input.refType ?? null,
+        refId: input.refId ?? null,
+        reversalOfId: input.reversalOfId ?? null,
+      },
+    });
+  }
+
+  /**
+   * Admin/cross-tenant append — still only via LedgerService (never UPDATE).
+   * Used by stock transfer (PLAQUE_PURCHASE) and similar.
+   */
+  async appendForReseller(
+    resellerId: string,
+    input: AppendLedgerInput,
+    tx?: { ledgerEntry: AdminPrisma['ledgerEntry'] },
+  ) {
+    this.assertPositiveAmount(input.amountCents);
+    const client = tx ?? this.adminDb;
+    return client.ledgerEntry.create({
+      data: {
+        resellerId,
         type: input.type,
         category: input.category,
         amountCents: input.amountCents,

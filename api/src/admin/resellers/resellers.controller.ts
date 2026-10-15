@@ -121,16 +121,6 @@ export class ResellersController {
     return this.resellers.impersonate(id);
   }
 
-  @Post('admin/plaques/movements')
-  @Audit({
-    action: 'plaque.movement',
-    entity: 'PlaqueMovement',
-    entityId: (result) => (result as { id: string }).id,
-  })
-  plaqueMovement(@Body() body: unknown) {
-    return this.resellers.createPlaqueMovement(body);
-  }
-
   @Get('admin/reseller-plans')
   listPlans() {
     return this.resellers.listPlans();
