@@ -258,6 +258,7 @@ model Site {
   scanEvents      ScanEvent[]
   plaqueMovements PlaqueMovement[]
   lifecycleEvents LifecycleEvent[]
+  subscriptions   Subscription[]
 
   @@index([resellerId])
   @@index([customerId])
@@ -303,15 +304,18 @@ model Order {
 model Subscription {
   id               String             @id @default(uuid()) @db.Uuid
   resellerId       String?            @map("reseller_id") @db.Uuid
+  siteId           String?            @map("site_id") @db.Uuid
   planId           String             @map("plan_id") @db.Uuid
   status           SubscriptionStatus @default(ACTIVE)
   currentPeriodEnd DateTime           @map("current_period_end") @db.Timestamptz(3)
   createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  plan Plan @relation(fields: [planId], references: [id])
+  plan Plan  @relation(fields: [planId], references: [id])
+  site Site? @relation(fields: [siteId], references: [id])
 
   @@index([resellerId])
+  @@index([siteId])
   @@map("subscriptions")
 }
 

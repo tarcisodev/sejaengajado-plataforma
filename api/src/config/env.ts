@@ -13,6 +13,7 @@ const fileBacked = [
   'S3_ACCESS_KEY',
   'S3_SECRET_KEY',
   'GOOGLE_PLACES_API_KEY',
+  'HC_JOBS_URL',
 ] as const;
 
 const schema = z.object({
@@ -36,6 +37,8 @@ const schema = z.object({
   S3_SECRET_KEY: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),
   GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
+  /** Healthchecks.io ping URL for the lifecycle jobs (secret `se_hc_jobs_url`). */
+  HC_JOBS_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -4,16 +4,19 @@ import { Test } from '@nestjs/testing';
 import { SUPABASE_ADMIN, type SupabaseAdminClient } from '../../src/auth/supabase-admin';
 import { AppModule } from '../../src/app.module';
 import { loadEnv } from '../../src/config/env';
+import { FakeJobMailer, JOB_MAILER } from '../../src/jobs/mailer';
 import { FakeGateway } from '../../src/payments/fake-gateway';
 import { getHarnessPostgres } from './postgres';
 
 export interface TestAppOptions {
   supabaseAdmin?: SupabaseAdminClient;
+  jobMailer?: FakeJobMailer;
 }
 
 export async function createTestApp(options: TestAppOptions = {}): Promise<{
   app: INestApplication;
   gateway: FakeGateway;
+  jobMailer: FakeJobMailer;
 }> {
   const { appUrl, seAdminUrl } = getHarnessPostgres();
   const supabaseUrl =
@@ -29,6 +32,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<{
     SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
   });
 
+  const jobMailer = options.jobMailer ?? new FakeJobMailer();
+
   const builder = Test.createTestingModule({
     imports: [AppModule.register(env)],
   });
@@ -36,6 +41,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<{
   if (options.supabaseAdmin) {
     builder.overrideProvider(SUPABASE_ADMIN).useValue(options.supabaseAdmin);
   }
+  builder.overrideProvider(JOB_MAILER).useValue(jobMailer);
 
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
@@ -45,5 +51,6 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<{
   return {
     app,
     gateway: app.get(FakeGateway),
+    jobMailer,
   };
 }

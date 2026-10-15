@@ -19,6 +19,19 @@ export class CouponsController {
     return this.coupons.preview(body);
   }
 
+  @Post('redeem')
+  @Audit({
+    action: 'coupon.redeem',
+    entity: 'Coupon',
+    entityId: (result) => (result as { code: string }).code,
+  })
+  redeem(
+    @Body() body: unknown,
+    @Headers('idempotency-key') _idempotencyKey?: string,
+  ) {
+    return this.coupons.redeem(body);
+  }
+
   @Get(':id')
   get(@Param('id') id: string) {
     return this.coupons.get(id);

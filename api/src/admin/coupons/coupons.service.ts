@@ -140,6 +140,79 @@ export class CouponsService {
     };
   }
 
+  /**
+   * Atomic redeem: advisory lock + UPDATE … WHERE used_count < max_uses.
+   * Concurrent callers cannot exceed maxUses.
+   */
+  async redeem(body: unknown) {
+    const parsed = previewSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Dados inválidos',
+        fields: parsed.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          code: issue.code,
+          message: issue.message,
+        })),
+      });
+    }
+
+    const code = parsed.data.code.toUpperCase();
+    const at = parsed.data.at ? new Date(parsed.data.at) : new Date();
+
+    return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`coupon:${code}`}))`;
+
+      const coupon = await tx.coupon.findUnique({ where: { code } });
+      if (!coupon) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Cupom não encontrado' });
+      }
+
+      const result = applyCouponDiscount({
+        amountCents: parsed.data.amountCents,
+        type: coupon.type,
+        value: coupon.value,
+        active: coupon.active,
+        validFrom: coupon.validFrom,
+        validTo: coupon.validTo,
+        maxUses: coupon.maxUses,
+        usedCount: coupon.usedCount,
+        at,
+      });
+      if (!result.ok) {
+        throw new ConflictException({
+          code: 'COUPON_INVALID',
+          message: 'Cupom inválido para este valor',
+          fields: [{ path: 'code', code: result.reason, message: 'Cupom não aplicável' }],
+        });
+      }
+
+      const updated = await tx.$queryRaw<{ id: string; used_count: number }[]>`
+        UPDATE coupons
+        SET used_count = used_count + 1, updated_at = NOW()
+        WHERE id = ${coupon.id}::uuid
+          AND (max_uses IS NULL OR used_count < max_uses)
+        RETURNING id, used_count
+      `;
+      if (updated.length === 0) {
+        throw new ConflictException({
+          code: 'COUPON_INVALID',
+          message: 'Limite de usos do cupom atingido',
+          fields: [{ path: 'code', code: 'max_uses', message: 'Cupom esgotado' }],
+        });
+      }
+
+      return {
+        code: coupon.code,
+        amountCents: parsed.data.amountCents,
+        discountCents: result.discountCents,
+        finalCents: result.finalCents,
+        usedCount: updated[0]!.used_count,
+      };
+    });
+  }
+
   private sameCoupon(
     existing: {
       code: string;
