@@ -64,9 +64,13 @@ export class LedgerService {
     }
   }
 
-  async append(input: AppendLedgerInput) {
+  async append(
+    input: AppendLedgerInput,
+    tx?: { ledgerEntry: AdminPrisma['ledgerEntry'] },
+  ) {
     this.assertPositiveAmount(input.amountCents);
-    return this.db.ledgerEntry.create({
+    const client = tx ?? this.db;
+    return client.ledgerEntry.create({
       data: {
         resellerId: requireTenantResellerId(),
         type: input.type,
@@ -125,8 +129,14 @@ export class LedgerService {
     });
   }
 
-  async reverse(entryId: string) {
-    const original = await this.db.ledgerEntry.findUnique({ where: { id: entryId } });
+  async reverse(
+    entryId: string,
+    tx?: {
+      ledgerEntry: AdminPrisma['ledgerEntry'];
+    },
+  ) {
+    const client = tx ?? this.db;
+    const original = await client.ledgerEntry.findUnique({ where: { id: entryId } });
     if (!original) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Lançamento não encontrado' });
     }
@@ -137,7 +147,7 @@ export class LedgerService {
       });
     }
 
-    const existing = await this.db.ledgerEntry.findFirst({
+    const existing = await client.ledgerEntry.findFirst({
       where: { reversalOfId: entryId },
     });
     if (existing) {
@@ -148,14 +158,17 @@ export class LedgerService {
     }
 
     try {
-      return await this.append({
-        type: oppositeType(original.type),
-        category: 'REVERSAL',
-        amountCents: original.amountCents,
-        refType: original.refType,
-        refId: original.refId,
-        reversalOfId: original.id,
-      });
+      return await this.append(
+        {
+          type: oppositeType(original.type),
+          category: 'REVERSAL',
+          amountCents: original.amountCents,
+          refType: original.refType,
+          refId: original.refId,
+          reversalOfId: original.id,
+        },
+        tx,
+      );
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

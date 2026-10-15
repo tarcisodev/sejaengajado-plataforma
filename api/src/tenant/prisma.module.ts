@@ -19,28 +19,31 @@ export const PRISMA = Symbol('PRISMA');
 export const ADMIN_PRISMA = Symbol('ADMIN_PRISMA');
 /** Ungated se_admin client — only for auth bootstrap (JWT user lookup). */
 export const SYSTEM_PRISMA = Symbol('SYSTEM_PRISMA');
+/**
+ * Raw se_app client (no tenant proxy). Use for multi-step interactive
+ * transactions with SET LOCAL app.reseller_id — the proxied client nests
+ * a $transaction per model op and would commit mid-flight.
+ */
+export const APP_PRISMA = Symbol('APP_PRISMA');
 
 export type AdminPrisma = PrismaClient;
 export type TenantPrisma = PrismaClient;
 export type SystemPrisma = PrismaClient;
+export type AppPrisma = PrismaClient;
 
 @Injectable()
 export class PrismaLifecycle implements OnModuleInit, OnModuleDestroy {
   constructor(
-    @Inject(PRISMA)
-    private readonly prisma: {
-      $connect(): Promise<void>;
-      $disconnect(): Promise<void>;
-    },
+    @Inject(APP_PRISMA) private readonly appPrisma: PrismaClient,
     @Inject(SYSTEM_PRISMA) private readonly systemPrisma: PrismaClient,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    await Promise.all([this.prisma.$connect(), this.systemPrisma.$connect()]);
+    await Promise.all([this.appPrisma.$connect(), this.systemPrisma.$connect()]);
   }
 
   async onModuleDestroy(): Promise<void> {
-    await Promise.all([this.prisma.$disconnect(), this.systemPrisma.$disconnect()]);
+    await Promise.all([this.appPrisma.$disconnect(), this.systemPrisma.$disconnect()]);
   }
 }
 
@@ -65,18 +68,21 @@ export class PrismaModule {
           useFactory: (system: PrismaClient): AdminPrisma => createAdminPrismaProxy(system),
         },
         {
-          provide: PRISMA,
-          useFactory: () => {
-            const app = new PrismaClient({
+          provide: APP_PRISMA,
+          useFactory: (): AppPrisma =>
+            new PrismaClient({
               datasources: { db: { url: env.DATABASE_URL } },
-            });
-            return createTenantPrismaProxy(app);
-          },
+            }),
+        },
+        {
+          provide: PRISMA,
+          inject: [APP_PRISMA],
+          useFactory: (app: PrismaClient) => createTenantPrismaProxy(app),
         },
         PrismaLifecycle,
         { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },
       ],
-      exports: [PRISMA, ADMIN_PRISMA, SYSTEM_PRISMA],
+      exports: [PRISMA, ADMIN_PRISMA, SYSTEM_PRISMA, APP_PRISMA],
     };
   }
 }
