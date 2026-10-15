@@ -39,8 +39,8 @@ Base: `producao/contrib-nucleo.md` (Bloco 17), com `/health/ready` e mesma orige
 
 ## Pendências (PRODUCAO-06 restante)
 
-- [ ] Sentry (release=SHA), Uptime/Healthchecks (PRODUCAO-06 B7).
-- [ ] Go-live checklist + valores reais PlatformConfig/atacado (⏳P6) (PRODUCAO-06 B8).
-- [ ] Aplicar deploy/wildcard/backup na VPS (Tarciso) e preencher RTO medido.
+- [x] **Observabilidade** (PRODUCAO-06 B7): Sentry api+web (`release=SHA`, `sendDefaultPii=false`, scrub, DSN `*_FILE`); `/api/health` + `/api/health/ready` (DB+R2); HC jobs/backup; `host-check.sh`; Traefik HSTS + rate-limit estrito em webhooks/auth.
+- [x] **Go-live checklist** (PRODUCAO-06 B8): `docs/GO-LIVE.md` ordenado + ensaio rollback por SHA.
+- [ ] Aplicar deploy/wildcard/backup/monitores na VPS (Tarciso); preencher RTO; marcar itens do GO-LIVE com evidência.
 
 
