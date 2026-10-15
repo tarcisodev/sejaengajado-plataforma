@@ -14,6 +14,7 @@ import { ConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { HealthController } from './health/health.controller';
 import { PgReadyProbe, READY_PROBE } from './health/ready';
+import { LedgerModule } from './ledger/ledger.module';
 import { loggerParams } from './logging/redact';
 import { FakeGateway } from './payments/fake-gateway';
 import { PAYMENT_GATEWAY } from './payments/payment-gateway';
@@ -38,6 +39,7 @@ export class AppModule {
         ResellersModule,
         ProductsModule,
         WholesaleModule,
+        LedgerModule,
         PublicModule,
         ResellerModule,
       ],
