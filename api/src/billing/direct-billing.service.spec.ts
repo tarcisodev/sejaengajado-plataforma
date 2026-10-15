@@ -38,7 +38,12 @@ describe('DirectBillingService', () => {
         }),
       ),
     };
-    const service = new DirectBillingService(db as never, gateway, ledger as never);
+    const service = new DirectBillingService(
+      db as never,
+      db as never,
+      gateway,
+      ledger as never,
+    );
     return { db, gateway, ledger, service };
   }
 

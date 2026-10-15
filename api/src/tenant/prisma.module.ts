@@ -17,7 +17,11 @@ import { TenantContextInterceptor } from './tenant-context.interceptor';
 
 export const PRISMA = Symbol('PRISMA');
 export const ADMIN_PRISMA = Symbol('ADMIN_PRISMA');
-/** Ungated se_admin client — only for auth bootstrap (JWT user lookup). */
+/**
+ * Ungated se_admin (BYPASSRLS). Inject only in webhooks/jobs (+ auth bootstrap,
+ * public by-host, ledger append). Controllers must never inject — see
+ * `scripts/lint-system-prisma.mjs`.
+ */
 export const SYSTEM_PRISMA = Symbol('SYSTEM_PRISMA');
 /**
  * Raw se_app client (no tenant proxy). Use for multi-step interactive

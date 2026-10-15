@@ -10,7 +10,7 @@ import {
   type PaymentGateway,
 } from '../payments/domain/payment-gateway.port';
 import { requireTenantResellerId } from '../tenant/tenant.context';
-import { SYSTEM_PRISMA, type SystemPrisma } from '../tenant/prisma.module';
+import { PRISMA, type TenantPrisma } from '../tenant/prisma.module';
 
 export interface PaymentStatusDto {
   gatewayPaymentId: string;
@@ -46,7 +46,7 @@ export interface ResellerInvoiceDto {
 @Injectable()
 export class BillingQueryService {
   constructor(
-    @Inject(SYSTEM_PRISMA) private readonly db: SystemPrisma,
+    @Inject(PRISMA) private readonly db: TenantPrisma,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
   ) {}
 

@@ -13,20 +13,33 @@ import {
   PAYMENT_GATEWAY,
   type PaymentGateway,
 } from '../payments/domain/payment-gateway.port';
-import { SYSTEM_PRISMA, type SystemPrisma } from '../tenant/prisma.module';
+import { getTenantActor } from '../tenant/tenant.context';
+import {
+  ADMIN_PRISMA,
+  PRISMA,
+  type AdminPrisma,
+  type TenantPrisma,
+} from '../tenant/prisma.module';
 import { directChargeIdempotencyKey, invoicePeriodSp } from './invoice-period';
 
 /**
  * Direct customer charges under reseller PLATAFORMA (Pronto / Pro / renewal / penalty).
  * Money only via PaymentGateway + LedgerService; never cross-tenant.
+ * No SYSTEM_PRISMA — ADMIN uses ADMIN_PRISMA; CUSTOMER uses tenant PRISMA.
  */
 @Injectable()
 export class DirectBillingService {
   constructor(
-    @Inject(SYSTEM_PRISMA) private readonly db: SystemPrisma,
+    @Inject(PRISMA) private readonly tenantDb: TenantPrisma,
+    @Inject(ADMIN_PRISMA) private readonly adminDb: AdminPrisma,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly ledger: LedgerService,
   ) {}
+
+  /** HTTP path: never SYSTEM_PRISMA (BYPASSRLS). */
+  private get db(): AdminPrisma | TenantPrisma {
+    return getTenantActor() ? this.tenantDb : this.adminDb;
+  }
 
   async chargePronto(input: {
     siteId: string;

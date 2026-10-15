@@ -162,7 +162,18 @@ export class AsaasWebhookService implements OnModuleInit {
       }
 
       if (transition.changed) {
-        await this.applySideEffects(payment, transition.next);
+        // resellerId/amount always from DB payment tied to reconsulted gateway id — never ALS.
+        await this.applySideEffects(
+          {
+            id: payment.id,
+            resellerId: payment.resellerId,
+            status: payment.status,
+            amountCents:
+              remote.amountCents > 0 ? remote.amountCents : payment.amountCents,
+            gatewayPaymentId: payment.gatewayPaymentId,
+          },
+          transition.next,
+        );
       }
 
       await this.db.webhookEvent.update({
@@ -242,12 +253,13 @@ export class AsaasWebhookService implements OnModuleInit {
     resellerId: string | null;
     amountCents: number;
   }): Promise<void> {
-    if (!payment.resellerId || payment.amountCents <= 0) {
+    const resellerId = payment.resellerId;
+    if (!resellerId || payment.amountCents <= 0) {
       return;
     }
     const existing = await this.db.ledgerEntry.findFirst({
       where: {
-        resellerId: payment.resellerId,
+        resellerId,
         refType: 'Payment',
         refId: payment.id,
         category: 'PLATFORM_INVOICE',
@@ -257,7 +269,7 @@ export class AsaasWebhookService implements OnModuleInit {
     if (existing) {
       return;
     }
-    await this.ledger.appendForReseller(payment.resellerId, {
+    await this.ledger.appendForReseller(resellerId, {
       type: 'OUT',
       category: 'PLATFORM_INVOICE',
       amountCents: payment.amountCents,
@@ -301,12 +313,13 @@ export class AsaasWebhookService implements OnModuleInit {
     id: string;
     resellerId: string | null;
   }): Promise<void> {
-    if (!payment.resellerId) {
+    const resellerId = payment.resellerId;
+    if (!resellerId) {
       return;
     }
     const entry = await this.db.ledgerEntry.findFirst({
       where: {
-        resellerId: payment.resellerId,
+        resellerId,
         refType: 'Payment',
         refId: payment.id,
         category: { in: ['PLATFORM_INVOICE', 'SALE'] },
@@ -323,7 +336,7 @@ export class AsaasWebhookService implements OnModuleInit {
     if (already) {
       return;
     }
-    await this.ledger.appendForReseller(payment.resellerId, {
+    await this.ledger.appendForReseller(resellerId, {
       type: 'IN',
       category: 'REVERSAL',
       amountCents: entry.amountCents,
