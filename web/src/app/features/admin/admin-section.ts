@@ -6,7 +6,8 @@ export type AdminSection =
   | 'planos'
   | 'configuracoes'
   | 'cupons'
-  | 'receita';
+  | 'receita'
+  | 'faturas';
 
 const SECTIONS: AdminSection[] = [
   'clientes',
@@ -16,6 +17,7 @@ const SECTIONS: AdminSection[] = [
   'configuracoes',
   'cupons',
   'receita',
+  'faturas',
 ];
 
 export function adminSection(pathname: string): AdminSection {

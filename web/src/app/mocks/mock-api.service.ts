@@ -19,11 +19,15 @@ import { canEditSite } from '../core/customer/access';
 import {
   AuditLog,
   Cancellation,
+  CheckoutResult,
   Coupon,
   Customer,
+  MyResellerInvoice,
   NoticeLog,
   Order,
   Payment,
+  PaymentMethod,
+  PaymentStatusView,
   Plan,
   PlatformConfig,
   Reseller,
@@ -44,6 +48,75 @@ const CUSTOMER_OTP = '482913';
 export class MockApiService implements ApiPort {
   private readonly state: MockDatabase = createUberabaSeed();
   private otpEmail: string | null = null;
+  private readonly checkoutByGateway = new Map<string, CheckoutResult>();
+  private readonly myInvoices: MyResellerInvoice[] = [
+    {
+      id: 'inv_mock_pending',
+      period: '2026-09',
+      status: 'OPEN',
+      totalCents: 6_970,
+      dueDate: '2026-10-20T00:00:00.000Z',
+      gatewayPaymentId: 'pay_mock_pending',
+      paymentStatus: 'PENDING',
+      invoiceUrl: 'https://sandbox.asaas.com/i/mock_pending',
+      bankSlipUrl: null,
+      pixCopyPaste: '00020126MOCKPIXCOPIACOLA',
+      lines: [
+        {
+          description: 'Mensalidade',
+          qty: 1,
+          unitCents: 4_990,
+          totalCents: 4_990,
+        },
+        {
+          description: 'Sites ativos (2)',
+          qty: 2,
+          unitCents: 990,
+          totalCents: 1_980,
+        },
+      ],
+    },
+    {
+      id: 'inv_mock_paid',
+      period: '2026-08',
+      status: 'PAID',
+      totalCents: 4_990,
+      dueDate: '2026-09-10T00:00:00.000Z',
+      gatewayPaymentId: 'pay_mock_paid',
+      paymentStatus: 'RECEIVED',
+      invoiceUrl: null,
+      bankSlipUrl: null,
+      pixCopyPaste: null,
+      lines: [
+        {
+          description: 'Mensalidade',
+          qty: 1,
+          unitCents: 4_990,
+          totalCents: 4_990,
+        },
+      ],
+    },
+    {
+      id: 'inv_mock_overdue',
+      period: '2026-07',
+      status: 'OVERDUE',
+      totalCents: 5_980,
+      dueDate: '2026-08-05T00:00:00.000Z',
+      gatewayPaymentId: 'pay_mock_overdue',
+      paymentStatus: 'OVERDUE',
+      invoiceUrl: null,
+      bankSlipUrl: 'https://sandbox.asaas.com/b/mock_overdue',
+      pixCopyPaste: null,
+      lines: [
+        {
+          description: 'Mensalidade + sites',
+          qty: 1,
+          unitCents: 5_980,
+          totalCents: 5_980,
+        },
+      ],
+    },
+  ];
 
   getPlatformConfig(): Observable<PlatformConfig> {
     return of(structuredClone(this.state.platformConfig));
@@ -475,6 +548,83 @@ export class MockApiService implements ApiPort {
     const log: AuditLog = { actor: actorId, acao, entidade: `Site:${siteId}`, diff };
     this.state.auditLogs.push(log);
     return structuredClone(log);
+  }
+
+  checkoutPronto(command: {
+    siteId: string;
+    customerName: string;
+    customerEmail: string;
+    couponCode?: string;
+    method: PaymentMethod;
+  }): Observable<CheckoutResult> {
+    const site = this.state.sites.find((item) => item.id === command.siteId);
+    const plan = this.state.plans.find((item) => item.id === (site?.planId ?? ''));
+    const amountCents = plan?.precoCentavos ?? 34_700;
+    const gatewayPaymentId = `pay_checkout_${this.checkoutByGateway.size + 1}`;
+    const result: CheckoutResult = {
+      orderId: `order_${gatewayPaymentId}`,
+      paymentId: `payment_${gatewayPaymentId}`,
+      gatewayPaymentId,
+      amountCents,
+      method: command.method,
+      status: 'PENDING',
+      pixQrCode: command.method === 'PIX' ? 'mock-qr' : null,
+      pixCopyPaste: command.method === 'PIX' ? '00020126MOCKCHECKOUTPIX' : null,
+      invoiceUrl:
+        command.method === 'CARD'
+          ? `https://sandbox.asaas.com/i/${gatewayPaymentId}`
+          : `https://sandbox.asaas.com/i/${gatewayPaymentId}`,
+      bankSlipUrl:
+        command.method === 'BOLETO'
+          ? `https://sandbox.asaas.com/b/${gatewayPaymentId}`
+          : null,
+    };
+    this.checkoutByGateway.set(gatewayPaymentId, result);
+    return of(structuredClone(result));
+  }
+
+  getPaymentStatus(gatewayPaymentId: string): Observable<PaymentStatusView> {
+    const checkout = this.checkoutByGateway.get(gatewayPaymentId);
+    if (checkout) {
+      return of({
+        gatewayPaymentId,
+        status: checkout.status,
+        amountCents: checkout.amountCents,
+        invoiceUrl: checkout.invoiceUrl,
+        bankSlipUrl: checkout.bankSlipUrl,
+      });
+    }
+    const invoice = this.myInvoices.find((item) => item.gatewayPaymentId === gatewayPaymentId);
+    if (invoice) {
+      return of({
+        gatewayPaymentId,
+        status: invoice.paymentStatus ?? 'PENDING',
+        amountCents: invoice.totalCents,
+        invoiceUrl: invoice.invoiceUrl,
+        bankSlipUrl: invoice.bankSlipUrl,
+      });
+    }
+    return throwError(() => new Error('payment not found'));
+  }
+
+  /** Test helper: mark checkout paid so polling specs can assert. */
+  markCheckoutPaid(gatewayPaymentId: string): void {
+    const current = this.checkoutByGateway.get(gatewayPaymentId);
+    if (current) {
+      this.checkoutByGateway.set(gatewayPaymentId, { ...current, status: 'RECEIVED' });
+    }
+  }
+
+  listMyInvoices(): Observable<MyResellerInvoice[]> {
+    return of(structuredClone(this.myInvoices));
+  }
+
+  getMyInvoice(id: string): Observable<MyResellerInvoice> {
+    const found = this.myInvoices.find((item) => item.id === id);
+    if (!found) {
+      return throwError(() => new Error('invoice not found'));
+    }
+    return of(structuredClone(found));
   }
 
   private byReseller<T extends { resellerId: string | null }>(

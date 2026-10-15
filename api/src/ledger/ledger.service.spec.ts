@@ -21,7 +21,7 @@ describe('LedgerService', () => {
         ]),
       },
     };
-    const service = new LedgerService(db as never, {} as never);
+    const service = new LedgerService(db as never, {} as never, {} as never);
     await expect(service.balance()).resolves.toBe(700);
   });
 
@@ -32,7 +32,7 @@ describe('LedgerService', () => {
         groupBy: jest.fn().mockResolvedValue([{ type: 'IN', _sum: { amountCents: 50 } }]),
       },
     };
-    const service = new LedgerService(db as never, {} as never);
+    const service = new LedgerService(db as never, {} as never, {} as never);
     await expect(service.balance(at)).resolves.toBe(50);
     expect(db.ledgerEntry.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({ where: { createdAt: { lte: at } } }),
@@ -40,7 +40,7 @@ describe('LedgerService', () => {
   });
 
   it('append rejects non-positive amounts', async () => {
-    const service = new LedgerService({} as never, {} as never);
+    const service = new LedgerService({} as never, {} as never, {} as never);
     await expect(
       runWithTenantAsync(actor, () =>
         service.append({ type: 'IN', category: 'MANUAL', amountCents: 0 }),
@@ -50,7 +50,11 @@ describe('LedgerService', () => {
 
   it('append creates entry for tenant', async () => {
     const create = jest.fn().mockResolvedValue({ id: 'e1' });
-    const service = new LedgerService({ ledgerEntry: { create } } as never, {} as never);
+    const service = new LedgerService(
+      { ledgerEntry: { create } } as never,
+      {} as never,
+      {} as never,
+    );
     await runWithTenantAsync(actor, () =>
       service.append({ type: 'IN', category: 'SALE', amountCents: 100 }),
     );
@@ -64,9 +68,13 @@ describe('LedgerService', () => {
     });
   });
 
-  it('appendForReseller uses admin client', async () => {
+  it('appendForReseller uses system client (not ADMIN proxy)', async () => {
     const create = jest.fn().mockResolvedValue({ id: 'e2' });
-    const service = new LedgerService({} as never, { ledgerEntry: { create } } as never);
+    const service = new LedgerService(
+      {} as never,
+      {} as never,
+      { ledgerEntry: { create } } as never,
+    );
     await service.appendForReseller('r9', {
       type: 'OUT',
       category: 'PLAQUE_PURCHASE',
@@ -78,7 +86,7 @@ describe('LedgerService', () => {
   });
 
   it('appendManual validates body', async () => {
-    const service = new LedgerService({} as never, {} as never);
+    const service = new LedgerService({} as never, {} as never, {} as never);
     await expect(
       runWithTenantAsync(actor, () => service.appendManual({ type: 'IN' })),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -86,7 +94,11 @@ describe('LedgerService', () => {
 
   it('appendManual appends MANUAL category', async () => {
     const create = jest.fn().mockResolvedValue({ id: 'e3' });
-    const service = new LedgerService({ ledgerEntry: { create } } as never, {} as never);
+    const service = new LedgerService(
+      { ledgerEntry: { create } } as never,
+      {} as never,
+      {} as never,
+    );
     await runWithTenantAsync(actor, () =>
       service.appendManual({ type: 'OUT', amountCents: 10, refType: 'note' }),
     );
@@ -98,6 +110,7 @@ describe('LedgerService', () => {
   it('reverse not found', async () => {
     const service = new LedgerService(
       { ledgerEntry: { findUnique: jest.fn().mockResolvedValue(null) } } as never,
+      {} as never,
       {} as never,
     );
     await expect(
@@ -117,6 +130,7 @@ describe('LedgerService', () => {
           }),
         },
       } as never,
+      {} as never,
       {} as never,
     );
     await expect(
@@ -139,6 +153,7 @@ describe('LedgerService', () => {
           findFirst: jest.fn().mockResolvedValue({ id: 'rev' }),
         },
       } as never,
+      {} as never,
       {} as never,
     );
     await expect(
@@ -167,7 +182,7 @@ describe('LedgerService', () => {
         groupBy: jest.fn(),
       },
     };
-    const service = new LedgerService(db as never, {} as never);
+    const service = new LedgerService(db as never, {} as never, {} as never);
     await expect(
       runWithTenantAsync(actor, () => service.reverse('e1')),
     ).rejects.toMatchObject({
@@ -187,12 +202,12 @@ describe('LedgerService', () => {
       ledgerEntry: {
         groupBy: jest
           .fn()
-          .mockResolvedValueOnce([{ type: 'IN', _sum: { amountCents: 100 } }]) // balanceBefore
-          .mockResolvedValueOnce([{ type: 'IN', _sum: { amountCents: 250 } }]), // balance(to)
+          .mockResolvedValueOnce([{ type: 'IN', _sum: { amountCents: 100 } }])
+          .mockResolvedValueOnce([{ type: 'IN', _sum: { amountCents: 250 } }]),
         findMany: jest.fn().mockResolvedValue([row]),
       },
     };
-    const service = new LedgerService(db as never, {} as never);
+    const service = new LedgerService(db as never, {} as never, {} as never);
     const page = await service.statement({ from, to, limit: 20 });
     expect(page.openingCents).toBe(100);
     expect(page.closingCents).toBe(250);
@@ -211,7 +226,7 @@ describe('LedgerService', () => {
         findMany: jest.fn().mockResolvedValue(rows),
       },
     };
-    const service = new LedgerService(db as never, {} as never);
+    const service = new LedgerService(db as never, {} as never, {} as never);
     const page = await service.statement({ limit: 1 });
     expect(page.items).toHaveLength(1);
     expect(page.nextCursor).toBe(encodeTimeIdCursor(rows[0]!.createdAt, rows[0]!.id));

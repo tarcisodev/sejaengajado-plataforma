@@ -5,11 +5,15 @@ import { PlaquePenaltyQuote } from './plaque-penalty';
 import {
   AuditLog,
   Cancellation,
+  CheckoutResult,
   Coupon,
   Customer,
+  MyResellerInvoice,
   NoticeLog,
   Order,
   Payment,
+  PaymentMethod,
+  PaymentStatusView,
   Plan,
   PlatformConfig,
   Reseller,
@@ -98,6 +102,18 @@ export interface ApiPort {
   requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog>;
   requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog>;
   listAuditLogs(): Observable<AuditLog[]>;
+  /** Direct Pronto checkout — amountCents comes from API only. */
+  checkoutPronto(command: {
+    siteId: string;
+    customerName: string;
+    customerEmail: string;
+    couponCode?: string;
+    method: PaymentMethod;
+  }): Observable<CheckoutResult>;
+  /** Poll payment status from API/gateway — never trust redirect. */
+  getPaymentStatus(gatewayPaymentId: string): Observable<PaymentStatusView>;
+  listMyInvoices(): Observable<MyResellerInvoice[]>;
+  getMyInvoice(id: string): Observable<MyResellerInvoice>;
 }
 
 export interface CustomerOtp {

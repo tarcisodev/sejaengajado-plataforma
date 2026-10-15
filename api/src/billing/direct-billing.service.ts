@@ -95,8 +95,12 @@ export class DirectBillingService {
       paymentId: order.payment!.id,
       gatewayPaymentId: charge.gatewayPaymentId,
       amountCents: finalCents,
-      pixCopyPaste: charge.pixCopyPaste,
-      invoiceUrl: charge.invoiceUrl,
+      method: input.method ?? 'PIX',
+      status: charge.status,
+      pixQrCode: charge.pixQrCode ?? null,
+      pixCopyPaste: charge.pixCopyPaste ?? null,
+      invoiceUrl: charge.invoiceUrl ?? null,
+      bankSlipUrl: charge.bankSlipUrl ?? null,
     };
   }
 

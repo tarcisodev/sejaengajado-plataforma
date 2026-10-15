@@ -6,11 +6,15 @@ import { environment } from '../../../environments/environment';
 import {
   AuditLog,
   Cancellation,
+  CheckoutResult,
   Coupon,
   Customer,
+  MyResellerInvoice,
   NoticeLog,
   Order,
   Payment,
+  PaymentMethod,
+  PaymentStatusView,
   Plan,
   PlatformConfig,
   Reseller,
@@ -195,6 +199,30 @@ export class HttpApiService implements ApiPort {
 
   listAuditLogs(): Observable<AuditLog[]> {
     return this.http.get<AuditLog[]>(this.url('/audit-logs'));
+  }
+
+  checkoutPronto(command: {
+    siteId: string;
+    customerName: string;
+    customerEmail: string;
+    couponCode?: string;
+    method: PaymentMethod;
+  }): Observable<CheckoutResult> {
+    return this.http.post<CheckoutResult>(this.url('/billing/checkout/pronto'), command);
+  }
+
+  getPaymentStatus(gatewayPaymentId: string): Observable<PaymentStatusView> {
+    return this.http.get<PaymentStatusView>(
+      this.url(`/billing/payments/${encodeURIComponent(gatewayPaymentId)}`),
+    );
+  }
+
+  listMyInvoices(): Observable<MyResellerInvoice[]> {
+    return this.http.get<MyResellerInvoice[]>(this.url('/reseller/invoices'));
+  }
+
+  getMyInvoice(id: string): Observable<MyResellerInvoice> {
+    return this.http.get<MyResellerInvoice>(this.url(`/reseller/invoices/${id}`));
   }
 
   private url(path: string): string {

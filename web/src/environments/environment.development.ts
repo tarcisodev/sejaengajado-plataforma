@@ -1,4 +1,5 @@
 export const environment = {
-  googlePlacesApiKey: '',
   apiUrl: '',
+  supabaseUrl: '',
+  supabaseAnonKey: '',
 };

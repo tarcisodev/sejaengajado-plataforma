@@ -9,6 +9,7 @@ import {
   lucideSettings,
   lucideStore,
   lucideSun,
+  lucideFileText,
   lucideTicket,
   lucideUsers,
   lucideWallet,
@@ -33,6 +34,7 @@ import { AdminCustomersComponent } from './admin-customers.component';
 import { AdminDashboardComponent } from './admin-dashboard.component';
 import { AdminPlansComponent } from './admin-plans.component';
 import { AdminResellersComponent } from './admin-resellers.component';
+import { MyInvoicesComponent } from '../billing/my-invoices.component';
 import { AdminRevenueComponent } from './admin-revenue.component';
 import { AdminSitesComponent } from './admin-sites.component';
 
@@ -54,6 +56,7 @@ import { AdminSitesComponent } from './admin-sites.component';
     AdminConfigComponent,
     AdminCouponsComponent,
     AdminRevenueComponent,
+    MyInvoicesComponent,
   ],
   providers: [
     provideHlmSidebarConfig({
@@ -63,6 +66,7 @@ import { AdminSitesComponent } from './admin-sites.component';
     HlmSidebarService,
     provideIcons({
       lucideCreditCard,
+      lucideFileText,
       lucideGlobe,
       lucideHouse,
       lucideMoon,
@@ -101,6 +105,7 @@ export class AdminShellComponent {
     },
     { section: 'cupons', href: '/cupons', label: 'Cupons', icon: 'lucideTicket' },
     { section: 'receita', href: '/receita', label: 'Receita', icon: 'lucideWallet' },
+    { section: 'faturas', href: '/faturas', label: 'Minhas faturas', icon: 'lucideFileText' },
   ];
 
   constructor() {

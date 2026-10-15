@@ -11,6 +11,7 @@ import { filter } from 'rxjs';
 
 import { ThemeService } from '../../core/theme/theme.service';
 import { appArea } from './app-area';
+import { CheckoutComponent } from '../billing/checkout.component';
 import { CustomerLoginComponent } from './customer-login.component';
 import { CustomerSession } from './customer-session';
 import { CustomerStudioComponent } from './customer-studio.component';
@@ -26,6 +27,7 @@ import { CustomerStudioComponent } from './customer-studio.component';
     HlmToaster,
     CustomerLoginComponent,
     CustomerStudioComponent,
+    CheckoutComponent,
   ],
   providers: [provideIcons({ lucideMoon, lucideSun })],
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -39,6 +41,7 @@ export class CustomerShellComponent {
   readonly entering = signal(
     appArea(this.location.pathname || '/') === 'customer' && this.head() === 'entrar',
   );
+  readonly checkout = signal(false);
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
@@ -57,8 +60,11 @@ export class CustomerShellComponent {
   }
 
   private sync(): void {
-    const login = this.head() === 'entrar';
+    const parts = (this.location.pathname || '/').split('/').filter(Boolean);
+    const login = parts[0] === 'entrar';
+    const onCheckout = parts[0] === 'conta' && parts[1] === 'checkout';
     this.entering.set(login);
+    this.checkout.set(onCheckout);
     if (!login && !this.session.user()) {
       void this.router.navigateByUrl('/entrar');
     }

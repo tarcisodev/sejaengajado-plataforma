@@ -12,7 +12,9 @@ import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../common/curs
 import {
   ADMIN_PRISMA,
   PRISMA,
+  SYSTEM_PRISMA,
   type AdminPrisma,
+  type SystemPrisma,
   type TenantPrisma,
 } from '../tenant/prisma.module';
 import { requireTenantResellerId } from '../tenant/tenant.context';
@@ -46,6 +48,8 @@ export class LedgerService {
   constructor(
     @Inject(PRISMA) private readonly db: TenantPrisma,
     @Inject(ADMIN_PRISMA) private readonly adminDb: AdminPrisma,
+    /** Ungated se_admin — webhooks/jobs must append without ADMIN+aal2 ALS. */
+    @Inject(SYSTEM_PRISMA) private readonly systemDb: SystemPrisma,
   ) {}
 
   private assertPositiveAmount(amountCents: number): void {
@@ -84,16 +88,16 @@ export class LedgerService {
   }
 
   /**
-   * Admin/cross-tenant append — still only via LedgerService (never UPDATE).
-   * Used by stock transfer (PLAQUE_PURCHASE) and similar.
+   * Cross-tenant append — only via LedgerService (never UPDATE).
+   * Uses SYSTEM_PRISMA (not the ADMIN proxy) so webhooks/jobs work without aal2 ALS.
    */
   async appendForReseller(
     resellerId: string,
     input: AppendLedgerInput,
-    tx?: { ledgerEntry: AdminPrisma['ledgerEntry'] },
+    tx?: { ledgerEntry: SystemPrisma['ledgerEntry'] },
   ) {
     this.assertPositiveAmount(input.amountCents);
-    const client = tx ?? this.adminDb;
+    const client = tx ?? this.systemDb;
     return client.ledgerEntry.create({
       data: {
         resellerId,

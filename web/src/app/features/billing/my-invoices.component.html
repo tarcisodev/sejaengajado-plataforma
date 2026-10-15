@@ -1,0 +1,76 @@
+<section class="grid gap-6" aria-labelledby="invoices-title">
+  <div>
+    <h2 id="invoices-title" class="font-display text-xl md:text-2xl">Minhas faturas</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Totais em centavos vindos da API. Status atualizado por polling — não pelo redirect do Asaas.
+    </p>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table hlmTable class="w-full min-w-[36rem]">
+      <thead hlmTHead>
+        <tr hlmTr>
+          <th hlmTh>Período</th>
+          <th hlmTh>Status</th>
+          <th hlmTh>Pagamento</th>
+          <th hlmTh class="text-end">Total</th>
+          <th hlmTh></th>
+        </tr>
+      </thead>
+      <tbody hlmTBody>
+        @for (invoice of invoices(); track invoice.id) {
+          <tr hlmTr [attr.data-invoice-id]="invoice.id">
+            <td hlmTd>{{ invoice.period }}</td>
+            <td hlmTd>
+              <span hlmBadge variant="outline">{{ invoice.status }}</span>
+            </td>
+            <td hlmTd>{{ invoice.paymentStatus ?? '—' }}</td>
+            <td hlmTd class="text-end tabular-nums" data-invoice-total>
+              {{ formatBrl(invoice.totalCents) }}
+            </td>
+            <td hlmTd>
+              <button hlmBtn type="button" variant="outline" size="sm" (click)="open(invoice)">
+                Detalhe
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (selected(); as invoice) {
+    <div hlmCard class="grid max-w-xl gap-3 p-6" data-invoice-detail>
+      <p class="font-display text-lg">Fatura {{ invoice.period }}</p>
+      <p>
+        Total:
+        <strong class="tabular-nums">{{ formatBrl(invoice.totalCents) }}</strong>
+      </p>
+      <p>Status fatura: {{ invoice.status }}</p>
+      <p data-payment-status>Status pagamento: {{ invoice.paymentStatus ?? '—' }}</p>
+      <ul class="grid gap-1 text-sm">
+        @for (line of invoice.lines; track line.description + line.totalCents) {
+          <li class="flex justify-between gap-4">
+            <span>{{ line.description }} (×{{ line.qty }})</span>
+            <span class="tabular-nums">{{ formatBrl(line.totalCents) }}</span>
+          </li>
+        }
+      </ul>
+      @if (invoice.pixCopyPaste) {
+        <button hlmBtn type="button" variant="outline" (click)="copyPix()" data-copy-pix>
+          {{ copied() ? 'Copiado' : 'Copiar Pix' }}
+        </button>
+      }
+      @if (invoice.bankSlipUrl) {
+        <a hlmBtn href="{{ invoice.bankSlipUrl }}" target="_blank" rel="noopener noreferrer">
+          Abrir boleto
+        </a>
+      }
+      @if (invoice.invoiceUrl) {
+        <a hlmBtn href="{{ invoice.invoiceUrl }}" target="_blank" rel="noopener noreferrer">
+          Abrir fatura Asaas
+        </a>
+      }
+    </div>
+  }
+</section>

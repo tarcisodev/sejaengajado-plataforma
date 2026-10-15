@@ -71,7 +71,7 @@ export interface Customer {
   cidade: string;
 }
 
-export type SchemaType = 'HairSalon' | 'Restaurant' | 'ProfessionalService';
+export type SchemaType = 'HairSalon' | 'Restaurant' | 'ProfessionalService' | 'LocalBusiness';
 
 export type SiteLinkType = 'whatsapp' | 'instagram' | 'maps' | 'tel' | 'url';
 
@@ -254,6 +254,17 @@ export interface Subscription {
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED';
 
+/** Gateway/API payment status for polling (never derive from redirect). */
+export type GatewayPaymentStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'RECEIVED'
+  | 'OVERDUE'
+  | 'REFUNDED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | string;
+
 export interface Payment {
   id: string;
   orderId: string | null;
@@ -262,9 +273,55 @@ export interface Payment {
   gateway: string;
   gatewayPaymentId: string;
   metodo: PaymentMethod;
+  /** Centavos — only display via formatBrl; never recalculate. */
   valor: number;
   status: PaymentStatus;
   paidAt: string | null;
+}
+
+/** Checkout response from API — amounts in centavos only. */
+export interface CheckoutResult {
+  orderId: string;
+  paymentId: string;
+  gatewayPaymentId: string;
+  amountCents: number;
+  method: PaymentMethod;
+  status: GatewayPaymentStatus;
+  pixQrCode: string | null;
+  pixCopyPaste: string | null;
+  /** Hosted Asaas invoice (card checkout) — open this URL; never collect card data. */
+  invoiceUrl: string | null;
+  bankSlipUrl: string | null;
+}
+
+export interface PaymentStatusView {
+  gatewayPaymentId: string;
+  status: GatewayPaymentStatus;
+  amountCents: number;
+  invoiceUrl: string | null;
+  bankSlipUrl: string | null;
+}
+
+export type InvoiceStatus = 'DRAFT' | 'OPEN' | 'PAID' | 'OVERDUE' | 'VOID';
+
+/** Reseller "Minhas faturas" row — totals from API centavos. */
+export interface MyResellerInvoice {
+  id: string;
+  period: string;
+  status: InvoiceStatus;
+  totalCents: number;
+  dueDate: string | null;
+  gatewayPaymentId: string | null;
+  paymentStatus: GatewayPaymentStatus | null;
+  invoiceUrl: string | null;
+  bankSlipUrl: string | null;
+  pixCopyPaste: string | null;
+  lines: {
+    description: string;
+    qty: number;
+    unitCents: number;
+    totalCents: number;
+  }[];
 }
 
 export interface WebhookEvent {

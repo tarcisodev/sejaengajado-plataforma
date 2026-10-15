@@ -1,0 +1,119 @@
+<section class="grid gap-6" aria-labelledby="checkout-title">
+  <div>
+    <h2 id="checkout-title" class="font-display text-xl md:text-2xl">Checkout</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Valor e status vêm da API (centavos). Cartão só no Asaas hospedado — nenhum dado de cartão
+      passa por aqui.
+    </p>
+  </div>
+
+  @if (!result()) {
+    <div hlmCard class="max-w-xl p-6">
+      <form class="grid gap-4" (ngSubmit)="start(); $event.preventDefault()">
+        <div hlmField>
+          <label hlmFieldLabel for="siteId">Site (id)</label>
+          <input
+            hlmInput
+            id="siteId"
+            class="h-11"
+            name="siteId"
+            required
+            [value]="siteId()"
+            (input)="siteId.set(inputValue($event))"
+          />
+        </div>
+        <div hlmField>
+          <label hlmFieldLabel for="customerName">Nome</label>
+          <input
+            hlmInput
+            id="customerName"
+            class="h-11"
+            name="customerName"
+            required
+            [value]="customerName()"
+            (input)="customerName.set(inputValue($event))"
+          />
+        </div>
+        <div hlmField>
+          <label hlmFieldLabel for="customerEmail">E-mail</label>
+          <input
+            hlmInput
+            id="customerEmail"
+            class="h-11"
+            name="customerEmail"
+            type="email"
+            required
+            [value]="customerEmail()"
+            (input)="customerEmail.set(inputValue($event))"
+          />
+        </div>
+        <div hlmField>
+          <span id="checkout-method" hlmFieldLabel>Método</span>
+          <hlm-select [value]="method()" (valueChange)="setMethod($event)">
+            <hlm-select-trigger class="h-11! w-full" aria-labelledby="checkout-method">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                <hlm-select-item value="PIX">Pix</hlm-select-item>
+                <hlm-select-item value="BOLETO">Boleto</hlm-select-item>
+                <hlm-select-item value="CARD">Cartão (Asaas hospedado)</hlm-select-item>
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        </div>
+        @if (error()) {
+          <p class="text-sm text-destructive" role="alert">{{ error() }}</p>
+        }
+        <button hlmBtn type="submit" [disabled]="busy()">
+          {{ busy() ? 'Gerando…' : 'Gerar cobrança' }}
+        </button>
+      </form>
+    </div>
+  } @else {
+    @let checkout = result()!;
+    <div hlmCard class="max-w-xl grid gap-4 p-6" data-checkout-result>
+      <p>
+        Valor:
+        <strong class="tabular-nums" data-checkout-amount>{{
+          formatBrl(checkout.amountCents)
+        }}</strong>
+      </p>
+      <p>
+        Status:
+        <strong data-checkout-status>{{ liveStatus() ?? checkout.status }}</strong>
+        <span class="text-sm text-muted-foreground"> (atualizado pela API)</span>
+      </p>
+
+      @if (checkout.method === 'PIX' && checkout.pixCopyPaste) {
+        <div class="grid gap-2">
+          <p class="text-sm">Pix copia e cola</p>
+          <code
+            class="break-all rounded-md border border-border bg-muted/40 p-3 text-xs"
+            data-pix-copy
+            >{{ checkout.pixCopyPaste }}</code
+          >
+          <button hlmBtn type="button" variant="outline" (click)="copyPix()">
+            {{ copied() ? 'Copiado' : 'Copiar código Pix' }}
+          </button>
+        </div>
+      }
+
+      @if (checkout.method === 'BOLETO' && checkout.bankSlipUrl) {
+        <a hlmBtn href="{{ checkout.bankSlipUrl }}" target="_blank" rel="noopener noreferrer">
+          Abrir boleto
+        </a>
+      }
+
+      @if (checkout.method === 'CARD' && checkout.invoiceUrl) {
+        <button hlmBtn type="button" (click)="openHostedCard()" data-card-hosted>
+          Pagar com cartão no Asaas
+        </button>
+        <p class="text-sm text-muted-foreground">
+          Você será levado ao checkout hospedado. O status só confirma após a API (polling), não
+          pelo retorno da página.
+        </p>
+      }
+    </div>
+  }
+</section>

@@ -1,4 +1,4 @@
-# Checklist de produção (API) — PRODUCAO-02 + PRODUCAO-05 (B1–B2)
+# Checklist de produção (API) — PRODUCAO-02 + PRODUCAO-05 (B1–B7)
 
 Base: `producao/contrib-nucleo.md` (Bloco 17), com `/health/ready` e mesma origem (sem CORS).
 
@@ -25,11 +25,14 @@ Base: `producao/contrib-nucleo.md` (Bloco 17), com `/health/ready` e mesma orige
 - [x] **Fatura/inadimplência revendedor** (PRODUCAO-05 B4): job mensal idempotente `(resellerId, period)` + `Idempotency-Key`; foto PUBLISHED/READ_ONLY + mensalidade + placas; overdue → DELINQUENT; grace → elegível migração; faixas 7/8/16/60 do cliente direto ficam no JobsService (B14).
 - [x] **Cobrança cliente direto** (PRODUCAO-05 B5): Pronto / Pro / renovação / multa via `PaymentGateway`; centavos; ledger só no webhook confirmado; A↔B (site fora da PLATAFORMA → 404).
 
-## Pendências (PRODUCAO-05 restante / PRODUCAO-06)
+- [x] **Checkout/faturas no front** (PRODUCAO-05 B6): `POST /api/billing/checkout/pronto`, `GET /api/billing/payments/:id` (polling), `GET /api/reseller/invoices`; web `/conta/checkout` + `/faturas`; centavos só da API; cartão = link Asaas hospedado; JWT via supabase-js interceptor.
+- [x] **E2E sandbox** (PRODUCAO-05 B7): `api/test/e2e/mvp.sandbox.spec.ts` (só com `ASAAS_SANDBOX=1`) + `docs/e2e-sandbox.md`; chave via `ASAAS_API_KEY_FILE` local.
 
-- [ ] Checkout/faturas no web + e2e sandbox (PRODUCAO-05 B6–B7).
-- [ ] Sentry com release = SHA (PRODUCAO-06).
-- [ ] Rate limit Traefik + HSTS no edge (PRODUCAO-06).
-- [ ] Backups/restore no bucket `se-backup` (PRODUCAO-06).
-- [ ] Valores reais de `PlatformConfig` e atacado (⏳P6, admin antes do go-live).
+## Pendências (PRODUCAO-06)
+
+- [ ] Dockerfiles api/web/backup + stack Swarm (PRODUCAO-06 B1–B2).
+- [ ] Inventário de secrets + CI/CD GHCR (PRODUCAO-06 B3–B4).
+- [ ] Wildcard produção + backup R2 `se-backup` + restore testado (PRODUCAO-06 B5–B6).
+- [ ] Sentry (release=SHA), Uptime/Healthchecks, Traefik HSTS/rate-limit (PRODUCAO-06 B7).
+- [ ] Go-live checklist + valores reais PlatformConfig/atacado (⏳P6) (PRODUCAO-06 B8).
 
