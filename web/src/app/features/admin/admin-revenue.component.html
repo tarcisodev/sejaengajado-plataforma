@@ -1,65 +1,121 @@
-<label>
-  De
-  <input type="date" [value]="from()" (input)="from.set(inputValue($event))" />
-</label>
-<label>
-  Até
-  <input type="date" [value]="to()" (input)="to.set(inputValue($event))" />
-</label>
-<label>
-  Revendedor
-  <select [value]="resellerId()" (change)="resellerId.set(inputValue($event))">
-    <option value="all">Todos</option>
-    <option value="direct">Venda direta</option>
-    @for (reseller of resellers(); track reseller.id) {
-      <option [value]="reseller.id">{{ reseller.nome }}</option>
-    }
-  </select>
-</label>
-<p>
-  Total no período: <strong data-revenue-total>{{ formatBrl(total()) }}</strong>
-</p>
-<table>
-  <caption>
-    Pagamentos pagos no período
-  </caption>
-  <thead>
-    <tr>
-      <th>Pago em</th>
-      <th>Valor</th>
-      <th>Método</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (row of visible(); track row.id) {
-      <tr>
-        <td>{{ row.paidAt }}</td>
-        <td>{{ formatBrl(row.valor) }}</td>
-        <td>{{ row.metodo }}</td>
-      </tr>
-    }
-  </tbody>
-</table>
-<h2>Fatura do revendedor</h2>
-<p>A foto do fechamento guarda os sites publicados e em só leitura daquele instante.</p>
-<label>
-  Revendedor
-  <select [value]="closeResellerId()" (change)="closeResellerId.set(inputValue($event))">
-    @for (reseller of resellers(); track reseller.id) {
-      <option [value]="reseller.id">{{ reseller.nome }}</option>
-    }
-  </select>
-</label>
-<label>
-  Mês
-  <input [value]="closeMonth()" (input)="closeMonth.set(inputValue($event))" />
-</label>
-<button type="button" (click)="close()">Fechar fatura</button>
-@if (invoice(); as invoice) {
-  <p data-invoice-total>{{ formatBrl(invoice.totalCentavos) }}</p>
-  <ul>
-    @for (siteId of invoice.activeSiteIds; track siteId) {
-      <li>{{ siteName(siteId) }}</li>
-    }
-  </ul>
-}
+<div class="grid gap-6">
+  <section hlmCard>
+    <div hlmCardContent class="grid gap-4 sm:grid-cols-2">
+      <label class="grid gap-2 text-sm">
+        De
+        <input
+          hlmInput
+          class="h-11"
+          type="date"
+          [value]="from()"
+          (input)="from.set(inputValue($event))"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        Até
+        <input
+          hlmInput
+          class="h-11"
+          type="date"
+          [value]="to()"
+          (input)="to.set(inputValue($event))"
+        />
+      </label>
+      <div class="grid gap-2 text-sm sm:col-span-2">
+        <span id="revenue-reseller">Revendedor</span>
+        <hlm-select
+          [value]="resellerId()"
+          [itemToString]="resellerLabel"
+          (valueChange)="setReseller($event)"
+        >
+          <hlm-select-trigger class="h-11! w-full" aria-labelledby="revenue-reseller">
+            <hlm-select-value />
+          </hlm-select-trigger>
+          <hlm-select-content>
+            <hlm-select-item value="all">Todos</hlm-select-item>
+            <hlm-select-item value="direct">Venda direta</hlm-select-item>
+            @for (reseller of resellers(); track reseller.id) {
+              <hlm-select-item [value]="reseller.id">{{ reseller.nome }}</hlm-select-item>
+            }
+          </hlm-select-content>
+        </hlm-select>
+      </div>
+      <p class="sm:col-span-2">
+        Total no período:
+        <strong class="tabular-nums" data-revenue-total>{{ formatBrl(total()) }}</strong>
+      </p>
+    </div>
+  </section>
+  <section hlmCard class="min-w-0">
+    <div hlmTableContainer>
+      <table hlmTable>
+        <caption hlmCaption>
+          Pagamentos pagos no período
+        </caption>
+        <thead hlmTHead>
+          <tr hlmTr>
+            <th hlmTh scope="col">Pago em</th>
+            <th hlmTh scope="col">Valor</th>
+            <th hlmTh scope="col">Método</th>
+          </tr>
+        </thead>
+        <tbody hlmTBody>
+          @for (row of visible(); track row.id) {
+            <tr hlmTr>
+              <td hlmTd>{{ row.paidAt }}</td>
+              <td hlmTd class="tabular-nums">{{ formatBrl(row.valor) }}</td>
+              <td hlmTd>{{ row.metodo }}</td>
+            </tr>
+          } @empty {
+            <tr hlmTr>
+              <td hlmTd colspan="3">Nenhum resultado</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section hlmCard>
+    <div hlmCardContent class="grid gap-4">
+      <h2 class="font-display text-xl">Fatura do revendedor</h2>
+      <p class="text-sm text-muted-foreground">
+        A foto do fechamento guarda os sites publicados e em só leitura daquele instante.
+      </p>
+      <div class="grid gap-2 text-sm">
+        <span id="invoice-reseller">Revendedor</span>
+        <hlm-select
+          [value]="closeResellerId()"
+          [itemToString]="resellerLabel"
+          (valueChange)="setCloseReseller($event)"
+        >
+          <hlm-select-trigger class="h-11! w-full" aria-labelledby="invoice-reseller">
+            <hlm-select-value />
+          </hlm-select-trigger>
+          <hlm-select-content>
+            @for (reseller of resellers(); track reseller.id) {
+              <hlm-select-item [value]="reseller.id">{{ reseller.nome }}</hlm-select-item>
+            }
+          </hlm-select-content>
+        </hlm-select>
+      </div>
+      <label class="grid gap-2 text-sm">
+        Mês
+        <input
+          hlmInput
+          class="h-11"
+          [value]="closeMonth()"
+          (input)="closeMonth.set(inputValue($event))"
+        />
+      </label>
+      <button hlmBtn class="h-11" type="button" (click)="close()">Fechar fatura</button>
+      @if (invoice(); as invoice) {
+        <p class="tabular-nums" data-invoice-total>{{ formatBrl(invoice.totalCentavos) }}</p>
+        <ul class="grid gap-2">
+          @for (siteId of invoice.activeSiteIds; track siteId) {
+            <li>{{ siteName(siteId) }}</li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+</div>

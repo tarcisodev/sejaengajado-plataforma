@@ -17,6 +17,7 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
+import { HlmToaster } from '@spartan-ng/helm/sonner';
 import {
   HlmSidebarImports,
   HlmSidebarService,
@@ -44,6 +45,7 @@ import { AdminSitesComponent } from './admin-sites.component';
     HlmButton,
     HlmDropdownMenuImports,
     HlmSidebarImports,
+    HlmToaster,
     AdminDashboardComponent,
     AdminCustomersComponent,
     AdminResellersComponent,

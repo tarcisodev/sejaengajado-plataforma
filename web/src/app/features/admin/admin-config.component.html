@@ -1,39 +1,91 @@
 @if (config(); as config) {
-  <form (submit)="save($event)">
-    <label
-      >Aviso a partir do dia
-      <input name="notifyFromDias" type="number" [value]="config.notifyFromDias"
-    /></label>
-    <label
-      >Só leitura a partir do dia
-      <input name="readOnlyDias" type="number" [value]="config.readOnlyDias"
-    /></label>
-    <label
-      >Suspensão a partir do dia
-      <input name="suspendDias" type="number" [value]="config.suspendDias"
-    /></label>
-    <label
-      >Arquivo a partir do dia <input name="archiveDias" type="number" [value]="config.archiveDias"
-    /></label>
-    <label>
-      Renovação anual do Pronto (centavos)
-      <input name="prontoRenewalCentavos" type="number" [value]="config.prontoRenewalCentavos" />
-    </label>
-    <label>
-      Valor da placa (centavos)
-      <input name="plaqueValueCentavos" type="number" [value]="config.plaqueValueCentavos" />
-    </label>
-    <label>
-      Multa da placa (%)
-      <input name="plaquePenaltyPct" type="number" [value]="config.plaquePenaltyPct" />
-    </label>
-    <label>
-      Dias de graça do revendedor
-      <input name="resellerGraceDays" type="number" [value]="config.resellerGraceDays" />
-    </label>
-    <button type="submit">Salvar configurações</button>
-  </form>
-}
-@if (saved()) {
-  <p class="note">Configurações gravadas.</p>
+  <section hlmCard>
+    <form class="grid gap-4" (submit)="save($event)">
+      <div hlmCardContent class="grid gap-4 sm:grid-cols-2">
+        <label class="grid gap-2 text-sm">
+          Aviso a partir do dia
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="notifyFromDias"
+            type="number"
+            [value]="config.notifyFromDias"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Só leitura a partir do dia
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="readOnlyDias"
+            type="number"
+            [value]="config.readOnlyDias"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Suspensão a partir do dia
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="suspendDias"
+            type="number"
+            [value]="config.suspendDias"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Arquivo a partir do dia
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="archiveDias"
+            type="number"
+            [value]="config.archiveDias"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Renovação anual do Pronto (centavos)
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="prontoRenewalCentavos"
+            type="number"
+            [value]="config.prontoRenewalCentavos"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Valor da placa (centavos)
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="plaqueValueCentavos"
+            type="number"
+            [value]="config.plaqueValueCentavos"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Multa da placa (%)
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="plaquePenaltyPct"
+            type="number"
+            [value]="config.plaquePenaltyPct"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Dias de graça do revendedor
+          <input
+            hlmInput
+            class="h-11 tabular-nums"
+            name="resellerGraceDays"
+            type="number"
+            [value]="config.resellerGraceDays"
+          />
+        </label>
+      </div>
+      <footer hlmCardFooter>
+        <button hlmBtn class="h-11" type="submit">Salvar configurações</button>
+      </footer>
+    </form>
+  </section>
 }

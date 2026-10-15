@@ -1,4 +1,9 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -7,6 +12,7 @@ import { formatBrl } from '../landing/landing-seo';
 
 @Component({
   selector: 'app-admin-revenue',
+  imports: [HlmButton, HlmCardImports, HlmInput, HlmSelectImports, HlmTableImports],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-revenue.component.html',
 })
@@ -56,6 +62,26 @@ export class AdminRevenueComponent {
 
   inputValue(event: Event): string {
     return (event.target as HTMLInputElement).value;
+  }
+
+  readonly resellerLabel = (value: string | null): string => {
+    if (value === 'all') {
+      return 'Todos';
+    }
+    if (value === 'direct') {
+      return 'Venda direta';
+    }
+    return this.resellers().find((reseller) => reseller.id === value)?.nome ?? '';
+  };
+
+  setReseller(value: string | null | undefined): void {
+    this.resellerId.set(value || 'all');
+  }
+
+  setCloseReseller(value: string | null | undefined): void {
+    if (value) {
+      this.closeResellerId.set(value);
+    }
   }
 
   siteName(siteId: string): string {

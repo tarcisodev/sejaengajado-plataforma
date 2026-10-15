@@ -1,16 +1,20 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { toast } from '@spartan-ng/brain/sonner';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInput } from '@spartan-ng/helm/input';
 
 import { API_PORT } from '../../core/api/api-port';
 import { PlatformConfig } from '../../core/models/domain';
 
 @Component({
   selector: 'app-admin-config',
+  imports: [HlmButton, HlmCardImports, HlmInput],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-config.component.html',
 })
 export class AdminConfigComponent {
   private readonly api = inject(API_PORT);
-  readonly saved = signal(false);
   readonly config = signal<PlatformConfig | null>(null);
 
   constructor() {
@@ -34,7 +38,7 @@ export class AdminConfigComponent {
       })
       .subscribe((config) => {
         this.config.set(config);
-        this.saved.set(true);
+        toast.success('Configurações gravadas.');
       });
   }
 }
