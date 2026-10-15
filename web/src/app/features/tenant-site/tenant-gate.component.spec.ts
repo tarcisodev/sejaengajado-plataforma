@@ -25,7 +25,16 @@ describe('TenantGateComponent', () => {
         { provide: API_PORT, useExisting: MockApiService },
         {
           provide: PlatformLocation,
-          useValue: { hostname: 'localhost', port: '4200', search: '' },
+          useValue: {
+            hostname: 'localhost',
+            port: '4200',
+            pathname: '/',
+            search: '',
+            hash: '',
+            getBaseHrefFromDOM: () => '/',
+            onPopState: () => () => undefined,
+            onHashChange: () => () => undefined,
+          },
         },
       ],
     });

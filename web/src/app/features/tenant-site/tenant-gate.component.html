@@ -5,7 +5,11 @@
         <app-landing-page />
       }
       @case ('app') {
-        <app-admin-shell />
+        @if (area() === 'customer') {
+          <app-customer-shell />
+        } @else {
+          <app-admin-shell />
+        }
       }
       @case ('site') {
         <app-site-page [site]="view.site" />

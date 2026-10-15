@@ -1,0 +1,180 @@
+@if (sites().length > 1) {
+  <ul>
+    @for (site of sites(); track site.id) {
+      <li>
+        <button type="button" (click)="open(site)">{{ site.content.businessName }} · {{ site.status }}</button>
+      </li>
+    }
+  </ul>
+}
+@if (draft(); as site) {
+  <div class="studio">
+    <section>
+      @if (renewalDays() !== null) {
+        <p class="note" data-renewal>A hospedagem anual vence em {{ renewalDate() }}.</p>
+      }
+      @if (site.status === 'READ_ONLY') {
+        <p class="warn" data-pending>
+          Pendência no pagamento. O site continua no ar, mas a edição fica bloqueada neste período.
+        </p>
+      }
+      @if (!editing()) {
+        <div data-locked>
+          <p>Este site está só para leitura.</p>
+          @if (!site.editable) {
+            <button type="button" (click)="askMonthly()">Assinar o plano mensal</button>
+            @if (monthlySent()) {
+              <p class="note">Pedido do plano mensal registrado.</p>
+            }
+            <label>
+              O que você quer alterar?
+              <textarea [value]="changeNote()" (input)="changeNote.set(inputValue($event))"></textarea>
+            </label>
+            <button type="button" (click)="askChange()">Pedir alteração</button>
+            @if (changeSent()) {
+              <p class="note">Pedido enviado ao suporte.</p>
+            }
+          }
+        </div>
+      } @else {
+        <div class="steps" aria-label="Etapas">
+          @for (label of steps; track label; let index = $index) {
+            <button type="button" [attr.aria-current]="step() === index ? 'step' : null" (click)="step.set(index)">
+              {{ label }}
+            </button>
+          }
+        </div>
+        @switch (step()) {
+          @case (0) {
+            <label>
+              Nome do negócio
+              <input data-field="businessName" [value]="site.content.businessName" (input)="rename(inputValue($event))" />
+            </label>
+            <label>
+              Frase
+              <input [value]="site.content.profile.slogan ?? ''" (input)="patchProfile('slogan', inputValue($event))" />
+            </label>
+            <label>
+              Cidade
+              <input [value]="site.content.profile.cidade" (input)="patchProfile('cidade', inputValue($event))" />
+            </label>
+            <label>
+              UF
+              <input [value]="site.content.profile.uf" (input)="patchProfile('uf', inputValue($event))" maxlength="2" />
+            </label>
+            <label>
+              Endereço
+              <input [value]="site.content.address?.logradouro ?? ''" (input)="patchAddress(inputValue($event))" />
+            </label>
+          }
+          @case (1) {
+            <label>
+              WhatsApp
+              <input [value]="site.content.whatsapp?.numero ?? ''" (input)="patchWhatsapp(inputValue($event))" />
+            </label>
+            <label>
+              Instagram
+              <input [value]="instagram()" (input)="patchInstagram(inputValue($event))" />
+            </label>
+            <label>
+              Telefone
+              <input [value]="site.content.phone ?? ''" (input)="patchPhone(inputValue($event))" />
+            </label>
+          }
+          @case (2) {
+            @for (row of site.content.hours ?? []; track $index) {
+              <fieldset>
+                <label>
+                  Dias
+                  <input [value]="row.dias" (input)="patchHour($index, 'dias', inputValue($event))" />
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="row.fechado ?? false"
+                    (change)="patchHour($index, 'fechado', inputChecked($event))"
+                  />
+                  Fechado
+                </label>
+                @if (!row.fechado) {
+                  <label>
+                    Abre
+                    <input [value]="row.abre ?? ''" (input)="patchHour($index, 'abre', inputValue($event))" />
+                  </label>
+                  <label>
+                    Fecha
+                    <input [value]="row.fecha ?? ''" (input)="patchHour($index, 'fecha', inputValue($event))" />
+                  </label>
+                }
+              </fieldset>
+            }
+            <button type="button" (click)="addHour()">Adicionar horário</button>
+          }
+          @case (3) {
+            @for (url of site.content.gallery ?? []; track $index) {
+              <label>
+                Foto
+                <input [value]="url" (input)="patchPhoto($index, inputValue($event))" />
+              </label>
+            }
+            <button type="button" (click)="addPhoto()">Adicionar foto</button>
+          }
+          @case (4) {
+            <label>
+              Modelo
+              <select [value]="site.templateId" (change)="setTemplate(inputValue($event))">
+                @for (template of templates(); track template.id) {
+                  <option [value]="template.id">{{ template.nome }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Cor principal
+              <input type="color" [value]="site.content.theme.p1" (input)="patchColor('p1', inputValue($event))" />
+            </label>
+            <label>
+              Cor de apoio
+              <input type="color" [value]="site.content.theme.p2" (input)="patchColor('p2', inputValue($event))" />
+            </label>
+            <label>
+              Cor clara
+              <input type="color" [value]="site.content.theme.p3" (input)="patchColor('p3', inputValue($event))" />
+            </label>
+          }
+          @case (5) {
+            <button type="button" (click)="save()">Salvar</button>
+            <button type="button" (click)="publish()">Publicar</button>
+            @if (site.plaqueFidelityEndsAt) {
+              <h2>Cancelar o plano mensal</h2>
+              @if (cancellation(); as stored) {
+                <p data-cancellation>
+                  Multa gravada de {{ formatBrl(stored.multaCentavos) }}, referente a
+                  {{ stored.mesesRestantes }} meses.
+                </p>
+              } @else {
+                @if (quote(); as penalty) {
+                  <p data-penalty>
+                    A placa de brinde ainda tem {{ penalty.mesesRestantes }} meses. A multa é
+                    {{ formatBrl(penalty.multaCentavos) }}.
+                  </p>
+                  <button type="button" (click)="confirmCancel()">Confirmar cancelamento</button>
+                }
+              }
+            }
+          }
+        }
+        @if (errors().length) {
+          <ul>
+            @for (error of errors(); track error) {
+              <li class="warn" role="alert">{{ error }}</li>
+            }
+          </ul>
+        }
+        @if (message()) {
+          <p class="note">{{ message() }}</p>
+        }
+      }
+    </section>
+    <app-site-page [site]="site" [embed]="true" />
+  </div>
+}

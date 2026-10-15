@@ -15,7 +15,9 @@ import {
   Reseller,
   ResellerInvoice,
   Site,
+  SiteContent,
   Template,
+  User,
 } from '../models/domain';
 
 export interface BlockResellerCommand {
@@ -58,7 +60,19 @@ export interface ApiPort {
   savePlan(plan: Plan): Observable<Plan>;
   saveCoupon(coupon: Coupon): Observable<Coupon>;
   deleteCoupon(couponId: string): Observable<void>;
+  requestCustomerOtp(email: string): Observable<CustomerOtp>;
+  verifyCustomerOtp(email: string, code: string): Observable<User>;
+  listSitesByCustomer(customerId: string): Observable<Site[]>;
+  updateSiteContent(siteId: string, content: SiteContent, templateId: string): Observable<Site>;
+  publishSite(siteId: string): Observable<Site>;
+  requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog>;
+  requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog>;
   listAuditLogs(): Observable<AuditLog[]>;
+}
+
+export interface CustomerOtp {
+  delivered: boolean;
+  previewCode: string | null;
 }
 
 export const API_PORT = new InjectionToken<ApiPort>('API_PORT');

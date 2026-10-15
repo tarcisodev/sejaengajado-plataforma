@@ -40,6 +40,10 @@ const THEME_SERVICE: SiteTheme = {
   italic: 'normal',
 };
 
+export function themeForTemplate(templateId: string): SiteTheme {
+  return { ...themeFor(templateId) };
+}
+
 function themeFor(templateId: string): SiteTheme {
   if (templateId === 'tpl_restaurante') {
     return THEME_KITCHEN;

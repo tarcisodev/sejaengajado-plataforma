@@ -150,6 +150,8 @@ export function createUberabaSeed(): MockDatabase {
       role: 'RESELLER',
     },
     { id: 'user_ana', supabaseId: 'sb_ana', email: 'ana@example.com', role: 'CUSTOMER' },
+    { id: 'user_ze', supabaseId: 'sb_ze', email: 'ze@example.com', role: 'CUSTOMER' },
+    { id: 'user_forno', supabaseId: 'sb_forno', email: 'forno@example.com', role: 'CUSTOMER' },
   ];
 
   const resellerPlans: ResellerPlan[] = [
@@ -169,8 +171,8 @@ export function createUberabaSeed(): MockDatabase {
   ];
 
   const customers: Customer[] = [
-    customer('cust_ze', null, null, 'Barbearia do Zé', '34999990001'),
-    customer('cust_forno', null, null, 'Pizzaria Forno da Praça', '34999990002'),
+    customer('cust_ze', 'user_ze', null, 'Barbearia do Zé', '34999990001'),
+    customer('cust_forno', 'user_forno', null, 'Pizzaria Forno da Praça', '34999990002'),
     customer('cust_ana', 'user_ana', RESELLER_TRIANGULO, 'Salão da Ana', '34999990003'),
     customer('cust_oficina', null, RESELLER_TRIANGULO, 'Oficina do Bairro', '34999990004'),
     customer('cust_mercado', null, RESELLER_CENTRO, 'Lanchonete do Mercado', '34999990005'),

@@ -1,4 +1,17 @@
-import { Component, Input, OnDestroy, OnInit, Renderer2, afterNextRender, inject, signal, DOCUMENT, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  Renderer2,
+  SimpleChanges,
+  afterNextRender,
+  inject,
+  signal,
+  DOCUMENT,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 
@@ -25,10 +38,10 @@ import {
 @Component({
   selector: 'app-site-page',
   templateUrl: './site-page.component.html',
-  styleUrl: './site-page.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
+  styleUrl: './site-page.component.scss',
 })
-export class SitePageComponent implements OnInit, OnDestroy {
+export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   private readonly api = inject(API_PORT);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly title = inject(Title);
@@ -38,8 +51,10 @@ export class SitePageComponent implements OnInit, OnDestroy {
   private templatesSub: Subscription | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private jsonLd: HTMLScriptElement | null = null;
+  private mapUrl = '';
 
   @Input({ required: true }) site!: Site;
+  @Input() embed = false;
 
   readonly schemaType = signal('LocalBusiness');
   readonly clock = signal<ClockParts | null>(null);
@@ -52,16 +67,24 @@ export class SitePageComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
-    if (this.site.content.address) {
-      this.mapSrc = this.sanitizer.bypassSecurityTrustResourceUrl(mapsEmbedUrl(this.site.content));
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['site']) {
+      this.syncMap();
     }
+  }
+
+  ngOnInit(): void {
+    this.syncMap();
     this.refreshClock();
-    this.applyHead(this.schemaType());
+    if (!this.embed) {
+      this.applyHead(this.schemaType());
+    }
     this.templatesSub = this.api.listTemplates().subscribe((templates) => {
       const found = templates.find((item) => item.id === this.site.templateId);
       this.schemaType.set(found?.schemaType ?? 'LocalBusiness');
-      this.applyHead(this.schemaType());
+      if (!this.embed) {
+        this.applyHead(this.schemaType());
+      }
     });
   }
 
@@ -76,6 +99,20 @@ export class SitePageComponent implements OnInit, OnDestroy {
 
   nome(): string {
     return displayName(this.site.content);
+  }
+
+  private syncMap(): void {
+    if (!this.site?.content.address) {
+      this.mapUrl = '';
+      this.mapSrc = null;
+      return;
+    }
+    const next = mapsEmbedUrl(this.site.content);
+    if (next === this.mapUrl) {
+      return;
+    }
+    this.mapUrl = next;
+    this.mapSrc = this.sanitizer.bypassSecurityTrustResourceUrl(next);
   }
 
   initials(): string {

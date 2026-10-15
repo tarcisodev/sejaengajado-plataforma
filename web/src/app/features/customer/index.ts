@@ -1,2 +1,1 @@
-/** Customer panel feature. Implemented in a later block. */
-export {};
+export { CustomerShellComponent } from './customer-shell.component';

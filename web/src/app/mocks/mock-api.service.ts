@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
 import { ApiPort, BlockResellerCommand, NoticeRecord } from '../core/api/api-port';
-import { calculatePlaquePenalty, PlaquePenaltyQuote } from '../core/api/plaque-penalty';
+import { calculatePlaquePenalty, PlaquePenaltyQuote, toCivilDate } from '../core/api/plaque-penalty';
 import { migrationAvailable } from '../core/admin/migration';
+import { canEditSite } from '../core/customer/access';
 import {
   AuditLog,
   Cancellation,
@@ -17,15 +18,19 @@ import {
   Reseller,
   ResellerInvoice,
   Site,
+  SiteContent,
   Template,
+  User,
 } from '../core/models/domain';
 import { createUberabaSeed, MockDatabase } from './uberaba-seed';
 
 const ACTIVE_SITE_STATUSES = new Set<Site['status']>(['PUBLISHED', 'READ_ONLY']);
+const CUSTOMER_OTP = '482913';
 
 @Injectable({ providedIn: 'root' })
 export class MockApiService implements ApiPort {
   private readonly state: MockDatabase = createUberabaSeed();
+  private otpEmail: string | null = null;
 
   getPlatformConfig(): Observable<PlatformConfig> {
     return of(structuredClone(this.state.platformConfig));
@@ -303,6 +308,52 @@ export class MockApiService implements ApiPort {
     return of(undefined);
   }
 
+  requestCustomerOtp(email: string): Observable<{ delivered: boolean; previewCode: string | null }> {
+    const user = this.customerUser(email);
+    this.otpEmail = user?.email ?? null;
+    return of({ delivered: Boolean(user), previewCode: user ? CUSTOMER_OTP : null });
+  }
+
+  verifyCustomerOtp(email: string, code: string): Observable<User> {
+    const user = this.customerUser(email);
+    if (!user || this.otpEmail !== user.email || code.trim() !== CUSTOMER_OTP) {
+      throw new Error('invalid code');
+    }
+    return of(structuredClone(user));
+  }
+
+  listSitesByCustomer(customerId: string): Observable<Site[]> {
+    return of(structuredClone(this.state.sites.filter((site) => site.customerId === customerId)));
+  }
+
+  updateSiteContent(siteId: string, content: SiteContent, templateId: string): Observable<Site> {
+    const site = this.requireEditable(siteId);
+    site.content = structuredClone(content);
+    site.templateId = templateId;
+    return of(structuredClone(site));
+  }
+
+  publishSite(siteId: string): Observable<Site> {
+    const site = this.requireEditable(siteId);
+    site.status = 'PUBLISHED';
+    site.publishedAt = site.publishedAt ?? toCivilDate(new Date());
+    return of(structuredClone(site));
+  }
+
+  requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog> {
+    const reason = note.trim();
+    if (!reason) {
+      throw new Error('change note is required');
+    }
+    this.requireSite(siteId);
+    return of(this.audit(actorId, 'customer.request-change', siteId, { note: reason }));
+  }
+
+  requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog> {
+    this.requireSite(siteId);
+    return of(this.audit(actorId, 'customer.request-monthly', siteId, {}));
+  }
+
   listAuditLogs(): Observable<AuditLog[]> {
     return of(structuredClone(this.state.auditLogs));
   }
@@ -313,6 +364,25 @@ export class MockApiService implements ApiPort {
       throw new Error('site not found');
     }
     return site;
+  }
+
+  private requireEditable(siteId: string): Site {
+    const site = this.requireSite(siteId);
+    if (!canEditSite(site)) {
+      throw new Error('site cannot be edited');
+    }
+    return site;
+  }
+
+  private customerUser(email: string): User | undefined {
+    const normalized = email.trim().toLowerCase();
+    return this.state.users.find((user) => user.email.toLowerCase() === normalized && user.role === 'CUSTOMER');
+  }
+
+  private audit(actorId: string, acao: string, siteId: string, diff: Record<string, unknown>): AuditLog {
+    const log: AuditLog = { actor: actorId, acao, entidade: `Site:${siteId}`, diff };
+    this.state.auditLogs.push(log);
+    return structuredClone(log);
   }
 
   private byReseller<T extends { resellerId: string | null }>(

@@ -1,2 +1,91 @@
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css';
+
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
 @source "./**/*.{html,ts}";
+
+:root {
+  color-scheme: light;
+
+  --font-sans: Literata, Georgia, serif;
+
+  --chart-1: #0e6b52;
+  --chart-2: #8c3a2f;
+  --chart-3: #1c1915;
+  --chart-4: #c4a574;
+  --chart-5: #3d6b5a;
+  --radius: 0.625rem;
+  --background: #f3ecdf;
+  --foreground: #1c1915;
+  --card: #f7f1e6;
+  --card-foreground: #1c1915;
+  --popover: #f7f1e6;
+  --popover-foreground: #1c1915;
+  --primary: #0e6b52;
+  --primary-foreground: #f3ecdf;
+  --secondary: #efe4d2;
+  --secondary-foreground: #1c1915;
+  --muted: #efe4d2;
+  --muted-foreground: #5c5348;
+  --accent: #efe4d2;
+  --accent-foreground: #1c1915;
+  --destructive: #8c3a2f;
+  --border: #ddd4c4;
+  --input: #ddd4c4;
+  --ring: #0e6b52;
+  --sidebar: #f7f1e6;
+  --sidebar-foreground: #1c1915;
+  --sidebar-primary: #0e6b52;
+  --sidebar-primary-foreground: #f3ecdf;
+  --sidebar-accent: #efe4d2;
+  --sidebar-accent-foreground: #1c1915;
+  --sidebar-border: #ddd4c4;
+  --sidebar-ring: #0e6b52;
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --chart-1: #3dba8a;
+  --chart-2: #e7a396;
+  --chart-3: #f3ecdf;
+  --chart-4: #c4a574;
+  --chart-5: #7d9a8a;
+  --background: #141210;
+  --foreground: #f3ecdf;
+  --card: #221e19;
+  --card-foreground: #f3ecdf;
+  --popover: #221e19;
+  --popover-foreground: #f3ecdf;
+  --primary: #3dba8a;
+  --primary-foreground: #10211a;
+  --secondary: #2a2520;
+  --secondary-foreground: #f3ecdf;
+  --muted: #2a2520;
+  --muted-foreground: #cbbba6;
+  --accent: #2a2520;
+  --accent-foreground: #f3ecdf;
+  --destructive: #e7a396;
+  --border: #3a342c;
+  --input: #3a342c;
+  --ring: #3dba8a;
+  --sidebar: #1c1915;
+  --sidebar-foreground: #f3ecdf;
+  --sidebar-primary: #3dba8a;
+  --sidebar-primary-foreground: #10211a;
+  --sidebar-accent: #2a2520;
+  --sidebar-accent-foreground: #f3ecdf;
+  --sidebar-border: #3a342c;
+  --sidebar-ring: #3dba8a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

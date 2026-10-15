@@ -1,0 +1,23 @@
+<form (submit)="request($event)">
+  <label>
+    E-mail
+    <input type="email" [value]="email()" (input)="email.set(inputValue($event))" required />
+  </label>
+  <button type="submit">Receber código</button>
+</form>
+<p>Contas de exemplo: ze&#64;example.com, forno&#64;example.com e ana&#64;example.com.</p>
+@if (previewCode(); as inbox) {
+  <aside aria-label="E-mail simulado">
+    <p>Seu código de acesso é <strong data-otp>{{ inbox }}</strong>.</p>
+  </aside>
+  <form (submit)="verify($event)">
+    <label>
+      Código
+      <input inputmode="numeric" [value]="code()" (input)="code.set(inputValue($event))" required />
+    </label>
+    <button type="submit">Entrar</button>
+  </form>
+}
+@if (error()) {
+  <p class="warn" role="alert">{{ error() }}</p>
+}

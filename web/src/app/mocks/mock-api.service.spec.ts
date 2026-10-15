@@ -178,4 +178,17 @@ describe('MockApiService', () => {
     expect((await firstValueFrom(service.recordNotice(notice))).created).toBeTrue();
     expect((await firstValueFrom(service.recordNotice(notice))).created).toBeFalse();
   });
+
+  it('signs in a customer with the simulated code and refuses a read-only edit', async () => {
+    expect((await firstValueFrom(service.requestCustomerOtp('admin@sejaengajado.com.br'))).delivered).toBeFalse();
+
+    const otp = await firstValueFrom(service.requestCustomerOtp('forno@example.com'));
+    expect(otp.previewCode).toBe('482913');
+    const user = await firstValueFrom(service.verifyCustomerOtp('forno@example.com', '482913'));
+    expect(user.role).toBe('CUSTOMER');
+    expect(() => service.verifyCustomerOtp('forno@example.com', '000000')).toThrowError('invalid code');
+    expect(() => service.updateSiteContent('site_leitura', { businessName: 'x' } as never, 'tpl_servicos')).toThrowError(
+      'site cannot be edited',
+    );
+  });
 });

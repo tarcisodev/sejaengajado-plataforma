@@ -1,0 +1,16 @@
+<div class="desk">
+  <header>
+    <p class="mark">Seja Engajado</p>
+    @if (session.user(); as user) {
+      <p>{{ user.email }}</p>
+      <a routerLink="/conta">Conta</a>
+      <button type="button" (click)="leave()">Sair</button>
+    }
+  </header>
+  <h1>Sua conta</h1>
+  @if (entering()) {
+    <app-customer-login />
+  } @else if (session.user()) {
+    <app-customer-studio />
+  }
+</div>
