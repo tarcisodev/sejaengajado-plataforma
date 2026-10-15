@@ -48,11 +48,8 @@ export class PaymentsModule {
       FakeGateway,
       {
         provide: PAYMENT_GATEWAY,
-        useFactory: (
-          env: Env,
-          fake: FakeGateway,
-          logger?: Logger,
-        ) => resolvePaymentGateway(env, fake, logger),
+        useFactory: (env: Env, fake: FakeGateway, logger?: Logger) =>
+          resolvePaymentGateway(env, fake, logger),
         inject: [ENV, FakeGateway, { token: Logger, optional: true }],
       },
     ];

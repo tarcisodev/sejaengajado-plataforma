@@ -21,7 +21,12 @@ export const redact = {
     '*.cnpj',
     'req.headers.authorization',
     'req.headers.cookie',
+    'req.headers.access_token',
     'req.body.webhook',
+    'asaasApiKey',
+    'apiKey',
+    '*.asaasApiKey',
+    '*.apiKey',
   ],
   censor: '[Redacted]',
 };
