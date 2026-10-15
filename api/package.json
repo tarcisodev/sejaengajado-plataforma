@@ -11,6 +11,7 @@
     "test": "jest --runInBand",
     "test:cov": "jest --runInBand --coverage",
     "test:int": "jest --runInBand --config jest.int.config.json",
+    "test:e2e:sandbox": "jest --runInBand --config jest.e2e.config.json",
     "migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",

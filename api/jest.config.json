@@ -1,7 +1,7 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
-  "testPathIgnorePatterns": ["/node_modules/", "\\.int-spec\\.ts$"],
+  "testPathIgnorePatterns": ["/node_modules/", "\\.int-spec\\.ts$", "/test/e2e/"],
   "testRegex": ".*\\.spec\\.ts$",
   "transform": {
     "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }]
