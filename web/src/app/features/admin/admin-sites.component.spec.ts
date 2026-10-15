@@ -27,7 +27,9 @@ describe('AdminSitesComponent', () => {
     expect(text).toContain('Oficina Suspensa');
     expect(text).not.toContain('Barbearia do Zé');
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((item) =>
+      (item as HTMLButtonElement).textContent?.includes('Reativar'),
+    ) as HTMLButtonElement;
     expect(button.textContent).toContain('Reativar');
     button.click();
     fixture.detectChanges();

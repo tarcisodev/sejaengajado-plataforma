@@ -1,50 +1,84 @@
-@if (error()) {
-  <p class="warn" role="alert">{{ error() }}</p>
-}
-@if (message()) {
-  <p class="note">{{ message() }}</p>
-}
-<table>
-  <caption>
-    Revendedores
-  </caption>
-  <thead>
-    <tr>
-      <th>Revendedor</th>
-      <th>Status</th>
-      <th>Sites</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (row of rows(); track row.id) {
-      <tr>
-        <td>{{ row.nome }}</td>
-        <td>{{ row.status }}</td>
-        <td>{{ owned(row.id).length }}</td>
-        <td>
-          @if (canMigrate(row)) {
-            <button type="button" (click)="offer(row.id)">Oferecer migração</button>
-          }
-          @if (row.status === 'BLOCKED') {
-            <button type="button" (click)="unblock(row.id)">Desbloquear</button>
+<div class="grid gap-4">
+  @if (error()) {
+    <div hlmAlert variant="destructive">{{ error() }}</div>
+  }
+  @if (message()) {
+    <div hlmAlert>{{ message() }}</div>
+  }
+  <section hlmCard class="min-w-0">
+    <div hlmTableContainer>
+      <table hlmTable>
+        <caption hlmCaption>
+          Revendedores
+        </caption>
+        <thead hlmTHead>
+          <tr hlmTr>
+            <th hlmTh scope="col">Revendedor</th>
+            <th hlmTh scope="col">Status</th>
+            <th hlmTh scope="col">Sites</th>
+            <th hlmTh scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody hlmTBody>
+          @if (!ready()) {
+            @for (row of placeholders; track row) {
+              <tr hlmTr>
+                <td hlmTd colspan="4"><div hlmSkeleton class="h-8 w-full"></div></td>
+              </tr>
+            }
+          } @else if (rows().length === 0) {
+            <tr hlmTr>
+              <td hlmTd colspan="4">Nenhum resultado</td>
+            </tr>
           } @else {
-            <form (submit)="block(row.id, $event)">
-              <label>
-                Motivo
-                <input name="reason" />
-              </label>
-              @for (site of owned(row.id); track site.id) {
-                <label>
-                  <input type="checkbox" name="siteId" [value]="site.id" />
-                  {{ site.content.businessName }}
-                </label>
-              }
-              <button type="submit">Bloquear</button>
-            </form>
+            @for (row of rows(); track row.id) {
+              <tr hlmTr>
+                <td hlmTd>{{ row.nome }}</td>
+                <td hlmTd>
+                  <span hlmBadge [variant]="tone(row.status)">{{ row.status }}</span>
+                </td>
+                <td hlmTd class="tabular-nums">{{ owned(row.id).length }}</td>
+                <td hlmTd class="whitespace-normal!">
+                  <div class="flex flex-wrap items-start gap-2">
+                    @if (canMigrate(row)) {
+                      <button hlmBtn class="h-11" type="button" (click)="offer(row.id)">
+                        Oferecer migração
+                      </button>
+                    }
+                    @if (row.status === 'BLOCKED') {
+                      <button
+                        hlmBtn
+                        class="h-11"
+                        type="button"
+                        variant="outline"
+                        (click)="unblock(row.id)"
+                      >
+                        Desbloquear
+                      </button>
+                    } @else {
+                      <form class="grid gap-2" (submit)="block(row.id, $event)">
+                        <label class="grid gap-2 text-sm">
+                          Motivo
+                          <input hlmInput class="h-11" name="reason" />
+                        </label>
+                        @for (site of owned(row.id); track site.id) {
+                          <label class="flex min-h-11 items-center gap-2 text-sm">
+                            <input class="size-4" type="checkbox" name="siteId" [value]="site.id" />
+                            {{ site.content.businessName }}
+                          </label>
+                        }
+                        <button hlmBtn class="h-11" type="submit" variant="destructive">
+                          Bloquear
+                        </button>
+                      </form>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
           }
-        </td>
-      </tr>
-    }
-  </tbody>
-</table>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

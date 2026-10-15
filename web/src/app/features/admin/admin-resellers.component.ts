@@ -1,4 +1,11 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { HlmAlert } from '@spartan-ng/helm/alert';
+import { HlmBadge } from '@spartan-ng/helm/badge';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import { forkJoin } from 'rxjs';
 
 import { migrationAvailable } from '../../core/admin/migration';
@@ -9,6 +16,7 @@ const ACTOR = 'user_admin';
 
 @Component({
   selector: 'app-admin-resellers',
+  imports: [HlmAlert, HlmBadge, HlmButton, HlmCardImports, HlmInput, HlmSkeleton, HlmTableImports],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-resellers.component.html',
 })
@@ -20,6 +28,8 @@ export class AdminResellersComponent {
   readonly graceDays = signal(30);
   readonly message = signal('');
   readonly error = signal('');
+  readonly ready = signal(false);
+  readonly placeholders = [1, 2, 3];
 
   constructor() {
     this.reload();
@@ -34,6 +44,7 @@ export class AdminResellersComponent {
       this.rows.set(rows);
       this.sites.set(sites);
       this.graceDays.set(config.resellerGraceDays);
+      this.ready.set(true);
     });
   }
 
@@ -78,6 +89,10 @@ export class AdminResellersComponent {
       this.message.set('Revendedor desbloqueado. Os sites suspensos continuam fora do ar.');
       this.reload();
     });
+  }
+
+  tone(status: string): 'destructive' | 'secondary' {
+    return status === 'BLOCKED' || status === 'DELINQUENT' ? 'destructive' : 'secondary';
   }
 
   offer(resellerId: string): void {

@@ -37,7 +37,8 @@
       "@spartan-ng/helm/sidebar": ["./src/app/shared/ui/sidebar/src/index.ts"],
       "@spartan-ng/helm/sheet": ["./src/app/shared/ui/sheet/src/index.ts"],
       "@spartan-ng/helm/skeleton": ["./src/app/shared/ui/skeleton/src/index.ts"],
-      "@spartan-ng/helm/tooltip": ["./src/app/shared/ui/tooltip/src/index.ts"]
+      "@spartan-ng/helm/tooltip": ["./src/app/shared/ui/tooltip/src/index.ts"],
+      "@spartan-ng/helm/table": ["./src/app/shared/ui/table/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
