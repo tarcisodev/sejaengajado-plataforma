@@ -9,7 +9,7 @@ async function seedResellerProduct(): Promise<{
   templateId: string;
   customerId: string;
 }> {
-  const { prisma } = getHarnessPostgres();
+  const { adminPrisma: prisma } = getHarnessPostgres();
   const plan = await prisma.resellerPlan.create({
     data: {
       id: randomUUID(),
@@ -69,7 +69,7 @@ async function seedResellerProduct(): Promise<{
 
 describe('production schema constraints', () => {
   it('rejects UPDATE on ledger entries', async () => {
-    const { prisma, adminUrl } = getHarnessPostgres();
+    const { adminPrisma: prisma, adminUrl } = getHarnessPostgres();
     const { resellerId } = await seedResellerProduct();
     const entry = await prisma.ledgerEntry.create({
       data: {
@@ -96,7 +96,7 @@ describe('production schema constraints', () => {
   });
 
   it('rejects overlapping wholesale price windows', async () => {
-    const { prisma } = getHarnessPostgres();
+    const { adminPrisma: prisma } = getHarnessPostgres();
     const { resellerId, productId } = await seedResellerProduct();
     const from = new Date('2026-01-01T00:00:00.000Z');
     await prisma.wholesalePrice.create({
@@ -125,7 +125,7 @@ describe('production schema constraints', () => {
   });
 
   it('rejects non-positive sale item qty', async () => {
-    const { prisma } = getHarnessPostgres();
+    const { adminPrisma: prisma } = getHarnessPostgres();
     const { resellerId, productId } = await seedResellerProduct();
     const sale = await prisma.sale.create({
       data: {
@@ -151,7 +151,7 @@ describe('production schema constraints', () => {
   });
 
   it('enforces unique lower(slug) on sites', async () => {
-    const { prisma } = getHarnessPostgres();
+    const { adminPrisma: prisma } = getHarnessPostgres();
     const base = await seedResellerProduct();
     await prisma.site.create({
       data: {

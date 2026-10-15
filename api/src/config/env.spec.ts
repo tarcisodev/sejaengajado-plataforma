@@ -16,12 +16,30 @@ describe('loadEnv', () => {
 
     const env = loadEnv({
       DATABASE_URL_FILE: file,
+      ADMIN_DATABASE_URL: 'postgres://local/admin',
       SUPABASE_URL: 'http://127.0.0.1',
       SUPABASE_JWT_SECRET: 'secret',
       SUPABASE_SERVICE_ROLE_KEY: 'service',
     });
 
     expect(env.DATABASE_URL).toBe('postgres://local/db');
+  });
+
+  it('reads the Google Places key from a secret file', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'se-env-'));
+    const file = join(dir, 'places');
+    writeFileSync(file, 'places-key\n');
+
+    const env = loadEnv({
+      DATABASE_URL: 'postgres://local/db',
+      ADMIN_DATABASE_URL: 'postgres://local/admin',
+      SUPABASE_URL: 'http://127.0.0.1',
+      SUPABASE_JWT_SECRET: 'secret',
+      SUPABASE_SERVICE_ROLE_KEY: 'service',
+      GOOGLE_PLACES_API_KEY_FILE: file,
+    });
+
+    expect(env.GOOGLE_PLACES_API_KEY).toBe('places-key');
   });
 
   it('loads supabase auth secrets from files', () => {
@@ -33,6 +51,7 @@ describe('loadEnv', () => {
 
     const env = loadEnv({
       DATABASE_URL: 'postgres://local/db',
+      ADMIN_DATABASE_URL: 'postgres://local/admin',
       SUPABASE_URL: 'http://127.0.0.1',
       SUPABASE_JWT_SECRET_FILE: jwtFile,
       SUPABASE_SERVICE_ROLE_KEY_FILE: serviceFile,

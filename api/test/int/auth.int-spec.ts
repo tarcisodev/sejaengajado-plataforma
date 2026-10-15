@@ -66,11 +66,11 @@ describe('supabase auth guard', () => {
   });
 
   it('ignores forged role/resellerId claims and reads from the DB', async () => {
-    const { prisma } = getHarnessPostgres();
-    const plan = await prisma.resellerPlan.create({
+    const { adminPrisma } = getHarnessPostgres();
+    const plan = await adminPrisma.resellerPlan.create({
       data: { name: 'P', monthlyFeeCents: 1 },
     });
-    const reseller = await prisma.reseller.create({
+    const reseller = await adminPrisma.reseller.create({
       data: { name: 'R', resellerPlanId: plan.id, status: 'ACTIVE' },
     });
     const user = await insertUser('RESELLER', { resellerId: reseller.id });
@@ -114,8 +114,8 @@ describe('supabase auth guard', () => {
   });
 
   it('returns AUTH_NOT_INVITED for a valid Supabase token without a User row', async () => {
-    const { prisma } = getHarnessPostgres();
-    const before = await prisma.user.count();
+    const { adminPrisma } = getHarnessPostgres();
+    const before = await adminPrisma.user.count();
     const session = loginAs('RESELLER', { supabaseId: randomUUID() });
     const { app } = await createTestApp();
     try {
@@ -124,20 +124,20 @@ describe('supabase auth guard', () => {
         .set('Authorization', `Bearer ${session.token}`)
         .expect(403);
       expect(res.body.code).toBe('AUTH_NOT_INVITED');
-      expect(await prisma.user.count()).toBe(before);
+      expect(await adminPrisma.user.count()).toBe(before);
     } finally {
       await app.close();
     }
   });
 
   it('rejects inactive users and never auto-creates a User', async () => {
-    const { prisma } = getHarnessPostgres();
+    const { adminPrisma } = getHarnessPostgres();
     const user = await insertUser('CUSTOMER');
-    await prisma.user.update({
+    await adminPrisma.user.update({
       where: { id: user.id },
       data: { status: 'DISABLED' },
     });
-    const before = await prisma.user.count();
+    const before = await adminPrisma.user.count();
     const session = loginAs('CUSTOMER', { supabaseId: user.supabaseId });
     const { app } = await createTestApp();
     try {
@@ -145,18 +145,18 @@ describe('supabase auth guard', () => {
         .get('/api/auth/me')
         .set('Authorization', `Bearer ${session.token}`)
         .expect(403);
-      expect(await prisma.user.count()).toBe(before);
+      expect(await adminPrisma.user.count()).toBe(before);
     } finally {
       await app.close();
     }
   });
 
   it('invites through a mocked Supabase Admin API and creates the User row', async () => {
-    const { prisma } = getHarnessPostgres();
-    const plan = await prisma.resellerPlan.create({
+    const { adminPrisma } = getHarnessPostgres();
+    const plan = await adminPrisma.resellerPlan.create({
       data: { name: 'Invite plan', monthlyFeeCents: 1 },
     });
-    const reseller = await prisma.reseller.create({
+    const reseller = await adminPrisma.reseller.create({
       data: { name: 'Invite R', resellerPlanId: plan.id, status: 'ACTIVE' },
     });
     const admin = await insertUser('ADMIN');
@@ -193,7 +193,7 @@ describe('supabase auth guard', () => {
         'novo-revendedor@example.com',
       );
 
-      const row = await prisma.user.findUnique({ where: { supabaseId: invitedId } });
+      const row = await adminPrisma.user.findUnique({ where: { supabaseId: invitedId } });
       expect(row?.role).toBe('RESELLER');
       expect(row?.resellerId).toBe(reseller.id);
 

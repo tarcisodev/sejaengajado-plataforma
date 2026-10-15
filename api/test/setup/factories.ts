@@ -29,8 +29,8 @@ export async function insertUser(
   options: { resellerId?: string; supabaseId?: string; email?: string } = {},
 ): Promise<TestUser> {
   const draft = buildUser(role, options);
-  const { prisma } = getHarnessPostgres();
-  const created = await prisma.user.create({
+  const { adminPrisma } = getHarnessPostgres();
+  const created = await adminPrisma.user.create({
     data: {
       id: draft.id,
       supabaseId: draft.supabaseId,

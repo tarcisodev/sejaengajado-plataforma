@@ -15,6 +15,7 @@ function actor(resellerId: string, userId = randomUUID()): TenantActor {
 
 async function seedPair(): Promise<{
   admin: PrismaClient;
+  appClient: PrismaClient;
   prisma: PrismaClient;
   resellerA: string;
   resellerB: string;
@@ -27,11 +28,12 @@ async function seedPair(): Promise<{
   saleA: string;
   ledgerA: string;
 }> {
-  const { appUrl } = getHarnessPostgres();
+  const { appUrl, adminUrl } = getHarnessPostgres();
   await truncateAll();
 
-  const admin = new PrismaClient({ datasources: { db: { url: appUrl } } });
-  const prisma = createTenantPrismaProxy(admin);
+  const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
+  const appClient = new PrismaClient({ datasources: { db: { url: appUrl } } });
+  const prisma = createTenantPrismaProxy(appClient);
 
   const plan = await admin.resellerPlan.create({
     data: { name: 'Plan', monthlyFeeCents: 1000 },
@@ -110,6 +112,7 @@ async function seedPair(): Promise<{
 
   return {
     admin,
+    appClient,
     prisma,
     resellerA: resellerA.id,
     resellerB: resellerB.id,
@@ -124,13 +127,20 @@ async function seedPair(): Promise<{
   };
 }
 
+async function closePair(pair: {
+  admin: PrismaClient;
+  appClient: PrismaClient;
+}): Promise<void> {
+  await Promise.all([pair.admin.$disconnect(), pair.appClient.$disconnect()]);
+}
+
 describe('tenant fail-closed scope', () => {
   it('throws when a scoped model is queried without tenant context', async () => {
-    const { prisma, admin } = await seedPair();
+    const pair = await seedPair();
     try {
-      expect(() => prisma.customer.findMany()).toThrow(TenantScopeMissingError);
+      expect(() => pair.prisma.customer.findMany()).toThrow(TenantScopeMissingError);
     } finally {
-      await admin.$disconnect();
+      await closePair(pair);
     }
   });
 
@@ -253,12 +263,13 @@ describe('tenant fail-closed scope', () => {
       const adminRows = await admin.site.findMany({ where: { resellerId: resellerB } });
       expect(adminRows).toHaveLength(0);
     } finally {
-      await admin.$disconnect();
+      await closePair(ctx);
     }
   });
 
   it('keeps adminPrisma unscoped for cross-tenant admin reads', async () => {
-    const { admin, prisma, resellerA, resellerB, siteA } = await seedPair();
+    const pair = await seedPair();
+    const { admin, prisma, resellerA, resellerB, siteA } = pair;
     try {
       const all = await admin.site.findMany();
       expect(all.map((row) => row.id)).toContain(siteA);
@@ -271,7 +282,7 @@ describe('tenant fail-closed scope', () => {
       const onlyB = await runWithTenantAsync(actor(resellerB), () => prisma.site.findMany());
       expect(onlyB).toHaveLength(0);
     } finally {
-      await admin.$disconnect();
+      await closePair(pair);
     }
   });
 });

@@ -21,17 +21,23 @@ describe('testcontainers harness', () => {
 
   it('applies migrations and talks through the app role without BYPASSRLS', async () => {
     const user = await insertUser('CUSTOMER');
-    const { prisma, adminUrl } = getHarnessPostgres();
-    const listed = await prisma.user.findMany();
+    const { prisma, adminPrisma, adminUrl } = getHarnessPostgres();
+    const listed = await adminPrisma.user.findMany();
     expect(listed.map((row) => row.email)).toContain(user.email);
+    // FORCE RLS: se_app without app.reseller_id sees zero scoped rows.
+    expect(await prisma.user.findMany()).toEqual([]);
 
     const { PrismaClient } = await import('@prisma/client');
     const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
     try {
       const roles = await admin.$queryRaw<{ rolname: string; rolbypassrls: boolean }[]>`
-        SELECT rolname, rolbypassrls FROM pg_roles WHERE rolname = 'se_app'
+        SELECT rolname, rolbypassrls FROM pg_roles WHERE rolname IN ('se_app', 'se_admin')
+        ORDER BY rolname
       `;
-      expect(roles).toEqual([{ rolname: 'se_app', rolbypassrls: false }]);
+      expect(roles).toEqual([
+        { rolname: 'se_admin', rolbypassrls: true },
+        { rolname: 'se_app', rolbypassrls: false },
+      ]);
     } finally {
       await admin.$disconnect();
     }

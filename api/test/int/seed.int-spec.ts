@@ -5,7 +5,7 @@ import { getHarnessPostgres } from '../setup/postgres';
 
 describe('seed', () => {
   it('can run twice without duplicating rows', async () => {
-    const { adminUrl, prisma } = getHarnessPostgres();
+    const { adminUrl, adminPrisma } = getHarnessPostgres();
     const cwd = join(__dirname, '../..');
     const env = {
       ...process.env,
@@ -17,10 +17,10 @@ describe('seed', () => {
     execSync('npx tsx prisma/seed.ts', { cwd, env, stdio: 'inherit' });
     execSync('npx tsx prisma/seed.ts', { cwd, env, stdio: 'inherit' });
 
-    expect(await prisma.reseller.count({ where: { isPlatform: true } })).toBe(1);
-    expect(await prisma.product.count()).toBe(5);
-    expect(await prisma.user.count({ where: { email: 'seed-admin@example.com' } })).toBe(1);
-    expect(await prisma.reservedSlug.count()).toBeGreaterThanOrEqual(10);
-    expect(await prisma.platformConfig.count()).toBe(1);
+    expect(await adminPrisma.reseller.count({ where: { isPlatform: true } })).toBe(1);
+    expect(await adminPrisma.product.count()).toBe(5);
+    expect(await adminPrisma.user.count({ where: { email: 'seed-admin@example.com' } })).toBe(1);
+    expect(await adminPrisma.reservedSlug.count()).toBeGreaterThanOrEqual(10);
+    expect(await adminPrisma.platformConfig.count()).toBe(1);
   });
 });

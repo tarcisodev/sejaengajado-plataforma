@@ -55,11 +55,32 @@ function notFoundError(model: string): Error {
   );
 }
 
-type Delegate = {
-  findFirst: (a: unknown) => Promise<Record<string, unknown> | null>;
-  create: (a: unknown) => Promise<Record<string, unknown>>;
-  update: (a: unknown) => Promise<Record<string, unknown>>;
+type TxClient = {
+  $executeRaw: PrismaClient['$executeRaw'];
+  [key: string]: unknown;
 };
+
+type TxDelegate = Record<string, (a?: unknown) => Promise<unknown>>;
+
+async function withResellerRls<T>(
+  client: {
+    $transaction: (
+      fn: (tx: TxClient) => Promise<T>,
+      options?: { maxWait?: number; timeout?: number },
+    ) => Promise<T>;
+  },
+  resellerId: string,
+  fn: (tx: TxClient) => Promise<T>,
+): Promise<T> {
+  return client.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.reseller_id', ${resellerId}, true)`;
+    return fn(tx);
+  });
+}
+
+function delegateOf(tx: TxClient, model: string): TxDelegate {
+  return tx[modelToDelegate(model)] as TxDelegate;
+}
 
 export function createTenantExtensionFor(resellerId: string) {
   return Prisma.defineExtension((client) =>
@@ -67,116 +88,130 @@ export function createTenantExtensionFor(resellerId: string) {
       name: 'tenant-scope',
       query: {
         $allModels: {
-          async $allOperations({ model, operation, args, query }) {
+          async $allOperations({ model, operation, args }) {
             if (!model || !isScopedModel(model)) {
-              return query(args);
+              return withResellerRls(
+                client as unknown as Parameters<typeof withResellerRls>[0],
+                resellerId,
+                async (tx) => {
+                  if (!model) {
+                    throw new Error('Prisma operation missing model name');
+                  }
+                  return delegateOf(tx, model)[operation](args);
+                },
+              );
             }
 
-            const delegate = (client as unknown as Record<string, Delegate>)[
-              modelToDelegate(model)
-            ];
             const next = { ...asArgs(args) };
 
-            if (operation === 'findUnique') {
-              return delegate.findFirst({
-                ...next,
-                where: withResellerScope(model, resellerId, next.where),
-              });
-            }
+            return withResellerRls(
+              client as unknown as Parameters<typeof withResellerRls>[0],
+              resellerId,
+              async (tx) => {
+              const delegate = delegateOf(tx, model);
 
-            if (operation === 'findUniqueOrThrow') {
-              const row = await delegate.findFirst({
-                ...next,
-                where: withResellerScope(model, resellerId, next.where),
-              });
-              if (!row) {
-                throw notFoundError(model);
-              }
-              return row;
-            }
-
-            if (
-              operation === 'findFirst' ||
-              operation === 'findFirstOrThrow' ||
-              operation === 'findMany' ||
-              operation === 'count' ||
-              operation === 'aggregate' ||
-              operation === 'groupBy'
-            ) {
-              return query({
-                ...next,
-                where: withResellerScope(model, resellerId, next.where),
-              } as typeof args);
-            }
-
-            if (operation === 'create' || operation === 'createMany') {
-              return query({
-                ...next,
-                data: withResellerData(model, resellerId, next.data),
-              } as typeof args);
-            }
-
-            if (operation === 'update') {
-              const existing = await delegate.findFirst({
-                where: withResellerScope(model, resellerId, next.where),
-              });
-              if (!existing?.id) {
-                throw notFoundError(model);
-              }
-              return query({
-                ...next,
-                where: { id: existing.id },
-                data: stripResellerId(next.data),
-              } as typeof args);
-            }
-
-            if (operation === 'updateMany') {
-              return query({
-                ...next,
-                where: withResellerScope(model, resellerId, next.where),
-                data: stripResellerId(next.data),
-              } as typeof args);
-            }
-
-            if (operation === 'delete') {
-              const existing = await delegate.findFirst({
-                where: withResellerScope(model, resellerId, next.where),
-              });
-              if (!existing?.id) {
-                throw notFoundError(model);
-              }
-              return query({
-                ...next,
-                where: { id: existing.id },
-              } as typeof args);
-            }
-
-            if (operation === 'deleteMany') {
-              return query({
-                ...next,
-                where: withResellerScope(model, resellerId, next.where),
-              } as typeof args);
-            }
-
-            if (operation === 'upsert') {
-              const existing = await delegate.findFirst({
-                where: withResellerScope(model, resellerId, next.where),
-              });
-              if (existing?.id) {
-                return delegate.update({
-                  where: { id: existing.id },
-                  data: stripResellerId(next.update),
+              if (operation === 'findUnique') {
+                return delegate.findFirst({
+                  ...next,
+                  where: withResellerScope(model, resellerId, next.where),
                 });
               }
-              return delegate.create({
-                data: withResellerData(model, resellerId, next.create),
-              });
-            }
 
-            return query({
-              ...next,
-              where: withResellerScope(model, resellerId, next.where),
-            } as typeof args);
+              if (operation === 'findUniqueOrThrow') {
+                const row = (await delegate.findFirst({
+                  ...next,
+                  where: withResellerScope(model, resellerId, next.where),
+                })) as Record<string, unknown> | null;
+                if (!row) {
+                  throw notFoundError(model);
+                }
+                return row;
+              }
+
+              if (
+                operation === 'findFirst' ||
+                operation === 'findFirstOrThrow' ||
+                operation === 'findMany' ||
+                operation === 'count' ||
+                operation === 'aggregate' ||
+                operation === 'groupBy'
+              ) {
+                return delegate[operation]({
+                  ...next,
+                  where: withResellerScope(model, resellerId, next.where),
+                });
+              }
+
+              if (operation === 'create' || operation === 'createMany') {
+                return delegate[operation]({
+                  ...next,
+                  data: withResellerData(model, resellerId, next.data),
+                });
+              }
+
+              if (operation === 'update') {
+                const existing = (await delegate.findFirst({
+                  where: withResellerScope(model, resellerId, next.where),
+                })) as Record<string, unknown> | null;
+                if (!existing?.id) {
+                  throw notFoundError(model);
+                }
+                return delegate.update({
+                  ...next,
+                  where: { id: existing.id },
+                  data: stripResellerId(next.data),
+                });
+              }
+
+              if (operation === 'updateMany') {
+                return delegate.updateMany({
+                  ...next,
+                  where: withResellerScope(model, resellerId, next.where),
+                  data: stripResellerId(next.data),
+                });
+              }
+
+              if (operation === 'delete') {
+                const existing = (await delegate.findFirst({
+                  where: withResellerScope(model, resellerId, next.where),
+                })) as Record<string, unknown> | null;
+                if (!existing?.id) {
+                  throw notFoundError(model);
+                }
+                return delegate.delete({
+                  ...next,
+                  where: { id: existing.id },
+                });
+              }
+
+              if (operation === 'deleteMany') {
+                return delegate.deleteMany({
+                  ...next,
+                  where: withResellerScope(model, resellerId, next.where),
+                });
+              }
+
+              if (operation === 'upsert') {
+                const existing = (await delegate.findFirst({
+                  where: withResellerScope(model, resellerId, next.where),
+                })) as Record<string, unknown> | null;
+                if (existing?.id) {
+                  return delegate.update({
+                    where: { id: existing.id },
+                    data: stripResellerId(next.update),
+                  });
+                }
+                return delegate.create({
+                  data: withResellerData(model, resellerId, next.create),
+                });
+              }
+
+              return delegate[operation]({
+                ...next,
+                where: withResellerScope(model, resellerId, next.where),
+              });
+              },
+            );
           },
         },
       },
@@ -221,7 +256,19 @@ export function createTenantPrismaProxy(root: PrismaClient): PrismaClient {
         if (prop === '$transaction') {
           const resellerId = requireTenantResellerId();
           const client = scoped(resellerId);
-          return client.$transaction.bind(client);
+          const original = client.$transaction.bind(client);
+          return ((
+            arg: ((tx: TxClient) => Promise<unknown>) | unknown[],
+            options?: unknown,
+          ) => {
+            if (typeof arg === 'function') {
+              return original(async (tx: TxClient) => {
+                await tx.$executeRaw`SELECT set_config('app.reseller_id', ${resellerId}, true)`;
+                return arg(tx);
+              }, options as never);
+            }
+            return original(arg as never, options as never);
+          }) as PrismaClient['$transaction'];
         }
         const value = Reflect.get(target, prop, target);
         return typeof value === 'function' ? value.bind(target) : value;

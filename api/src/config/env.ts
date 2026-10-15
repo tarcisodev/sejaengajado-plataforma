@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 const fileBacked = [
   'DATABASE_URL',
+  'ADMIN_DATABASE_URL',
   'SUPABASE_JWT_SECRET',
   'SUPABASE_SERVICE_ROLE_KEY',
   'SMTP_URL',
@@ -11,12 +12,16 @@ const fileBacked = [
   'ASAAS_WEBHOOK_TOKEN',
   'S3_ACCESS_KEY',
   'S3_SECRET_KEY',
+  'GOOGLE_PLACES_API_KEY',
 ] as const;
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  /** App role (`se_app`) — subject to FORCE RLS. */
   DATABASE_URL: z.string().min(1),
+  /** Admin role (`se_admin`, BYPASSRLS) — audited ADMIN paths only. */
+  ADMIN_DATABASE_URL: z.string().min(1),
   SUPABASE_URL: z.string().url(),
   SUPABASE_JWT_SECRET: z.string().min(1),
   SUPABASE_JWT_AUD: z.string().min(1).default('authenticated'),
@@ -30,6 +35,7 @@ const schema = z.object({
   S3_ACCESS_KEY: z.string().min(1).optional(),
   S3_SECRET_KEY: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),
+  GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -21,15 +21,20 @@ export type TenantPrisma = PrismaClient;
 @Injectable()
 export class PrismaLifecycle implements OnModuleInit, OnModuleDestroy {
   constructor(
+    @Inject(PRISMA)
+    private readonly prisma: {
+      $connect(): Promise<void>;
+      $disconnect(): Promise<void>;
+    },
     @Inject(ADMIN_PRISMA) private readonly adminPrisma: PrismaClient,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    await this.adminPrisma.$connect();
+    await Promise.all([this.prisma.$connect(), this.adminPrisma.$connect()]);
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.adminPrisma.$disconnect();
+    await Promise.all([this.prisma.$disconnect(), this.adminPrisma.$disconnect()]);
   }
 }
 
@@ -45,13 +50,17 @@ export class PrismaModule {
           provide: ADMIN_PRISMA,
           useFactory: (): AdminPrisma =>
             new PrismaClient({
-              datasources: { db: { url: env.DATABASE_URL } },
+              datasources: { db: { url: env.ADMIN_DATABASE_URL } },
             }),
         },
         {
           provide: PRISMA,
-          inject: [ADMIN_PRISMA],
-          useFactory: (admin: PrismaClient) => createTenantPrismaProxy(admin),
+          useFactory: () => {
+            const app = new PrismaClient({
+              datasources: { db: { url: env.DATABASE_URL } },
+            });
+            return createTenantPrismaProxy(app);
+          },
         },
         PrismaLifecycle,
       ],

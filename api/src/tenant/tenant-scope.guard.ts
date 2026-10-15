@@ -16,8 +16,9 @@ declare module 'express-serve-static-core' {
 
 /**
  * Enters the request's tenant actor into AsyncLocalStorage.
- * Auth (B4) will populate `req.tenantActor` from the DB; until then, tests set it.
- * Cross-tenant access surfaces as 404 (P12), never as a tenant leak.
+ * `SupabaseJwtGuard` populates `req.tenantActor` from the DB (role/resellerId),
+ * never from JWT claims. Cross-tenant access surfaces as 404 (P12).
+ * ADMIN without resellerId skips ALS and must use ADMIN_PRISMA (se_admin).
  */
 @Injectable()
 export class TenantScopeGuard implements CanActivate {
@@ -27,7 +28,10 @@ export class TenantScopeGuard implements CanActivate {
     if (!actor) {
       return true;
     }
-    if (actor.role !== 'ADMIN' && !actor.resellerId) {
+    if (actor.role === 'ADMIN') {
+      return true;
+    }
+    if (!actor.resellerId) {
       throw new NotFoundException({
         code: 'NOT_FOUND',
         message: 'Recurso não encontrado',

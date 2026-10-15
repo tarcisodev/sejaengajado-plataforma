@@ -7,7 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './auth/roles.guard';
 import { SupabaseJwtGuard } from './auth/supabase-jwt.guard';
 import { ApiExceptionFilter } from './common/api-exception.filter';
-import { ENV, type Env } from './config/env';
+import { ConfigModule } from './config/config.module';
+import type { Env } from './config/env';
 import { HealthController } from './health/health.controller';
 import { PgReadyProbe, READY_PROBE } from './health/ready';
 import { loggerParams } from './logging/redact';
@@ -22,6 +23,7 @@ export class AppModule {
     return {
       module: AppModule,
       imports: [
+        ConfigModule.register(env),
         LoggerModule.forRoot(loggerParams),
         ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
         PrismaModule.register(env),
@@ -29,7 +31,6 @@ export class AppModule {
       ],
       controllers: [HealthController],
       providers: [
-        { provide: ENV, useValue: env },
         PgReadyProbe,
         { provide: READY_PROBE, useExisting: PgReadyProbe },
         FakeGateway,

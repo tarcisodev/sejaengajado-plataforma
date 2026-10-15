@@ -15,13 +15,14 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<{
   app: INestApplication;
   gateway: FakeGateway;
 }> {
-  const { appUrl } = getHarnessPostgres();
+  const { appUrl, seAdminUrl } = getHarnessPostgres();
   const supabaseUrl =
     process.env.TEST_JWT_ISS?.replace(/\/auth\/v1\/?$/, '') ?? 'http://127.0.0.1';
   const env = loadEnv({
     NODE_ENV: 'test',
     PORT: '3000',
     DATABASE_URL: appUrl,
+    ADMIN_DATABASE_URL: seAdminUrl,
     SUPABASE_URL: supabaseUrl,
     SUPABASE_JWT_SECRET: process.env.TEST_JWT_SECRET ?? 'test-supabase-jwt-secret',
     SUPABASE_JWT_AUD: process.env.TEST_JWT_AUD ?? 'authenticated',
