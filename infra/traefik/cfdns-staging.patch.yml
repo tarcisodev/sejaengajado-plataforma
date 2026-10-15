@@ -1,0 +1,38 @@
+# Trecho para ACRESCENTAR ao serviço Traefik já em produção.
+# Não substitua o command, não renomeie o certresolver atual e não faça deploy deste arquivo sozinho.
+# Janela ⏳P22: domingo, 01:00–03:00 (BRT), na data marcada pelo Tarciso.
+# A troca para a CA de produção fica no PRODUCAO-06 B5.
+
+services:
+  traefik:
+    command:
+      # ...args atuais intactos, inclusive o certresolver que já emite os outros sites...
+      - --certificatesresolvers.cfdns.acme.email=<ACME_EMAIL>
+      - --certificatesresolvers.cfdns.acme.storage=/letsencrypt/acme-cf.json
+      - --certificatesresolvers.cfdns.acme.dnschallenge=true
+      - --certificatesresolvers.cfdns.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cfdns.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesresolvers.cfdns.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+    environment:
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
+    secrets:
+      - source: cf_dns_api_token_v1
+        target: cf_dns_api_token
+    # Router só de prova. Não associe outro Host e não mude o certresolver dos routers existentes.
+    # <TRAEFIK_NETWORK> é a rede confirmada no F0.1 (candidato: TarcisoDevNet).
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=<TRAEFIK_NETWORK>
+        - traefik.http.routers.se-cfdns-probe.rule=Host(`teste.sejaengajado.com.br`)
+        - traefik.http.routers.se-cfdns-probe.entrypoints=websecure
+        - traefik.http.routers.se-cfdns-probe.priority=100
+        - traefik.http.routers.se-cfdns-probe.tls.certresolver=cfdns
+        - traefik.http.routers.se-cfdns-probe.tls.domains[0].main=sejaengajado.com.br
+        - traefik.http.routers.se-cfdns-probe.tls.domains[0].sans=*.sejaengajado.com.br
+        - traefik.http.routers.se-cfdns-probe.service=se-cfdns-probe
+        - traefik.http.services.se-cfdns-probe.loadbalancer.server.port=80
+
+secrets:
+  cf_dns_api_token_v1:
+    external: true
