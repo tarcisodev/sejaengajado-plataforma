@@ -1,97 +1,307 @@
 <div class="grid gap-4">
-  <div class="grid gap-4 sm:grid-cols-2">
-    <label class="grid gap-2 text-sm">
-      Buscar site
-      <span class="relative">
-        <ng-icon
-          class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          name="lucideSearch"
-        />
-        <input
-          hlmInput
-          class="h-11 ps-10"
-          [value]="query()"
-          (input)="query.set(inputValue($event))"
-        />
-      </span>
-    </label>
-    <div class="grid gap-2 text-sm">
-      <span id="site-status">Status</span>
-      <hlm-select [value]="status()" [itemToString]="statusLabel" (valueChange)="setStatus($event)">
-        <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-status">
-          <hlm-select-value placeholder="Todos" />
-        </hlm-select-trigger>
-        <ng-template hlmSelectPortal>
-          <hlm-select-content>
-            <hlm-select-item value="">Todos</hlm-select-item>
-            <hlm-select-item value="PUBLISHED">Publicado</hlm-select-item>
-            <hlm-select-item value="READ_ONLY">Só leitura</hlm-select-item>
-            <hlm-select-item value="SUSPENDED">Suspenso</hlm-select-item>
-            <hlm-select-item value="DRAFT">Rascunho</hlm-select-item>
-            <hlm-select-item value="ARCHIVED">Arquivado</hlm-select-item>
-          </hlm-select-content>
-        </ng-template>
-      </hlm-select>
-    </div>
-  </div>
-  <section hlmCard class="min-w-0 overflow-visible">
-    <div hlmTableContainer>
-      <table hlmTable>
-        <caption hlmCaption>
-          Sites da plataforma
-        </caption>
-        <thead hlmTHead>
-          <tr hlmTr>
-            <th hlmTh scope="col">Negócio</th>
-            <th hlmTh scope="col">Endereço</th>
-            <th hlmTh scope="col">Status</th>
-            <th hlmTh scope="col">Plano</th>
-            <th hlmTh scope="col">Ações</th>
-          </tr>
-        </thead>
-        <tbody hlmTBody>
-          @if (!ready()) {
-            @for (row of placeholders; track row) {
-              <tr hlmTr>
-                <td hlmTd colspan="5"><div hlmSkeleton class="h-8 w-full"></div></td>
-              </tr>
+  @if (creating()) {
+    <section hlmCard>
+      <form class="grid gap-4" (submit)="save($event)">
+        <div hlmCardContent class="grid gap-4">
+          <h2 class="font-display text-xl">Criar site</h2>
+          <div class="flex flex-wrap gap-2">
+            <button
+              hlmBtn
+              class="h-11"
+              type="button"
+              [variant]="mode() === 'google' ? 'default' : 'outline'"
+              [attr.aria-pressed]="mode() === 'google'"
+              (click)="mode.set('google')"
+            >
+              Puxar do Google
+            </button>
+            <button
+              hlmBtn
+              class="h-11"
+              type="button"
+              [variant]="mode() === 'manual' ? 'default' : 'outline'"
+              [attr.aria-pressed]="mode() === 'manual'"
+              (click)="mode.set('manual')"
+            >
+              Digitar manualmente
+            </button>
+          </div>
+          @if (mode() === 'google') {
+            <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <label class="grid gap-2 text-sm">
+                Nome no Google
+                <input
+                  hlmInput
+                  class="h-11"
+                  [value]="googleQuery()"
+                  (input)="googleQuery.set(inputValue($event))"
+                />
+              </label>
+              <button hlmBtn class="h-11" type="button" (click)="searchGoogle()">Buscar</button>
+            </div>
+            @if (notice()) {
+              <p>{{ notice() }}</p>
             }
-          } @else if (visible().length === 0) {
-            <tr hlmTr>
-              <td hlmTd colspan="5">Nenhum resultado</td>
-            </tr>
-          } @else {
-            @for (row of visible(); track row.id) {
-              <tr hlmTr>
-                <td hlmTd>{{ row.content.businessName }}</td>
-                <td hlmTd>{{ row.slug }}</td>
-                <td hlmTd>
-                  <span hlmBadge [variant]="tone(row.status)">{{ row.status }}</span>
-                </td>
-                <td hlmTd>{{ planName(row.planId) }}</td>
-                <td hlmTd>
-                  @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+            @if (matches().length > 0) {
+              <ul class="grid gap-2">
+                @for (match of matches(); track match.nome + match.address.logradouro) {
+                  <li>
                     <button
                       hlmBtn
-                      class="h-11"
+                      class="h-11 w-full justify-start"
                       type="button"
-                      variant="destructive"
-                      (click)="suspend(row)"
+                      variant="outline"
+                      (click)="applyPlace(match)"
                     >
-                      Suspender
+                      {{ match.nome }} — {{ match.address.logradouro }}
                     </button>
-                  }
-                  @if (row.status === 'SUSPENDED') {
-                    <button hlmBtn class="h-11" type="button" (click)="reactivate(row)">
-                      Reativar
-                    </button>
-                  }
-                </td>
-              </tr>
+                  </li>
+                }
+              </ul>
             }
           }
-        </tbody>
-      </table>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="grid gap-2 text-sm">
+              Nome
+              <input
+                hlmInput
+                class="h-11"
+                [value]="businessName()"
+                (input)="businessName.set(inputValue($event))"
+                required
+              />
+            </label>
+            <label class="grid gap-2 text-sm">
+              Telefone
+              <input
+                hlmInput
+                class="h-11"
+                [value]="phone()"
+                (input)="phone.set(inputValue($event))"
+              />
+            </label>
+            <label class="grid gap-2 text-sm sm:col-span-2">
+              Endereço
+              <input
+                hlmInput
+                class="h-11"
+                [value]="street()"
+                (input)="street.set(inputValue($event))"
+                required
+              />
+            </label>
+            <label class="grid gap-2 text-sm">
+              Cidade
+              <input
+                hlmInput
+                class="h-11"
+                [value]="city()"
+                (input)="city.set(inputValue($event))"
+                required
+              />
+            </label>
+            <label class="grid gap-2 text-sm">
+              UF
+              <input
+                hlmInput
+                class="h-11"
+                maxlength="2"
+                [value]="stateCode()"
+                (input)="stateCode.set(inputValue($event))"
+                required
+              />
+            </label>
+            <label class="grid gap-2 text-sm">
+              CEP
+              <input
+                hlmInput
+                class="h-11"
+                [value]="postalCode()"
+                (input)="postalCode.set(inputValue($event))"
+              />
+            </label>
+            <label class="grid gap-2 text-sm">
+              Endereço do site
+              <input
+                hlmInput
+                class="h-11"
+                [value]="slug()"
+                (input)="slug.set(inputValue($event))"
+                required
+              />
+            </label>
+            <div class="grid gap-2 text-sm">
+              <span id="site-customer">Cliente</span>
+              <hlm-select
+                [value]="customerId()"
+                [itemToString]="customerLabel"
+                (valueChange)="customerId.set($event ?? '')"
+              >
+                <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-customer">
+                  <hlm-select-value />
+                </hlm-select-trigger>
+                <ng-template hlmSelectPortal>
+                  <hlm-select-content>
+                    @for (customer of customers(); track customer.id) {
+                      <hlm-select-item [value]="customer.id">{{ customer.nome }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </ng-template>
+              </hlm-select>
+            </div>
+            <div class="grid gap-2 text-sm">
+              <span id="site-template">Template</span>
+              <hlm-select
+                [value]="templateId()"
+                [itemToString]="templateLabel"
+                (valueChange)="templateId.set($event ?? '')"
+              >
+                <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-template">
+                  <hlm-select-value />
+                </hlm-select-trigger>
+                <ng-template hlmSelectPortal>
+                  <hlm-select-content>
+                    @for (template of templates(); track template.id) {
+                      <hlm-select-item [value]="template.id">{{ template.nome }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </ng-template>
+              </hlm-select>
+            </div>
+            <div class="grid gap-2 text-sm">
+              <span id="site-plan">Plano</span>
+              <hlm-select
+                [value]="planId()"
+                [itemToString]="planLabel"
+                (valueChange)="planId.set($event ?? '')"
+              >
+                <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-plan">
+                  <hlm-select-value />
+                </hlm-select-trigger>
+                <ng-template hlmSelectPortal>
+                  <hlm-select-content>
+                    @for (plan of plans(); track plan.id) {
+                      <hlm-select-item [value]="plan.id">{{ plan.nome }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </ng-template>
+              </hlm-select>
+            </div>
+          </div>
+          @if (error()) {
+            <p>{{ error() }}</p>
+          }
+        </div>
+        <div hlmCardFooter class="flex flex-wrap gap-2">
+          <button hlmBtn class="h-11" type="submit">Salvar</button>
+          <button hlmBtn class="h-11" type="button" variant="outline" (click)="creating.set(false)">
+            Voltar
+          </button>
+        </div>
+      </form>
+    </section>
+  } @else {
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="grid flex-1 gap-4 sm:grid-cols-2">
+        <label class="grid gap-2 text-sm">
+          Buscar site
+          <span class="relative">
+            <ng-icon
+              class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              name="lucideSearch"
+            />
+            <input
+              hlmInput
+              class="h-11 ps-10"
+              [value]="query()"
+              (input)="query.set(inputValue($event))"
+            />
+          </span>
+        </label>
+        <div class="grid gap-2 text-sm">
+          <span id="site-status">Status</span>
+          <hlm-select
+            [value]="status()"
+            [itemToString]="statusLabel"
+            (valueChange)="setStatus($event)"
+          >
+            <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-status">
+              <hlm-select-value placeholder="Todos" />
+            </hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                <hlm-select-item value="">Todos</hlm-select-item>
+                <hlm-select-item value="PUBLISHED">Publicado</hlm-select-item>
+                <hlm-select-item value="READ_ONLY">Só leitura</hlm-select-item>
+                <hlm-select-item value="SUSPENDED">Suspenso</hlm-select-item>
+                <hlm-select-item value="DRAFT">Rascunho</hlm-select-item>
+                <hlm-select-item value="ARCHIVED">Arquivado</hlm-select-item>
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        </div>
+      </div>
+      <button hlmBtn class="h-11" type="button" (click)="openCreate()">Criar site</button>
     </div>
-  </section>
+    <section hlmCard class="min-w-0 overflow-visible">
+      <div hlmTableContainer>
+        <table hlmTable>
+          <caption hlmCaption>
+            Sites da plataforma
+          </caption>
+          <thead hlmTHead>
+            <tr hlmTr>
+              <th hlmTh scope="col">Negócio</th>
+              <th hlmTh scope="col">Endereço</th>
+              <th hlmTh scope="col">Status</th>
+              <th hlmTh scope="col">Plano</th>
+              <th hlmTh scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody hlmTBody>
+            @if (!ready()) {
+              @for (row of placeholders; track row) {
+                <tr hlmTr>
+                  <td hlmTd colspan="5"><div hlmSkeleton class="h-8 w-full"></div></td>
+                </tr>
+              }
+            } @else if (visible().length === 0) {
+              <tr hlmTr>
+                <td hlmTd colspan="5">Nenhum resultado</td>
+              </tr>
+            } @else {
+              @for (row of visible(); track row.id) {
+                <tr hlmTr>
+                  <td hlmTd>{{ row.content.businessName }}</td>
+                  <td hlmTd>{{ row.slug }}</td>
+                  <td hlmTd>
+                    <span hlmBadge [variant]="tone(row.status)">{{ row.status }}</span>
+                  </td>
+                  <td hlmTd>{{ planName(row.planId) }}</td>
+                  <td hlmTd>
+                    @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+                      <button
+                        hlmBtn
+                        class="h-11"
+                        type="button"
+                        variant="destructive"
+                        (click)="suspend(row)"
+                      >
+                        Suspender
+                      </button>
+                    }
+                    @if (row.status === 'SUSPENDED') {
+                      <button hlmBtn class="h-11" type="button" (click)="reactivate(row)">
+                        Reativar
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
 </div>

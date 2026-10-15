@@ -61,6 +61,40 @@ describe('MockApiService', () => {
     expect(resellers.map((reseller) => reseller.nome)).toContain('Placas Novas');
   });
 
+  it('creates a draft site from the typed address', async () => {
+    const [customer] = await firstValueFrom(service.listCustomers());
+    const [template] = await firstValueFrom(service.listTemplates());
+    const [plan] = await firstValueFrom(service.listPlans());
+    const created = await firstValueFrom(
+      service.createSite({
+        customerId: customer.id,
+        templateId: template.id,
+        planId: plan.id,
+        slug: 'padaria-nova',
+        businessName: 'Padaria Nova',
+        phone: '3433330000',
+        address: { logradouro: 'Rua A, 10', cidade: 'Uberaba', uf: 'MG' },
+      }),
+    );
+
+    expect(created.status).toBe('DRAFT');
+    expect(created.content.phone).toBe('3433330000');
+    expect(created.content.address?.logradouro).toBe('Rua A, 10');
+    await expectAsync(
+      firstValueFrom(
+        service.createSite({
+          customerId: customer.id,
+          templateId: template.id,
+          planId: plan.id,
+          slug: 'padaria-nova',
+          businessName: 'Outra',
+          phone: '',
+          address: { logradouro: 'Rua B', cidade: 'Uberaba', uf: 'MG' },
+        }),
+      ),
+    ).toBeRejectedWithError('slug taken');
+  });
+
   it('includes the annual hosting plan and Uberaba businesses', async () => {
     const plans = await firstValueFrom(service.listPlans());
     const sites = await firstValueFrom(service.listSites());

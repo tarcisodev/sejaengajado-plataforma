@@ -16,6 +16,7 @@ import {
   ResellerInvoice,
   ResellerPlan,
   Site,
+  SiteAddress,
   SiteContent,
   Template,
   User,
@@ -33,6 +34,16 @@ export interface CreateResellerCommand {
   nome: string;
   userId: string;
   resellerPlanId: string;
+}
+
+export interface CreateSiteCommand {
+  customerId: string;
+  slug: string;
+  templateId: string;
+  planId: string;
+  businessName: string;
+  phone: string;
+  address: SiteAddress;
 }
 
 export interface BlockResellerCommand {
@@ -59,6 +70,7 @@ export interface ApiPort {
   listCustomers(resellerId?: string | null): Observable<Customer[]>;
   createCustomer(command: CreateCustomerCommand): Observable<Customer>;
   listSites(resellerId?: string | null): Observable<Site[]>;
+  createSite(command: CreateSiteCommand): Observable<Site>;
   listPayments(resellerId?: string | null): Observable<Payment[]>;
   getSiteBySlug(slug: string): Observable<Site | null>;
   quotePlaquePenalty(siteId: string, today: Date): Observable<PlaquePenaltyQuote>;

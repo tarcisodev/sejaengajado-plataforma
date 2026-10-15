@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 
 import {
   ApiPort,
   BlockResellerCommand,
   CreateCustomerCommand,
   CreateResellerCommand,
+  CreateSiteCommand,
   NoticeRecord,
 } from '../core/api/api-port';
 import {
@@ -30,6 +31,7 @@ import {
   ResellerPlan,
   Site,
   SiteContent,
+  SiteTheme,
   Template,
   User,
 } from '../core/models/domain';
@@ -108,6 +110,42 @@ export class MockApiService implements ApiPort {
 
   listSites(resellerId?: string | null): Observable<Site[]> {
     return of(structuredClone(this.byReseller(this.state.sites, resellerId)));
+  }
+
+  createSite(command: CreateSiteCommand): Observable<Site> {
+    const customer = this.state.customers.find((item) => item.id === command.customerId);
+    const plan = this.state.plans.find((item) => item.id === command.planId);
+    const template = this.state.templates.find((item) => item.id === command.templateId);
+    const slug = command.slug.trim().toLowerCase();
+    if (!customer || !plan || !template) {
+      return throwError(() => new Error('site references are missing'));
+    }
+    if (!/^[a-z0-9](?:-?[a-z0-9]){2,30}$/.test(slug)) {
+      return throwError(() => new Error('invalid slug'));
+    }
+    if (
+      this.state.reservedSlugs.some((item) => item.slug === slug) ||
+      this.state.sites.some((item) => item.slug === slug)
+    ) {
+      return throwError(() => new Error('slug taken'));
+    }
+    const site: Site = {
+      id: `site_created_${this.state.sites.length + 1}`,
+      customerId: customer.id,
+      resellerId: customer.resellerId,
+      slug,
+      customDomain: null,
+      templateId: template.id,
+      content: draftContent(command, slug),
+      status: 'DRAFT',
+      planId: plan.id,
+      editable: plan.tipo === 'RECURRING',
+      publishedAt: null,
+      hostingRenewsAt: null,
+      plaqueFidelityEndsAt: null,
+    };
+    this.state.sites.push(site);
+    return of(structuredClone(site));
   }
 
   listPayments(resellerId?: string | null): Observable<Payment[]> {
@@ -448,4 +486,35 @@ export class MockApiService implements ApiPort {
     }
     return rows.filter((row) => row.resellerId === resellerId);
   }
+}
+
+function draftContent(command: CreateSiteCommand, slug: string): SiteContent {
+  const theme: SiteTheme = {
+    p1: '#1e3a5f',
+    p2: '#3d5a4c',
+    p3: '#d5e2dc',
+    on3: '#102018',
+    hi: '#f4f7f6',
+    fontHeading: 'Fraunces, Palatino, serif',
+    fontBody: 'Literata, Georgia, serif',
+    fontScale: 1,
+    italic: 'normal',
+  };
+  return {
+    businessName: command.businessName.trim(),
+    profile: {
+      nome: command.businessName.trim(),
+      cidade: command.address.cidade.trim(),
+      uf: command.address.uf.trim(),
+    },
+    theme,
+    address: {
+      logradouro: command.address.logradouro.trim(),
+      cidade: command.address.cidade.trim(),
+      uf: command.address.uf.trim(),
+      cep: command.address.cep?.trim() || undefined,
+    },
+    phone: command.phone.trim(),
+    seo: { title: command.businessName.trim(), description: slug },
+  };
 }
