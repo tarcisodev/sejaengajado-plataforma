@@ -1,4 +1,19 @@
-import { Component, InjectionToken, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, InjectionToken, inject, signal } from '@angular/core';
+import { BrnAlertDialogContent } from '@spartan-ng/brain/alert-dialog';
+import { BrnDialogContent } from '@spartan-ng/brain/dialog';
+import { toast } from '@spartan-ng/brain/sonner';
+import { HlmAlertDialogImports } from '@spartan-ng/helm/alert-dialog';
+import { HlmAlertImports } from '@spartan-ng/helm/alert';
+import { HlmBadge } from '@spartan-ng/helm/badge';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
+import { HlmDialogImports } from '@spartan-ng/helm/dialog';
+import { HlmFieldImports } from '@spartan-ng/helm/field';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
+import { HlmTabsImports } from '@spartan-ng/helm/tabs';
+import { HlmTextarea } from '@spartan-ng/helm/textarea';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -15,7 +30,23 @@ export const CUSTOMER_TODAY = new InjectionToken<Date>('CUSTOMER_TODAY');
 
 @Component({
   selector: 'app-customer-studio',
-  imports: [SitePageComponent],
+  imports: [
+    SitePageComponent,
+    BrnAlertDialogContent,
+    BrnDialogContent,
+    HlmAlertDialogImports,
+    HlmAlertImports,
+    HlmBadge,
+    HlmButton,
+    HlmCardImports,
+    HlmCheckbox,
+    HlmDialogImports,
+    HlmFieldImports,
+    HlmInput,
+    HlmSelectImports,
+    HlmTabsImports,
+    HlmTextarea,
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './customer-studio.component.html',
 })
@@ -25,6 +56,14 @@ export class CustomerStudioComponent {
   readonly today = inject(CUSTOMER_TODAY, { optional: true }) ?? new Date();
   readonly formatBrl = formatBrl;
   readonly steps = ['Negócio', 'Links', 'Horários', 'Fotos', 'Modelo', 'Publicar'];
+  readonly stepKeys: readonly string[] = [
+    'negocio',
+    'links',
+    'horarios',
+    'fotos',
+    'modelo',
+    'publicar',
+  ];
   readonly step = signal(0);
   readonly sites = signal<Site[]>([]);
   readonly templates = signal<Template[]>([]);
@@ -58,6 +97,32 @@ export class CustomerStudioComponent {
         }
       });
     });
+  }
+
+  readonly siteLabel = (id: string): string => {
+    const site = this.sites().find((item) => item.id === id);
+    return site ? `${site.content.businessName} · ${site.status}` : '';
+  };
+
+  readonly templateLabel = (id: string): string =>
+    this.templates().find((item) => item.id === id)?.nome ?? '';
+
+  activate(tab: string): void {
+    const index = this.stepKeys.indexOf(tab);
+    if (index >= 0) {
+      this.step.set(index);
+    }
+  }
+
+  openId(id: string | null | undefined): void {
+    if (!id) {
+      return;
+    }
+    const site = this.sites().find((item) => item.id === id);
+    if (!site || site.id === this.draft()?.id) {
+      return;
+    }
+    this.open(site);
   }
 
   open(site: Site): void {
@@ -179,8 +244,11 @@ export class CustomerStudioComponent {
     this.patch((content) => ({ ...content, theme: { ...content.theme, [field]: value } }));
   }
 
-  setTemplate(templateId: string): void {
+  setTemplate(templateId: string | null | undefined): void {
     const current = this.draft();
+    if (!templateId) {
+      return;
+    }
     if (!current) {
       return;
     }
@@ -205,6 +273,7 @@ export class CustomerStudioComponent {
       this.draft.set(saved);
       this.replaceSite(saved);
       this.message.set('Alterações salvas.');
+      toast.success('Alterações salvas.');
     });
   }
 
@@ -223,6 +292,7 @@ export class CustomerStudioComponent {
         this.draft.set(published);
         this.replaceSite(published);
         this.message.set('Site publicado.');
+        toast.success('Site publicado.');
       });
     });
   }
@@ -245,11 +315,13 @@ export class CustomerStudioComponent {
     }
     if (!this.changeNote().trim()) {
       this.errors.set(['Descreva a alteração.']);
+      toast.error('Descreva a alteração.');
       return;
     }
     this.api.requestSiteChange(site.id, user.id, this.changeNote()).subscribe(() => {
       this.errors.set([]);
       this.changeSent.set(true);
+      toast.success('Pedido enviado ao suporte.');
     });
   }
 
@@ -259,7 +331,10 @@ export class CustomerStudioComponent {
     if (!site || !user) {
       return;
     }
-    this.api.requestMonthlyPlan(site.id, user.id).subscribe(() => this.monthlySent.set(true));
+    this.api.requestMonthlyPlan(site.id, user.id).subscribe(() => {
+      this.monthlySent.set(true);
+      toast.success('Pedido do plano mensal registrado.');
+    });
   }
 
   private patch(update: (content: SiteContent) => SiteContent): void {

@@ -1,8 +1,15 @@
 import { PlatformLocation } from '@angular/common';
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMoon, lucideSun } from '@ng-icons/lucide';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
+import { HlmToaster } from '@spartan-ng/helm/sonner';
 import { filter } from 'rxjs';
 
+import { ThemeService } from '../../core/theme/theme.service';
 import { appArea } from './app-area';
 import { CustomerLoginComponent } from './customer-login.component';
 import { CustomerSession } from './customer-session';
@@ -10,7 +17,17 @@ import { CustomerStudioComponent } from './customer-studio.component';
 
 @Component({
   selector: 'app-customer-shell',
-  imports: [RouterLink, CustomerLoginComponent, CustomerStudioComponent],
+  imports: [
+    RouterLink,
+    NgIcon,
+    HlmAvatarImports,
+    HlmButton,
+    HlmDropdownMenuImports,
+    HlmToaster,
+    CustomerLoginComponent,
+    CustomerStudioComponent,
+  ],
+  providers: [provideIcons({ lucideMoon, lucideSun })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './customer-shell.component.html',
 })
@@ -18,6 +35,7 @@ export class CustomerShellComponent {
   private readonly location = inject(PlatformLocation);
   private readonly router = inject(Router);
   readonly session = inject(CustomerSession);
+  readonly theme = inject(ThemeService);
   readonly entering = signal(
     appArea(this.location.pathname || '/') === 'customer' && this.head() === 'entrar',
   );
@@ -27,6 +45,10 @@ export class CustomerShellComponent {
       this.sync();
     });
     this.sync();
+  }
+
+  initial(): string {
+    return (this.session.user()?.email ?? '?').slice(0, 1).toUpperCase();
   }
 
   leave(): void {

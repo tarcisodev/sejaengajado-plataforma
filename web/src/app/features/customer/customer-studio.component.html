@@ -1,180 +1,392 @@
 @if (sites().length > 1) {
-  <ul>
-    @for (site of sites(); track site.id) {
-      <li>
-        <button type="button" (click)="open(site)">{{ site.content.businessName }} · {{ site.status }}</button>
-      </li>
-    }
-  </ul>
+  <hlm-select
+    class="mb-6 block w-full max-w-md"
+    [value]="draft()?.id ?? ''"
+    [itemToString]="siteLabel"
+    (valueChange)="openId($event)"
+  >
+    <hlm-select-trigger class="h-11 w-full" aria-label="Site">
+      <hlm-select-value />
+    </hlm-select-trigger>
+    <hlm-select-content>
+      @for (site of sites(); track site.id) {
+        <hlm-select-item [value]="site.id">
+          {{ site.content.businessName }} · {{ site.status }}
+        </hlm-select-item>
+      }
+    </hlm-select-content>
+  </hlm-select>
 }
 @if (draft(); as site) {
-  <div class="studio">
-    <section>
-      @if (renewalDays() !== null) {
-        <p class="note" data-renewal>A hospedagem anual vence em {{ renewalDate() }}.</p>
-      }
-      @if (site.status === 'READ_ONLY') {
-        <p class="warn" data-pending>
-          Pendência no pagamento. O site continua no ar, mas a edição fica bloqueada neste período.
-        </p>
-      }
-      @if (!editing()) {
-        <div data-locked>
-          <p>Este site está só para leitura.</p>
-          @if (!site.editable) {
-            <button type="button" (click)="askMonthly()">Assinar o plano mensal</button>
-            @if (monthlySent()) {
-              <p class="note">Pedido do plano mensal registrado.</p>
+  <div class="grid items-start gap-6 lg:grid-cols-2">
+    <section hlmCard class="min-w-0 overflow-visible">
+      <header hlmCardHeader class="flex-row items-center justify-between gap-4">
+        <span hlmBadge [variant]="site.status === 'READ_ONLY' ? 'destructive' : 'secondary'">
+          {{ site.status }}
+        </span>
+      </header>
+      <div hlmCardContent class="grid gap-4">
+        @if (renewalDays() !== null) {
+          <div hlmAlert data-renewal>
+            <p hlmAlertDescription>A hospedagem anual vence em {{ renewalDate() }}.</p>
+          </div>
+        }
+        @if (site.status === 'READ_ONLY') {
+          <div hlmAlert variant="destructive" data-pending>
+            <p hlmAlertDescription>
+              Pendência no pagamento. O site continua no ar, mas a edição fica bloqueada neste
+              período.
+            </p>
+          </div>
+        }
+        @if (!editing()) {
+          <div class="grid gap-4" data-locked>
+            <p>Este site está só para leitura.</p>
+            @if (!site.editable) {
+              <button hlmBtn class="h-11" type="button" (click)="askMonthly()">
+                Assinar o plano mensal
+              </button>
+              @if (monthlySent()) {
+                <p class="text-sm text-primary">Pedido do plano mensal registrado.</p>
+              }
+              <hlm-dialog>
+                <button hlmBtn hlmDialogTrigger class="h-11" type="button" variant="outline">
+                  Pedir alteração
+                </button>
+                <ng-template brnDialogContent>
+                  <hlm-dialog-content closeLabel="Fechar">
+                    <h2 hlmDialogTitle class="font-display text-xl">Pedir alteração</h2>
+                    <div hlmField>
+                      <label hlmFieldLabel for="change-note">O que você quer alterar?</label>
+                      <textarea
+                        hlmTextarea
+                        id="change-note"
+                        [value]="changeNote()"
+                        (input)="changeNote.set(inputValue($event))"
+                      ></textarea>
+                    </div>
+                    <button hlmBtn class="h-11" type="button" (click)="askChange()">
+                      Pedir alteração
+                    </button>
+                    @if (changeSent()) {
+                      <p class="text-sm text-primary">Pedido enviado ao suporte.</p>
+                    }
+                    @if (errors().length) {
+                      <ul class="grid gap-2">
+                        @for (error of errors(); track error) {
+                          <li role="alert">{{ error }}</li>
+                        }
+                      </ul>
+                    }
+                  </hlm-dialog-content>
+                </ng-template>
+              </hlm-dialog>
             }
-            <label>
-              O que você quer alterar?
-              <textarea [value]="changeNote()" (input)="changeNote.set(inputValue($event))"></textarea>
-            </label>
-            <button type="button" (click)="askChange()">Pedir alteração</button>
-            @if (changeSent()) {
-              <p class="note">Pedido enviado ao suporte.</p>
-            }
-          }
-        </div>
-      } @else {
-        <div class="steps" aria-label="Etapas">
-          @for (label of steps; track label; let index = $index) {
-            <button type="button" [attr.aria-current]="step() === index ? 'step' : null" (click)="step.set(index)">
-              {{ label }}
-            </button>
-          }
-        </div>
-        @switch (step()) {
-          @case (0) {
-            <label>
-              Nome do negócio
-              <input data-field="businessName" [value]="site.content.businessName" (input)="rename(inputValue($event))" />
-            </label>
-            <label>
-              Frase
-              <input [value]="site.content.profile.slogan ?? ''" (input)="patchProfile('slogan', inputValue($event))" />
-            </label>
-            <label>
-              Cidade
-              <input [value]="site.content.profile.cidade" (input)="patchProfile('cidade', inputValue($event))" />
-            </label>
-            <label>
-              UF
-              <input [value]="site.content.profile.uf" (input)="patchProfile('uf', inputValue($event))" maxlength="2" />
-            </label>
-            <label>
-              Endereço
-              <input [value]="site.content.address?.logradouro ?? ''" (input)="patchAddress(inputValue($event))" />
-            </label>
-          }
-          @case (1) {
-            <label>
-              WhatsApp
-              <input [value]="site.content.whatsapp?.numero ?? ''" (input)="patchWhatsapp(inputValue($event))" />
-            </label>
-            <label>
-              Instagram
-              <input [value]="instagram()" (input)="patchInstagram(inputValue($event))" />
-            </label>
-            <label>
-              Telefone
-              <input [value]="site.content.phone ?? ''" (input)="patchPhone(inputValue($event))" />
-            </label>
-          }
-          @case (2) {
-            @for (row of site.content.hours ?? []; track $index) {
-              <fieldset>
-                <label>
-                  Dias
-                  <input [value]="row.dias" (input)="patchHour($index, 'dias', inputValue($event))" />
-                </label>
-                <label>
+          </div>
+        } @else {
+          <div hlmTabs class="min-w-0" [tab]="stepKeys[step()]" (tabActivated)="activate($event)">
+            <div
+              hlmTabsList
+              class="h-11! max-w-full w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+              aria-label="Etapas"
+            >
+              @for (label of steps; track label; let index = $index) {
+                <button
+                  hlmTabsTrigger
+                  class="min-h-11"
+                  [hlmTabsTrigger]="stepKeys[index]"
+                  [attr.aria-current]="step() === index ? 'step' : null"
+                >
+                  {{ label }}
+                </button>
+              }
+            </div>
+            <div hlmTabsContent="negocio" class="grid gap-4">
+              <div hlmField>
+                <label hlmFieldLabel for="business-name">Nome do negócio</label>
+                <input
+                  hlmInput
+                  id="business-name"
+                  class="h-11"
+                  data-field="businessName"
+                  [value]="site.content.businessName"
+                  (input)="rename(inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="slogan">Frase</label>
+                <input
+                  hlmInput
+                  id="slogan"
+                  class="h-11"
+                  [value]="site.content.profile.slogan ?? ''"
+                  (input)="patchProfile('slogan', inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="city">Cidade</label>
+                <input
+                  hlmInput
+                  id="city"
+                  class="h-11"
+                  [value]="site.content.profile.cidade"
+                  (input)="patchProfile('cidade', inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="uf">UF</label>
+                <input
+                  hlmInput
+                  id="uf"
+                  class="h-11"
+                  maxlength="2"
+                  [value]="site.content.profile.uf"
+                  (input)="patchProfile('uf', inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="address">Endereço</label>
+                <input
+                  hlmInput
+                  id="address"
+                  class="h-11"
+                  [value]="site.content.address?.logradouro ?? ''"
+                  (input)="patchAddress(inputValue($event))"
+                />
+              </div>
+            </div>
+            <div hlmTabsContent="links" class="grid gap-4">
+              <div hlmField>
+                <label hlmFieldLabel for="whatsapp">WhatsApp</label>
+                <input
+                  hlmInput
+                  id="whatsapp"
+                  class="h-11"
+                  [value]="site.content.whatsapp?.numero ?? ''"
+                  (input)="patchWhatsapp(inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="instagram">Instagram</label>
+                <input
+                  hlmInput
+                  id="instagram"
+                  class="h-11"
+                  [value]="instagram()"
+                  (input)="patchInstagram(inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="phone">Telefone</label>
+                <input
+                  hlmInput
+                  id="phone"
+                  class="h-11"
+                  [value]="site.content.phone ?? ''"
+                  (input)="patchPhone(inputValue($event))"
+                />
+              </div>
+            </div>
+            <div hlmTabsContent="horarios" class="grid gap-4">
+              @for (row of site.content.hours ?? []; track $index) {
+                <fieldset hlmFieldSet>
+                  <div hlmField>
+                    <label hlmFieldLabel [attr.for]="'hour-days-' + $index">Dias</label>
+                    <input
+                      hlmInput
+                      class="h-11"
+                      [id]="'hour-days-' + $index"
+                      [value]="row.dias"
+                      (input)="patchHour($index, 'dias', inputValue($event))"
+                    />
+                  </div>
+                  <label
+                    class="flex min-h-11 items-center gap-3"
+                    [attr.for]="'hour-closed-' + $index"
+                  >
+                    <hlm-checkbox
+                      [inputId]="'hour-closed-' + $index"
+                      [checked]="row.fechado ?? false"
+                      (checkedChange)="patchHour($index, 'fechado', $event)"
+                    />
+                    Fechado
+                  </label>
+                  @if (!row.fechado) {
+                    <div hlmField>
+                      <label hlmFieldLabel [attr.for]="'hour-open-' + $index">Abre</label>
+                      <input
+                        hlmInput
+                        class="h-11"
+                        [id]="'hour-open-' + $index"
+                        [value]="row.abre ?? ''"
+                        (input)="patchHour($index, 'abre', inputValue($event))"
+                      />
+                    </div>
+                    <div hlmField>
+                      <label hlmFieldLabel [attr.for]="'hour-close-' + $index">Fecha</label>
+                      <input
+                        hlmInput
+                        class="h-11"
+                        [id]="'hour-close-' + $index"
+                        [value]="row.fecha ?? ''"
+                        (input)="patchHour($index, 'fecha', inputValue($event))"
+                      />
+                    </div>
+                  }
+                </fieldset>
+              }
+              <button hlmBtn class="h-11" type="button" variant="outline" (click)="addHour()">
+                Adicionar horário
+              </button>
+            </div>
+            <div hlmTabsContent="fotos" class="grid gap-4">
+              @for (url of site.content.gallery ?? []; track $index) {
+                <div hlmField>
+                  <label hlmFieldLabel [attr.for]="'photo-' + $index">Foto</label>
                   <input
-                    type="checkbox"
-                    [checked]="row.fechado ?? false"
-                    (change)="patchHour($index, 'fechado', inputChecked($event))"
+                    hlmInput
+                    class="h-11"
+                    [id]="'photo-' + $index"
+                    [value]="url"
+                    (input)="patchPhoto($index, inputValue($event))"
                   />
-                  Fechado
-                </label>
-                @if (!row.fechado) {
-                  <label>
-                    Abre
-                    <input [value]="row.abre ?? ''" (input)="patchHour($index, 'abre', inputValue($event))" />
-                  </label>
-                  <label>
-                    Fecha
-                    <input [value]="row.fecha ?? ''" (input)="patchHour($index, 'fecha', inputValue($event))" />
-                  </label>
-                }
-              </fieldset>
-            }
-            <button type="button" (click)="addHour()">Adicionar horário</button>
-          }
-          @case (3) {
-            @for (url of site.content.gallery ?? []; track $index) {
-              <label>
-                Foto
-                <input [value]="url" (input)="patchPhoto($index, inputValue($event))" />
-              </label>
-            }
-            <button type="button" (click)="addPhoto()">Adicionar foto</button>
-          }
-          @case (4) {
-            <label>
-              Modelo
-              <select [value]="site.templateId" (change)="setTemplate(inputValue($event))">
-                @for (template of templates(); track template.id) {
-                  <option [value]="template.id">{{ template.nome }}</option>
-                }
-              </select>
-            </label>
-            <label>
-              Cor principal
-              <input type="color" [value]="site.content.theme.p1" (input)="patchColor('p1', inputValue($event))" />
-            </label>
-            <label>
-              Cor de apoio
-              <input type="color" [value]="site.content.theme.p2" (input)="patchColor('p2', inputValue($event))" />
-            </label>
-            <label>
-              Cor clara
-              <input type="color" [value]="site.content.theme.p3" (input)="patchColor('p3', inputValue($event))" />
-            </label>
-          }
-          @case (5) {
-            <button type="button" (click)="save()">Salvar</button>
-            <button type="button" (click)="publish()">Publicar</button>
-            @if (site.plaqueFidelityEndsAt) {
-              <h2>Cancelar o plano mensal</h2>
-              @if (cancellation(); as stored) {
-                <p data-cancellation>
-                  Multa gravada de {{ formatBrl(stored.multaCentavos) }}, referente a
-                  {{ stored.mesesRestantes }} meses.
-                </p>
-              } @else {
-                @if (quote(); as penalty) {
-                  <p data-penalty>
-                    A placa de brinde ainda tem {{ penalty.mesesRestantes }} meses. A multa é
-                    {{ formatBrl(penalty.multaCentavos) }}.
+                </div>
+              }
+              <button hlmBtn class="h-11" type="button" variant="outline" (click)="addPhoto()">
+                Adicionar foto
+              </button>
+            </div>
+            <div hlmTabsContent="modelo" class="grid gap-4">
+              <div hlmField>
+                <label hlmFieldLabel for="template">Modelo</label>
+                <hlm-select
+                  [value]="site.templateId"
+                  [itemToString]="templateLabel"
+                  (valueChange)="setTemplate($event)"
+                >
+                  <hlm-select-trigger class="h-11 w-full" id="template">
+                    <hlm-select-value />
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    @for (template of templates(); track template.id) {
+                      <hlm-select-item [value]="template.id">{{ template.nome }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </hlm-select>
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="color-primary">Cor principal</label>
+                <input
+                  hlmInput
+                  id="color-primary"
+                  class="h-11"
+                  type="color"
+                  [value]="site.content.theme.p1"
+                  (input)="patchColor('p1', inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="color-support">Cor de apoio</label>
+                <input
+                  hlmInput
+                  id="color-support"
+                  class="h-11"
+                  type="color"
+                  [value]="site.content.theme.p2"
+                  (input)="patchColor('p2', inputValue($event))"
+                />
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="color-light">Cor clara</label>
+                <input
+                  hlmInput
+                  id="color-light"
+                  class="h-11"
+                  type="color"
+                  [value]="site.content.theme.p3"
+                  (input)="patchColor('p3', inputValue($event))"
+                />
+              </div>
+            </div>
+            <div hlmTabsContent="publicar" class="grid gap-4">
+              @if (site.plaqueFidelityEndsAt) {
+                <h2 class="font-display text-xl">Cancelar o plano mensal</h2>
+                @if (cancellation(); as stored) {
+                  <p data-cancellation>
+                    Multa gravada de {{ formatBrl(stored.multaCentavos) }}, referente a
+                    {{ stored.mesesRestantes }} meses.
                   </p>
-                  <button type="button" (click)="confirmCancel()">Confirmar cancelamento</button>
+                } @else {
+                  @if (quote(); as penalty) {
+                    <p data-penalty>
+                      A placa de brinde ainda tem {{ penalty.mesesRestantes }} meses. A multa é
+                      {{ formatBrl(penalty.multaCentavos) }}.
+                    </p>
+                    <hlm-alert-dialog>
+                      <button
+                        hlmBtn
+                        hlmAlertDialogTrigger
+                        class="h-11"
+                        type="button"
+                        variant="destructive"
+                      >
+                        Confirmar cancelamento
+                      </button>
+                      <ng-template brnAlertDialogContent>
+                        <div hlmAlertDialogContent>
+                          <h2 hlmAlertDialogTitle class="font-display text-xl">
+                            Cancelar o plano mensal
+                          </h2>
+                          <p hlmAlertDialogDescription>
+                            A placa de brinde ainda tem {{ penalty.mesesRestantes }} meses. A multa
+                            é {{ formatBrl(penalty.multaCentavos) }}.
+                          </p>
+                          <div hlmAlertDialogFooter>
+                            <button hlmAlertDialogCancel type="button">Fechar</button>
+                            <button hlmAlertDialogAction type="button" (click)="confirmCancel()">
+                              Confirmar cancelamento
+                            </button>
+                          </div>
+                        </div>
+                      </ng-template>
+                    </hlm-alert-dialog>
+                  }
                 }
               }
-            }
+            </div>
+          </div>
+          @if (errors().length) {
+            <ul class="grid gap-2">
+              @for (error of errors(); track error) {
+                <li role="alert">{{ error }}</li>
+              }
+            </ul>
+          }
+          @if (message()) {
+            <p class="text-sm text-primary">{{ message() }}</p>
           }
         }
-        @if (errors().length) {
-          <ul>
-            @for (error of errors(); track error) {
-              <li class="warn" role="alert">{{ error }}</li>
-            }
-          </ul>
-        }
-        @if (message()) {
-          <p class="note">{{ message() }}</p>
-        }
+      </div>
+      @if (editing()) {
+        <footer hlmCardFooter class="flex flex-wrap gap-2">
+          <button hlmBtn class="h-11" type="button" (click)="save()">Salvar</button>
+          <hlm-alert-dialog>
+            <button hlmBtn hlmAlertDialogTrigger class="h-11" type="button">Publicar</button>
+            <ng-template brnAlertDialogContent>
+              <div hlmAlertDialogContent>
+                <h2 hlmAlertDialogTitle class="font-display text-xl">Publicar</h2>
+                <div hlmAlertDialogFooter>
+                  <button hlmAlertDialogCancel type="button">Fechar</button>
+                  <button hlmAlertDialogAction type="button" (click)="publish()">Publicar</button>
+                </div>
+              </div>
+            </ng-template>
+          </hlm-alert-dialog>
+        </footer>
       }
     </section>
-    <app-site-page [site]="site" [embed]="true" />
+    <div class="min-w-0 overflow-x-auto lg:sticky lg:top-6">
+      <app-site-page [site]="site" [embed]="true" />
+    </div>
   </div>
 }

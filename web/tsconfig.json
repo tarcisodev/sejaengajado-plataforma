@@ -24,7 +24,16 @@
       "@spartan-ng/helm/separator": ["./src/app/shared/ui/separator/src/index.ts"],
       "@spartan-ng/helm/card": ["./src/app/shared/ui/card/src/index.ts"],
       "@spartan-ng/helm/sonner": ["./src/app/shared/ui/sonner/src/index.ts"],
-      "@spartan-ng/helm/alert": ["./src/app/shared/ui/alert/src/index.ts"]
+      "@spartan-ng/helm/alert": ["./src/app/shared/ui/alert/src/index.ts"],
+      "@spartan-ng/helm/tabs": ["./src/app/shared/ui/tabs/src/index.ts"],
+      "@spartan-ng/helm/select": ["./src/app/shared/ui/select/src/index.ts"],
+      "@spartan-ng/helm/checkbox": ["./src/app/shared/ui/checkbox/src/index.ts"],
+      "@spartan-ng/helm/dialog": ["./src/app/shared/ui/dialog/src/index.ts"],
+      "@spartan-ng/helm/alert-dialog": ["./src/app/shared/ui/alert-dialog/src/index.ts"],
+      "@spartan-ng/helm/badge": ["./src/app/shared/ui/badge/src/index.ts"],
+      "@spartan-ng/helm/avatar": ["./src/app/shared/ui/avatar/src/index.ts"],
+      "@spartan-ng/helm/dropdown-menu": ["./src/app/shared/ui/dropdown-menu/src/index.ts"],
+      "@spartan-ng/helm/textarea": ["./src/app/shared/ui/textarea/src/index.ts"]
     }
   },
   "angularCompilerOptions": {

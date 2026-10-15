@@ -13,7 +13,10 @@ const TODAY = new Date('2026-10-14T15:00:00.000Z');
 describe('CustomerStudioComponent', () => {
   let fixture: ComponentFixture<CustomerStudioComponent>;
 
-  afterEach(() => sessionStorage.clear());
+  afterEach(() => {
+    sessionStorage.clear();
+    fixture?.destroy();
+  });
 
   async function render(user: User): Promise<void> {
     TestBed.configureTestingModule({
@@ -27,8 +30,6 @@ describe('CustomerStudioComponent', () => {
     });
     TestBed.inject(CustomerSession).enter(user);
     fixture = TestBed.createComponent(CustomerStudioComponent);
-    fixture.detectChanges();
-    await fixture.whenStable();
     fixture.detectChanges();
   }
 
@@ -44,7 +45,9 @@ describe('CustomerStudioComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Informe o nome do negócio.');
-    const sites = await firstValueFrom(TestBed.inject(MockApiService).listSitesByCustomer('cust_forno'));
+    const sites = await firstValueFrom(
+      TestBed.inject(MockApiService).listSitesByCustomer('cust_forno'),
+    );
     expect(sites[0].content.businessName).toBe('Pizzaria Forno da Praça');
   });
 
@@ -56,15 +59,17 @@ describe('CustomerStudioComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-field="businessName"]')).toBeNull();
     expect(text).toContain('Assinar o plano mensal');
     expect(text).toContain('Pedir alteração');
-    expect(fixture.nativeElement.querySelector('[data-renewal]')?.textContent).toContain('10/01/2027');
+    expect(fixture.nativeElement.querySelector('[data-renewal]')?.textContent).toContain(
+      '10/01/2027',
+    );
   });
 
   it('blocks editing when the site is overdue and read-only', async () => {
     await render(customer('user_ana', 'ana@example.com'));
-    const button = [...fixture.nativeElement.querySelectorAll('button')].find((item) =>
-      (item as HTMLButtonElement).textContent?.includes('Unidades'),
-    ) as HTMLButtonElement;
-    button.click();
+    const option = [...fixture.nativeElement.querySelectorAll('[data-slot=select-item]')].find(
+      (item) => (item as HTMLElement).textContent?.includes('Unidades'),
+    ) as HTMLElement;
+    option.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-pending]')).not.toBeNull();
@@ -73,15 +78,23 @@ describe('CustomerStudioComponent', () => {
 
   it('stores the plaque fine and keeps it after the plaque price changes', async () => {
     await render(customer('user_forno', 'forno@example.com'));
-    const quote = await firstValueFrom(TestBed.inject(MockApiService).quotePlaquePenalty('site_forno', TODAY));
+    const quote = await firstValueFrom(
+      TestBed.inject(MockApiService).quotePlaquePenalty('site_forno', TODAY),
+    );
     fixture.componentInstance.step.set(5);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-penalty]')?.textContent?.replace(/\u00a0/g, ' ')).toContain(
-      formatBrl(quote.multaCentavos).replace(/\u00a0/g, ' '),
-    );
+    expect(
+      fixture.nativeElement.querySelector('[data-penalty]')?.textContent?.replace(/\u00a0/g, ' '),
+    ).toContain(formatBrl(quote.multaCentavos).replace(/\u00a0/g, ' '));
 
-    const confirm = [...fixture.nativeElement.querySelectorAll('button')].find((item) =>
+    const trigger = [...fixture.nativeElement.querySelectorAll('button')].find((item) =>
+      (item as HTMLButtonElement).textContent?.includes('Confirmar cancelamento'),
+    ) as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+
+    const confirm = [...document.querySelectorAll('[data-slot=alert-dialog-action]')].find((item) =>
       (item as HTMLButtonElement).textContent?.includes('Confirmar cancelamento'),
     ) as HTMLButtonElement;
     confirm.click();
@@ -91,9 +104,11 @@ describe('CustomerStudioComponent', () => {
     );
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-cancellation]')?.textContent?.replace(/\u00a0/g, ' ')).toContain(
-      formatBrl(quote.multaCentavos).replace(/\u00a0/g, ' '),
-    );
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-cancellation]')
+        ?.textContent?.replace(/\u00a0/g, ' '),
+    ).toContain(formatBrl(quote.multaCentavos).replace(/\u00a0/g, ' '));
   });
 });
 
