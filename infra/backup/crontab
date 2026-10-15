@@ -1,0 +1,2 @@
+# 03:15 UTC = 00:15 BRT
+15 3 * * * /usr/local/bin/pg-backup.sh

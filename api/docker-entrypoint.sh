@@ -23,5 +23,6 @@ mount_file_secret S3_ACCESS_KEY
 mount_file_secret S3_SECRET_KEY
 mount_file_secret GOOGLE_PLACES_API_KEY
 mount_file_secret HC_JOBS_URL
+mount_file_secret SENTRY_DSN
 
 exec node dist/main.js

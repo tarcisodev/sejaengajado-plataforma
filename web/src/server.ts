@@ -22,17 +22,10 @@ const commonEngine = new CommonEngine({
   ],
 });
 
-/**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/**', (req, res) => {
- *   // Handle API request
- * });
- * ```
- */
+/** Liveness only — must not depend on the API (no cascade). */
+app.get('/healthz', (_req, res) => {
+  res.status(200).type('text/plain').send('ok');
+});
 
 /**
  * Serve hashed assets only. `index: false` keeps `/` and `?tenant=` on the SSR handler,
