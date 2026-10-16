@@ -210,8 +210,9 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     return weeklyHourLines(weeklyHoursOf(this.site.content));
   }
 
+  /** Lista legada só quando não há horário semanal estruturado (evita linhas duplicadas). */
   legacyHours(): SiteHours[] {
-    return legacyHoursOf(this.site.content);
+    return this.weeklyLines().length > 0 ? [] : legacyHoursOf(this.site.content);
   }
 
   hasHours(): boolean {

@@ -234,12 +234,12 @@ export class HttpApiService implements ApiPort {
   }
 
   getSiteBySlug(slug: string): Observable<Site | null> {
-    const host = `${slug.trim().toLowerCase()}.sejaengajado.com.br`;
+    const normalized = slug.trim().toLowerCase();
     return this.http
-      .get<Record<string, unknown>>(this.url('/public/sites/by-host'), {
-        params: new HttpParams().set('host', host),
-        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
-      })
+      .get<Record<string, unknown>>(
+        this.url(`/public/sites/by-slug/${encodeURIComponent(normalized)}`),
+        { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } },
+      )
       .pipe(
         map((body) => siteFromPublicBody(body, slug)),
         catchError((error: unknown) => {
@@ -373,6 +373,18 @@ export class HttpApiService implements ApiPort {
     return this.http
       .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/archive`), {})
       .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  checkAdminSlug(slug: string, excludeId?: string | null): Observable<SlugCheckDto> {
+    let params = new HttpParams().set('slug', slug);
+    if (excludeId) {
+      params = params.set('excludeId', excludeId);
+    }
+    return this.http.get<SlugCheckDto>(this.url('/admin/slugs/check'), { params });
+  }
+
+  listAdminSiteOptions(): Observable<SiteOptionsDto> {
+    return this.http.get<SiteOptionsDto>(this.url('/admin/site-options'));
   }
 
   savePlan(plan: Plan): Observable<Plan> {

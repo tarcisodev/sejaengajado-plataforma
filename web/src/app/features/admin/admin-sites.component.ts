@@ -1,5 +1,13 @@
 import { PlatformLocation } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { isSlugBlocked, isValidSlug, SlugCheckState, slugHintText } from '../../core/site/slug';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePencil, lucideSearch } from '@ng-icons/lucide';
 import { NavigationEnd, Router } from '@angular/router';
@@ -10,9 +18,10 @@ import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { HlmTableImports } from '@spartan-ng/helm/table';
-import { filter, forkJoin, switchMap } from 'rxjs';
+import { Subscription, catchError, filter, forkJoin, of, switchMap } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
+import type { SiteOptionsDto } from '../../core/api/reseller-api.types';
 import { GooglePlacesService } from '../../core/google/google-places.service';
 import { PlaceMatch } from '../../core/google/place-match';
 import { Customer, Plan, Site, SiteStatus, Template } from '../../core/models/domain';
@@ -72,6 +81,26 @@ export class AdminSitesComponent {
   readonly stateCode = signal('');
   readonly postalCode = signal('');
   readonly slug = signal('');
+  readonly slugBlocked = computed(() => isSlugBlocked(this.slugState()));
+  /** Feedback ao vivo do endereço no "Criar site" (GET /admin/slugs/check). */
+  readonly slugState = signal<SlugCheckState>('idle');
+  readonly slugHint = computed(() => slugHintText(this.slugState()));
+  /** Planos e templates ativos para o "Criar site" (GET /admin/site-options). */
+  readonly siteOptions = signal<SiteOptionsDto | null>(null);
+  readonly createPlans = computed(() => {
+    const options = this.siteOptions();
+    return options
+      ? options.plans.map((plan) => ({ id: plan.id, nome: plan.name }))
+      : this.plans().map((plan) => ({ id: plan.id, nome: plan.nome }));
+  });
+  readonly createTemplates = computed(() => {
+    const options = this.siteOptions();
+    return options
+      ? options.templates.map((template) => ({ id: template.id, nome: template.name }))
+      : this.templates().map((template) => ({ id: template.id, nome: template.nome }));
+  });
+  private slugTimer: ReturnType<typeof setTimeout> | null = null;
+  private slugSub: Subscription | null = null;
   readonly placeholders = [1, 2, 3];
   readonly editing = signal<Site | null>(null);
   readonly editorBusy = signal(false);
@@ -79,6 +108,7 @@ export class AdminSitesComponent {
   readonly statusVariant = siteStatusBadgeVariant;
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.resetSlugCheck());
     this.syncEditorFromPath();
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -207,15 +237,17 @@ export class AdminSitesComponent {
       customers: this.api.listCustomers(),
       templates: this.api.listTemplates(),
       resellers: this.api.listResellers(),
-    }).subscribe(({ sites, plans, customers, templates, resellers }) => {
+      options: this.api.listAdminSiteOptions().pipe(catchError(() => of(null))),
+    }).subscribe(({ sites, plans, customers, templates, resellers, options }) => {
       this.rows.set(sites);
+      this.siteOptions.set(options);
       this.plans.set(plans);
       this.customers.set(customers);
       this.templates.set(templates);
       this.resellers.set(resellers.map((row) => ({ id: row.id, nome: row.nome })));
       this.customerId.update((current) => current || customers[0]?.id || '');
-      this.templateId.update((current) => current || templates[0]?.id || '');
-      this.planId.update((current) => current || plans[0]?.id || '');
+      this.templateId.update((current) => current || this.createTemplates()[0]?.id || '');
+      this.planId.update((current) => current || this.createPlans()[0]?.id || '');
       this.ready.set(true);
     });
   }
@@ -271,9 +303,10 @@ export class AdminSitesComponent {
     this.customers().find((customer) => customer.id === value)?.nome ?? 'Cliente';
 
   templateLabel = (value: string | null): string =>
-    this.templates().find((template) => template.id === value)?.nome ?? 'Template';
+    this.createTemplates().find((template) => template.id === value)?.nome ?? 'Template';
 
-  planLabel = (value: string | null): string => this.planName(value ?? '');
+  planLabel = (value: string | null): string =>
+    this.createPlans().find((plan) => plan.id === value)?.nome ?? this.planName(value ?? '');
 
   openCreate(): void {
     this.error.set('');
@@ -288,17 +321,18 @@ export class AdminSitesComponent {
     this.stateCode.set('');
     this.postalCode.set('');
     this.slug.set('');
+    this.resetSlugCheck();
     this.customerId.set(
       this.customers().find((customer) => customer.id === 'cust_admin')?.id ??
         this.customers()[0]?.id ??
         '',
     );
     this.templateId.set(
-      this.templates().find((template) => template.id === 'tpl_personalizado')?.id ??
-        this.templates()[0]?.id ??
+      this.createTemplates().find((template) => template.id === 'tpl_personalizado')?.id ??
+        this.createTemplates()[0]?.id ??
         '',
     );
-    this.planId.set(this.planId() || this.plans()[0]?.id || '');
+    this.planId.set(this.planId() || this.createPlans()[0]?.id || '');
     this.creating.set(true);
   }
 
@@ -330,13 +364,64 @@ export class AdminSitesComponent {
     this.stateCode.set(match.address.uf);
     this.postalCode.set(match.address.cep ?? '');
     if (!this.slug()) {
-      this.slug.set(slugFromName(match.nome));
+      this.setSlug(slugFromName(match.nome));
     }
+  }
+
+  onSlugInput(event: Event): void {
+    this.setSlug(this.inputValue(event));
+  }
+
+  /** Atualiza o slug e agenda a checagem de disponibilidade (debounce). */
+  setSlug(raw: string): void {
+    const slug = raw.trim().toLowerCase();
+    this.slug.set(slug);
+    this.resetSlugCheck();
+    if (!slug) {
+      return;
+    }
+    if (!isValidSlug(slug)) {
+      this.slugState.set('invalid');
+      return;
+    }
+    this.slugState.set('checking');
+    this.slugTimer = setTimeout(() => {
+      this.slugTimer = null;
+      this.slugSub = this.api.checkAdminSlug(slug).subscribe({
+        next: (result) => {
+          if (this.slug() === slug) {
+            this.slugState.set(result.available ? 'available' : 'unavailable');
+          }
+        },
+        error: () => {
+          if (this.slug() === slug) {
+            this.slugState.set('idle');
+          }
+        },
+      });
+    }, 350);
+  }
+
+  private resetSlugCheck(): void {
+    if (this.slugTimer) {
+      clearTimeout(this.slugTimer);
+      this.slugTimer = null;
+    }
+    this.slugSub?.unsubscribe();
+    this.slugSub = null;
+    this.slugState.set('idle');
   }
 
   save(event: Event): void {
     event.preventDefault();
     this.error.set('');
+    const slugState = this.slugState();
+    if (isSlugBlocked(slugState)) {
+      this.error.set(
+        slugState === 'checking' ? 'Aguarde a verificação do endereço.' : this.slugHint(),
+      );
+      return;
+    }
     this.api
       .createSite({
         customerId: this.customerId(),

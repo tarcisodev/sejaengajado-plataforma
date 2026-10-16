@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { isValidSlug, slugHintText } from '../../core/site/slug';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -330,15 +331,15 @@ export class ResellerSitesComponent {
       this.slugHint.set('Este é o endereço atual do rascunho.');
       return;
     }
-    if (!/^[a-z0-9](-?[a-z0-9]){2,30}$/.test(value)) {
-      this.slugHint.set('Use de 3 a 31 letras minúsculas, números ou hífen.');
+    if (!isValidSlug(value)) {
+      this.slugHint.set(slugHintText('invalid'));
       this.slugOk.set(false);
       return;
     }
     this.api.checkResellerSlug(value).subscribe((result) => {
       this.slugOk.set(result.available);
       this.slugHint.set(
-        result.available ? 'Endereço disponível.' : 'Endereço indisponível. Tente outro.',
+        slugHintText(result.available ? 'available' : 'unavailable'),
       );
     });
   }

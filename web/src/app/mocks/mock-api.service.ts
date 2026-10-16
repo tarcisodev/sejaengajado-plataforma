@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { isValidSlug } from '../core/site/slug';
 import { Observable, map, of, throwError } from 'rxjs';
 
 import { AuthService } from '../core/auth/auth.service';
@@ -245,7 +246,7 @@ export class MockApiService implements ApiPort {
     if (!customer || !plan || !template) {
       return throwError(() => new Error('site references are missing'));
     }
-    if (!/^[a-z0-9](?:-?[a-z0-9]){2,30}$/.test(slug)) {
+    if (!isValidSlug(slug)) {
       return throwError(() => new Error('invalid slug'));
     }
     if (
@@ -551,6 +552,24 @@ export class MockApiService implements ApiPort {
 
   archiveAdminSite(siteId: string): Observable<Site> {
     return this.setSiteStatus(siteId, 'ARCHIVED');
+  }
+
+  checkAdminSlug(slug: string, excludeId?: string | null): Observable<SlugCheckDto> {
+    const normalized = slug.trim().toLowerCase();
+    const reserved = this.state.reservedSlugs.some((item) => item.slug === normalized);
+    const taken = this.state.sites.some(
+      (item) => item.slug === normalized && item.id !== excludeId,
+    );
+    const valid = isValidSlug(normalized);
+    return of({
+      slug: normalized,
+      available: valid && !reserved && !taken,
+      code: !valid ? 'SLUG_INVALID' : reserved ? 'SLUG_RESERVED' : taken ? 'SLUG_TAKEN' : undefined,
+    });
+  }
+
+  listAdminSiteOptions(): Observable<SiteOptionsDto> {
+    return this.listResellerSiteOptions();
   }
 
   savePlan(plan: Plan): Observable<Plan> {
@@ -1001,7 +1020,7 @@ export class MockApiService implements ApiPort {
       this.state.sites.some((item) => item.slug === normalized);
     return of({
       slug: normalized,
-      available: !taken && /^[a-z0-9](?:-?[a-z0-9]){2,30}$/.test(normalized),
+      available: !taken && isValidSlug(normalized),
       code: taken ? 'SLUG_TAKEN' : undefined,
     });
   }
