@@ -19,15 +19,15 @@
 | LU5 | DONE | 5781005 | 2026-10-16 |
 | LU6 | DONE | 221e96a | 2026-10-16 |
 | SEO1 | DONE | 1164d01 | 2026-10-16 |
-| UI7 | TODO | — | — |
+| UI7 | DONE | 9fd9d66 | 2026-10-16 |
 | DOC1 | TODO | — | — |
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-SEO1 — SEO biosite (1164d01).
+UI7 — Editor de aparência (9fd9d66).
 
 ## Proximo
-UI7 — Editor de aparência com prévia ao vivo (04-B6 / Lumen B5).
+DOC1 — Versionar plano de produção (`producao/PRODUCAO-*.md` + contribs).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
