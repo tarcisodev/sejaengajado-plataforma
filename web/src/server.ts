@@ -7,6 +7,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveHost } from './app/core/tenant/resolve-host';
+import {
+  apiInternalBase,
+  businessNameFromBody,
+  fetchPublicSiteByHost,
+} from './app/core/ssr/fetch-public-site';
 import { scrubSentryEvent } from './app/core/sentry/scrub';
 import bootstrap from './main.server';
 
@@ -31,6 +36,7 @@ const sentryRelease = (process.env['SENTRY_RELEASE'] || process.env['IMAGE_TAG']
 const supabaseUrl = (process.env['SUPABASE_URL'] ?? '').trim();
 const supabaseAnonKey = (process.env['SUPABASE_ANON_KEY'] ?? '').trim();
 const apiPublicUrl = (process.env['API_PUBLIC_URL'] ?? '/api').trim() || '/api';
+const isDev = process.env['NODE_ENV'] !== 'production';
 
 if (sentryDsn) {
   Sentry.init({
@@ -78,6 +84,28 @@ app.get('/se-public-config.json', (_req, res) => {
     );
 });
 
+/** Dev-only: proxy /api → local Nest (production Traefik routes /api). */
+if (isDev) {
+  app.use('/api', async (req, res) => {
+    const target = `${apiInternalBase()}${req.originalUrl}`;
+    try {
+      const upstream = await fetch(target, {
+        method: req.method,
+        headers: { accept: req.headers.accept ?? 'application/json' },
+      });
+      res.status(upstream.status);
+      const type = upstream.headers.get('content-type');
+      if (type) {
+        res.type(type);
+      }
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      res.send(buf);
+    } catch {
+      res.status(502).json({ code: 'BAD_GATEWAY', message: 'API indisponível' });
+    }
+  });
+}
+
 /**
  * Serve hashed assets only. `index: false` keeps `/` and `?tenant=` on the SSR handler,
  * so a prerendered landing is not returned for a tenant host.
@@ -90,15 +118,70 @@ app.get(
   }),
 );
 
+function noticeHtml(title: string, body: string): string {
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title></head><body><main><h1>${title}</h1><p>${body}</p></main></body></html>`;
+}
+
 /**
  * Handle all other requests by rendering the Angular application.
  */
-app.get('**', (req, res, next) => {
+app.get('**', async (req, res, next) => {
   const { protocol, originalUrl, baseUrl, headers } = req;
   const responseInit: ResponseInit = { status: 200 };
   const host = headers.host ?? '';
   const search = originalUrl.includes('?') ? originalUrl.slice(originalUrl.indexOf('?')) : '';
   const decision = resolveHost(host, search);
+
+  // app.* — panel host: SSR without tenant by-host (P19).
+  if (decision.kind === 'app') {
+    // fall through to Angular
+  } else if (decision.kind === 'tenant') {
+    const fetchHost =
+      host.includes('localhost') && decision.slug
+        ? `${decision.slug}.sejaengajado.com.br`
+        : (host.split(':')[0] ?? host);
+    try {
+      const result = await fetchPublicSiteByHost(fetchHost);
+      if (result.kind === 'not-found') {
+        res
+          .status(404)
+          .type('html')
+          .send(
+            noticeHtml('Negócio não encontrado', `O endereço ${decision.slug} não está publicado.`),
+          );
+        return;
+      }
+      if (result.kind === 'archived') {
+        res
+          .status(410)
+          .type('html')
+          .send(noticeHtml('Indisponível', 'Este site não está mais neste endereço.'));
+        return;
+      }
+      if (result.kind === 'suspended') {
+        const name = businessNameFromBody(result.body);
+        res
+          .status(503)
+          .set('Retry-After', '3600')
+          .type('html')
+          .send(
+            noticeHtml('Temporariamente indisponível', `${name} está fora do ar por um momento.`),
+          );
+        return;
+      }
+      if (result.kind === 'error') {
+        res
+          .status(502)
+          .type('html')
+          .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
+        return;
+      }
+      // PUBLISHED / READ_ONLY → Angular SSR (client also calls by-host).
+    } catch (err) {
+      Sentry.captureException(err);
+      // Continue to Angular; TenantResolver may still resolve via HttpApi.
+    }
+  }
 
   commonEngine
     .render({

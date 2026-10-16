@@ -58,7 +58,8 @@ describe('TenantResolver', () => {
     expect(view).toEqual({ kind: 'suspended', businessName: 'Oficina Suspensa' });
     const response: ResponseInit = {};
     applyHttpStatus(response, view);
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
+    expect(new Headers(response.headers).get('Retry-After')).toBe('3600');
   });
 
   it('marks an archived site as gone', async () => {

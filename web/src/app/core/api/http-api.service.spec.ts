@@ -132,6 +132,35 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
     expect(created.nome).toBe('Revenda Nova');
   });
 
+  it('maps by-host 410 to ARCHIVED and SUSPENDED flag (FF3)', async () => {
+    const gone = firstValueFrom(api.getSiteBySlug('arquivo'));
+    await Promise.resolve();
+    http
+      .expectOne(
+        (r) =>
+          r.url.includes('/public/sites/by-host') &&
+          r.params.get('host') === 'arquivo.sejaengajado.com.br',
+      )
+      .flush({ code: 'GONE' }, { status: 410, statusText: 'Gone' });
+    expect((await gone)?.status).toBe('ARCHIVED');
+
+    const suspended = firstValueFrom(api.getSiteBySlug('pausa'));
+    await Promise.resolve();
+    http
+      .expectOne((r) => r.url.includes('/public/sites/by-host'))
+      .flush({
+        slug: 'pausa',
+        status: 'SUSPENDED',
+        temporarilyUnavailable: true,
+        content: {
+          businessName: 'Pausa',
+          profile: { nome: 'Pausa', cidade: '', uf: '' },
+          theme: {},
+        },
+      });
+    expect((await suspended)?.status).toBe('SUSPENDED');
+  });
+
   it('sends Idempotency-Key on plaque movement POST', async () => {
     const key = 'plaque-in-1';
     const pending = firstValueFrom(

@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 
@@ -185,7 +185,12 @@ export class HttpApiService implements ApiPort {
       })
       .pipe(
         map((body) => publicSiteToDomain(body, slug)),
-        catchError(() => of(null)),
+        catchError((error: unknown) => {
+          if (error instanceof HttpErrorResponse && error.status === 410) {
+            return of(archivedPublicSite(slug));
+          }
+          return of(null);
+        }),
       );
   }
 
@@ -643,20 +648,40 @@ function siteFromResellerDto(row: ResellerSiteDto): Site {
 }
 
 function publicSiteToDomain(body: Record<string, unknown>, slug: string): Site {
+  const unavailable = Boolean(body['temporarilyUnavailable']);
+  const status = unavailable ? 'SUSPENDED' : ((body['status'] as Site['status']) ?? 'PUBLISHED');
   return {
     id: String(body['id'] ?? slug),
     customerId: String(body['customerId'] ?? ''),
     resellerId: (body['resellerId'] as string | null) ?? null,
     slug: String(body['slug'] ?? slug),
     customDomain: (body['customDomain'] as string | null) ?? null,
-    templateId: String(body['templateId'] ?? ''),
+    templateId: String(body['templateId'] ?? body['templateKey'] ?? ''),
     content: (body['content'] as Site['content']) ?? emptySiteContent(slug),
-    status: (body['status'] as Site['status']) ?? 'PUBLISHED',
+    status,
     planId: String(body['planId'] ?? ''),
     editable: Boolean(body['editable'] ?? false),
     publishedAt: (body['publishedAt'] as string | null) ?? null,
     hostingRenewsAt: (body['hostingRenewsAt'] as string | null) ?? null,
     plaqueFidelityEndsAt: (body['plaqueFidelityEndsAt'] as string | null) ?? null,
+  };
+}
+
+function archivedPublicSite(slug: string): Site {
+  return {
+    id: slug,
+    customerId: '',
+    resellerId: null,
+    slug,
+    customDomain: null,
+    templateId: '',
+    content: emptySiteContent(slug),
+    status: 'ARCHIVED',
+    planId: '',
+    editable: false,
+    publishedAt: null,
+    hostingRenewsAt: null,
+    plaqueFidelityEndsAt: null,
   };
 }
 

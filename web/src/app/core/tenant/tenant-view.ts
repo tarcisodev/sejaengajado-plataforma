@@ -28,6 +28,9 @@ export function httpStatusFor(view: TenantView): number {
   if (view.kind === 'archived') {
     return 410;
   }
+  if (view.kind === 'suspended') {
+    return 503;
+  }
   return 200;
 }
 
@@ -36,6 +39,11 @@ export function applyHttpStatus(response: ResponseInit | null, view: TenantView)
     return;
   }
   response.status = httpStatusFor(view);
+  if (view.kind === 'suspended') {
+    const headers = new Headers(response.headers);
+    headers.set('Retry-After', '3600');
+    response.headers = headers;
+  }
 }
 
 export function titleFor(view: TenantView): string {

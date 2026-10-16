@@ -61,7 +61,8 @@ describe('TenantGateComponent', () => {
     });
 
     expect(fixture.nativeElement.textContent).toContain('Temporariamente indisponível');
-    expect(status.status).toBe(200);
+    expect(status.status).toBe(503);
+    expect(new Headers(status.headers).get('Retry-After')).toBe('3600');
   });
 
   it('shows the archived page with status 410', async () => {
