@@ -26,6 +26,8 @@ describe('AdminShellComponent', () => {
               status: 'ACTIVE',
               aal: 'aal2',
             }),
+            sessionStatus: signal('authenticated'),
+            ready: signal(true),
             signOut: async () => undefined,
           },
         },
@@ -38,14 +40,18 @@ describe('AdminShellComponent', () => {
     ].map((link) => (link as HTMLAnchorElement).getAttribute('href'));
     fixture.destroy();
 
-    // Com apiUrl setado (environment de teste), telas sem endpoint ficam ocultas.
     expect(hrefs).toEqual([
+      '/admin',
+      '/admin/clientes',
       '/admin/revendedores',
       '/admin/atacado',
+      '/admin/sites',
       '/admin/planos',
       '/admin/configuracoes',
       '/admin/placas',
       '/admin/cupons',
+      '/admin/receita',
+      '/admin/faturas',
     ]);
   });
 });

@@ -19,6 +19,7 @@ function asTree(result: GuardResult | Promise<GuardResult> | unknown): string {
 
 describe('AUTH-WEB flows (e2e-style)', () => {
   const me = signal<AuthMe | null>(null);
+  const sessionStatus = signal<'loading' | 'authenticated' | 'anonymous'>('anonymous');
   let mfaLevel: 'aal1' | 'aal2' | null = 'aal1';
 
   function configure(opts: {
@@ -39,6 +40,7 @@ describe('AUTH-WEB flows (e2e-style)', () => {
           }
         : null,
     );
+    sessionStatus.set(opts.role ? 'authenticated' : 'anonymous');
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -49,6 +51,7 @@ describe('AUTH-WEB flows (e2e-style)', () => {
           provide: AuthService,
           useValue: {
             me,
+            sessionStatus,
             ready: signal(true),
             ensureReady: async () => undefined,
             getAuthenticatorAssuranceLevel: async () => mfaLevel,
@@ -59,6 +62,7 @@ describe('AUTH-WEB flows (e2e-style)', () => {
             },
             signOut: async () => {
               me.set(null);
+              sessionStatus.set('anonymous');
               try {
                 sessionStorage.clear();
               } catch {

@@ -1,5 +1,8 @@
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
+import { AuthService } from '../core/auth/auth.service';
 import { MockApiService } from './mock-api.service';
 import {
   RESELLER_ATRASADO,
@@ -13,7 +16,20 @@ describe('MockApiService', () => {
   let service: MockApiService;
 
   beforeEach(() => {
-    service = new MockApiService();
+    TestBed.configureTestingModule({
+      providers: [
+        MockApiService,
+        {
+          provide: AuthService,
+          useValue: {
+            me: signal(null),
+            sessionStatus: signal('anonymous'),
+            ready: signal(true),
+          },
+        },
+      ],
+    });
+    service = TestBed.inject(MockApiService);
   });
 
   it('seeds Uberaba config for delay bands, renewal and plaque penalty', async () => {
