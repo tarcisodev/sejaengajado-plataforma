@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { firstValueFrom, of } from 'rxjs';
 
@@ -121,4 +121,38 @@ describe('AdminSitesComponent', () => {
     expect(fixture.componentInstance.postalCode()).toBe('38035-080');
     expect(fixture.componentInstance.slug()).toBe('tarciso-dev');
   });
+
+  it('uses admin site-options and checks the slug live in Criar site (#45)', fakeAsync(() => {
+    const api = TestBed.inject(MockApiService);
+    const check = spyOn(api, 'checkAdminSlug').and.callThrough();
+    const cmp = fixture.componentInstance;
+    expect(cmp.siteOptions()).toBeTruthy();
+    expect(cmp.createTemplates().length).toBeGreaterThan(0);
+    cmp.openCreate();
+    fixture.detectChanges();
+
+    const taken = cmp.rows()[0].slug;
+    const input = fixture.nativeElement.querySelector(
+      '[data-create-field="slug"]',
+    ) as HTMLInputElement;
+    input.value = taken;
+    input.dispatchEvent(new Event('input'));
+    tick(350);
+    fixture.detectChanges();
+    expect(check).toHaveBeenCalledWith(taken);
+    expect(fixture.nativeElement.querySelector('[data-slug-hint]')?.textContent).toContain(
+      'Endereço indisponível',
+    );
+    expect(
+      (fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled,
+    ).toBeTrue();
+
+    input.value = 'padaria-livre-45';
+    input.dispatchEvent(new Event('input'));
+    tick(350);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-slug-hint]')?.textContent).toContain(
+      'Endereço disponível',
+    );
+  }));
 });

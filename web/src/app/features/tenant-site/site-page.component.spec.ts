@@ -38,15 +38,18 @@ describe('SitePageComponent', () => {
     expect(text).toContain('Barbearia do Zé');
     expect(text).toContain('Corte');
     expect(text).toContain('R$ 40,00');
-    expect(text).toContain('Horários');
+    expect(text).toContain('Horário');
+    expect(fixture.nativeElement.querySelectorAll('[data-block="hours"] li').length).toBe(3);
     expect(text).toContain('Avaliar no Google');
-    expect(text).toContain('feito por');
+    expect(text).toContain('Site criado por');
     expect(fixture.nativeElement.querySelector('[data-block="pix"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-catalog-layout="grid"]')).toBeTruthy();
     expect(
       fixture.nativeElement.querySelector('[data-animated-strip]')?.getAttribute('data-motif'),
     ).toBe('tesoura');
-    expect(fixture.nativeElement.querySelector('[data-google-rating]')?.textContent).toBe('—');
+    // Sem nota real do Google: não mostra placeholder "—", só o botão de avaliar.
+    expect(fixture.nativeElement.querySelector('[data-google-rating]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-link="review"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-map-placeholder]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('iframe.map')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-block="faq"]')).toBeTruthy();

@@ -1,6 +1,8 @@
+import { isSlugBlocked, isValidSlug, SlugCheckState, slugHintText } from '../../core/site/slug';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnChanges,
   SimpleChanges,
   computed,
@@ -27,6 +29,9 @@ import {
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInput } from '@spartan-ng/helm/input';
+import type { Subscription } from 'rxjs';
+
+import { API_PORT } from '../../core/api/api-port';
 
 import type {
   Plan,
@@ -83,6 +88,9 @@ export interface SiteEditorMetaEvent {
   customerId?: string;
   resellerId?: string;
 }
+
+/** Feedback ao vivo do slug no Avançado (admin). */
+export type { SlugCheckState } from '../../core/site/slug';
 
 /** edit = painel (admin/revendedor/Estúdio); wizard = passo Conteúdo do Novo site. */
 export type SiteEditorMode = 'edit' | 'wizard';
@@ -265,6 +273,10 @@ function socialHandleUrl(kind: SocialKey, raw: string): string {
 })
 export class SiteEditorComponent implements OnChanges {
   private readonly uploader = inject(ImageUploadService);
+  /** Opcional: só o modo admin (Avançado) consulta disponibilidade de slug. */
+  private readonly api = inject(API_PORT, { optional: true });
+  private slugTimer: ReturnType<typeof setTimeout> | null = null;
+  private slugSub: Subscription | null = null;
 
   readonly site = input.required<Site>();
   readonly mode = input<SiteEditorMode>('edit');
@@ -308,6 +320,8 @@ export class SiteEditorComponent implements OnChanges {
 
   // Avançado (admin)
   readonly advSlug = signal('');
+  readonly advSlugState = signal<SlugCheckState>('idle');
+  readonly advSlugHint = computed(() => slugHintText(this.advSlugState()));
   readonly advPlanId = signal('');
   readonly advStatus = signal<SiteStatus>('DRAFT');
   readonly advCustomerId = signal('');
@@ -331,6 +345,15 @@ export class SiteEditorComponent implements OnChanges {
     const s = this.site();
     return { ...s, content: this.buildContent(this.d(), s.content) };
   });
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.slugTimer) {
+        clearTimeout(this.slugTimer);
+      }
+      this.slugSub?.unsubscribe();
+    });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['site']) {
@@ -488,6 +511,7 @@ export class SiteEditorComponent implements OnChanges {
     this.touched.set(new Set());
 
     this.advSlug.set(site.slug);
+    this.resetSlugCheck();
     this.advPlanId.set(site.planId);
     this.advStatus.set(site.status);
     this.advCustomerId.set(site.customerId);
@@ -1099,11 +1123,62 @@ export class SiteEditorComponent implements OnChanges {
     return this.tab() === TAB_ORDER[TAB_ORDER.length - 1];
   }
 
+  /** Avançado: digita o slug e consulta /admin/slugs/check (com debounce, excluindo o próprio site). */
+  onAdvSlugInput(event: Event): void {
+    const slug = this.val(event).trim().toLowerCase();
+    this.advSlug.set(slug);
+    this.resetSlugCheck();
+    if (!slug || slug === this.site().slug) {
+      return;
+    }
+    if (!isValidSlug(slug)) {
+      this.advSlugState.set('invalid');
+      return;
+    }
+    if (!this.api) {
+      return;
+    }
+    const api = this.api;
+    this.advSlugState.set('checking');
+    this.slugTimer = setTimeout(() => {
+      this.slugTimer = null;
+      this.slugSub = api.checkAdminSlug(slug, this.site().id).subscribe({
+        next: (result) => {
+          if (this.advSlug() === slug) {
+            this.advSlugState.set(result.available ? 'available' : 'unavailable');
+          }
+        },
+        error: () => {
+          if (this.advSlug() === slug) {
+            this.advSlugState.set('idle');
+          }
+        },
+      });
+    }, 350);
+  }
+
+  private resetSlugCheck(): void {
+    if (this.slugTimer) {
+      clearTimeout(this.slugTimer);
+      this.slugTimer = null;
+    }
+    this.slugSub?.unsubscribe();
+    this.slugSub = null;
+    this.advSlugState.set('idle');
+  }
+
   saveAdvanced(): void {
     const site = this.site();
     const patch: SiteEditorMetaEvent = {};
     const slug = this.advSlug().trim().toLowerCase();
     if (slug && slug !== site.slug) {
+      const state = this.advSlugState();
+      if (isSlugBlocked(state)) {
+        this.notice.set(
+          state === 'checking' ? 'Aguarde a verificação do endereço.' : this.advSlugHint(),
+        );
+        return;
+      }
       patch.slug = slug;
     }
     if (this.advPlanId() && this.advPlanId() !== site.planId) {

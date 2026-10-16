@@ -143,7 +143,7 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
     });
     const fixture = TestBed.createComponent(ResellerSitesComponent);
     fixture.detectChanges();
-    return { fixture, createCustomer, publishSite, recordPlaque };
+    return { fixture, createCustomer, createSite, publishSite, recordPlaque };
   }
 
   it('blocks opening the wizard when reseller is DELINQUENT', async () => {
@@ -157,7 +157,7 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
   });
 
   it('shows slug unavailable for taken or reserved values', async () => {
-    const { fixture } = setup('ACTIVE');
+    const { fixture, createSite } = setup('ACTIVE');
     await fixture.whenStable();
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-open-wizard]') as HTMLButtonElement).click();
@@ -165,10 +165,12 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
     fixture.componentInstance.nextFromCliente();
     fixture.detectChanges();
     fixture.componentInstance.nextFromTemplate();
+    await fixture.whenStable();
     fixture.detectChanges();
-    fixture.componentInstance.nextFromConteudo();
-    fixture.detectChanges();
+    expect(createSite).toHaveBeenCalled();
+    expect(fixture.componentInstance.step()).toBe('conteudo');
 
+    fixture.componentInstance.step.set('slug');
     fixture.componentInstance.slug.set('app');
     fixture.componentInstance.checkSlug();
     fixture.detectChanges();
@@ -183,27 +185,42 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
     ).toBeTrue();
   });
 
-  it('creates a draft after an available slug and opens the shared editor (0.e/M2)', async () => {
-    const { fixture } = setup('ACTIVE');
+  it('creates the draft at Template, edits content in the shared editor, previews and publishes (#45)', async () => {
+    const { fixture, createSite, publishSite } = setup('ACTIVE');
     await fixture.whenStable();
     fixture.detectChanges();
-    fixture.componentInstance.openWizard();
-    fixture.componentInstance.customerId.set('c1');
-    fixture.componentInstance.planId.set('p1');
-    fixture.componentInstance.templateId.set('t1');
-    fixture.componentInstance.step.set('slug');
-    fixture.componentInstance.slug.set('loja-livre');
-    fixture.componentInstance.checkSlug();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    fixture.componentInstance.createDraft();
+    const cmp = fixture.componentInstance;
+    cmp.openWizard();
+    cmp.customerId.set('c1');
+    cmp.planId.set('p1');
+    cmp.templateId.set('t1');
+    cmp.nextFromCliente();
+    cmp.nextFromTemplate();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.wizardOpen()).toBeFalse();
-    expect(fixture.componentInstance.editing()?.slug).toBe('loja-livre');
-    expect(fixture.nativeElement.querySelector('[data-site-editor]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-action="publish"]')).toBeTruthy();
+    expect(createSite).toHaveBeenCalledWith(
+      jasmine.objectContaining({ customerId: 'c1', planId: 'p1', templateId: 't1' }),
+    );
+    expect(cmp.draft()?.id).toBe('site-new');
+    expect(fixture.nativeElement.querySelector('[data-wizard-content] [data-site-editor]')).toBeTruthy();
+
+    const site = cmp.draftSite()!;
+    cmp.onWizardContentSave({ content: site.content, templateId: site.templateId }, 'slug');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(cmp.step()).toBe('slug');
+    expect(cmp.slug()).toBe('loja-livre');
+
+    cmp.confirmSlug();
+    fixture.detectChanges();
+    expect(cmp.step()).toBe('previa');
+    expect(fixture.nativeElement.querySelector('[data-wizard-live-preview]')).toBeTruthy();
+
+    cmp.publishDraft();
+    await fixture.whenStable();
+    expect(publishSite).toHaveBeenCalledWith('site-new');
+    expect(cmp.wizardOpen()).toBeFalse();
   });
 
   it('creates a new customer from the wizard when none is selected (FF2)', async () => {
