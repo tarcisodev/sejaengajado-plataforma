@@ -97,9 +97,12 @@ export interface NoticeRecord {
 }
 
 export interface CustomerUploadPresign {
-  method: 'POST';
+  /** PUT (R2/S3 presigned PUT). 'POST' + fields kept for legacy presigned POST. */
+  method: 'PUT' | 'POST';
   uploadUrl: string;
-  fields: Record<string, string>;
+  /** Headers to send with the PUT (e.g. Content-Type). */
+  headers?: Record<string, string>;
+  fields?: Record<string, string>;
   publicUrl: string;
   key: string;
   contentType: string;

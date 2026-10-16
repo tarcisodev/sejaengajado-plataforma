@@ -56,6 +56,14 @@ export const authErrorInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
+      if (error.status === 403 && isMfaRequired(error)) {
+        if (!router.url.startsWith('/mfa')) {
+          const returnUrl = router.url.startsWith('/') ? router.url : undefined;
+          void router.navigate(['/mfa'], returnUrl ? { queryParams: { returnUrl } } : {});
+        }
+        return throwError(() => error);
+      }
+
       if (error.status === 403) {
         const message =
           (error.error as { message?: string } | null)?.message ??
@@ -99,6 +107,12 @@ async function refreshSessionOnce(): Promise<boolean> {
   }
   const { data, error } = await sb.auth.refreshSession();
   return !error && Boolean(data.session?.access_token);
+}
+
+/** API 403 when the session is aal1 but the route needs TOTP (aal2). */
+function isMfaRequired(error: HttpErrorResponse): boolean {
+  const code = (error.error as { code?: string } | null)?.code;
+  return code === 'MFA_REQUIRED' || code === 'AUTH_MFA_REQUIRED';
 }
 
 function isNestApiUrl(url: string): boolean {

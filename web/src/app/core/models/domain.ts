@@ -301,6 +301,14 @@ export interface SiteContent {
   /** Legado: string[]; novo: {url, alt}[]. */
   gallery?: (string | SiteGalleryImage)[];
   products?: SiteProduct[];
+  /** API-schema catalog (`catalog.items`); renderer falls back to it when `products` is empty. */
+  catalog?: {
+    layout?: 'grid' | 'list';
+    enabled?: boolean;
+    kind?: 'catalogo' | 'cardapio';
+    titulo?: string | null;
+    items?: SiteProduct[];
+  };
   testimonials?: SiteTestimonial[];
   modules?: SiteModules;
   email?: string;

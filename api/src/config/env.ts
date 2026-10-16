@@ -43,6 +43,8 @@ const schema = z.object({
   /** Backup bucket name (R2 `se-backup`) — used by infra backup, documented here. */
   S3_BACKUP_BUCKET: z.string().min(1).optional(),
   S3_REGION: z.string().min(1).optional(),
+  /** Public base URL of the uploads bucket (R2 custom domain or r2.dev), without bucket name. */
+  S3_PUBLIC_BASE_URL: z.string().url().optional(),
   S3_ACCESS_KEY: z.string().min(1).optional(),
   S3_SECRET_KEY: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),

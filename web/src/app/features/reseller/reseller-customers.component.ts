@@ -126,13 +126,8 @@ export class ResellerCustomersComponent {
         city: String(data.get('city') ?? ''),
       })
       .subscribe({
-        next: (created) => {
-          const link = (created as { inviteActionLink?: string | null }).inviteActionLink;
-          toast.success(
-            link
-              ? 'Cliente convidado. Link de acesso disponível na resposta da API.'
-              : 'Cliente criado e convidado por e-mail.',
-          );
+        next: () => {
+          toast.success('Cliente criado e convidado por e-mail.');
           (event.target as HTMLFormElement).reset();
           this.reload();
         },

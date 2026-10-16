@@ -70,7 +70,7 @@ describe('CustomersService invite', () => {
       }),
       include: { user: true },
     });
-    expect(created).toMatchObject({ inviteActionLink: 'https://auth.example/invite' });
+    expect(created).not.toHaveProperty('inviteActionLink');
   });
 
   it('rejects duplicate email', async () => {

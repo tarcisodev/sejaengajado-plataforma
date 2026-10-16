@@ -17,7 +17,7 @@ describe('ByHostMemoryCache', () => {
     expect(cache.get('tenant-0.sejaengajado.com.br')).toBeNull();
   });
 
-  it('keeps successful by-host payloads for ~60s', () => {
+  it('keeps successful by-host payloads for ~5s', () => {
     jasmine.clock().install();
     jasmine.clock().mockDate(new Date('2026-10-16T12:00:00Z'));
     const cache = new ByHostMemoryCache();

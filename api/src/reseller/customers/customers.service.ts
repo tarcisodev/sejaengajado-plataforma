@@ -104,14 +104,9 @@ export class CustomersService {
       });
     }
 
+    // Convite vai só por e-mail ao cliente. O link de ação/recuperação nunca volta ao
+    // revendedor (daria acesso à conta do cliente) — copiar link é exclusivo do admin.
     const invited = await this.supabaseAdmin.inviteUserByEmail(email);
-    let inviteActionLink: string | null = null;
-    try {
-      const recovery = await this.supabaseAdmin.generateRecoveryLink(email);
-      inviteActionLink = recovery.actionLink;
-    } catch {
-      inviteActionLink = null;
-    }
 
     const user = await this.db.user.create({
       data: {
@@ -136,7 +131,7 @@ export class CustomersService {
       include: { user: true },
     });
 
-    return { ...customer, inviteActionLink };
+    return customer;
   }
 
   async update(id: string, body: unknown) {
@@ -162,12 +157,47 @@ export class CustomersService {
 
   async remove(id: string) {
     await this.get(id);
-    const sites = await this.db.site.count({ where: { customerId: id } });
-    if (sites > 0) {
+    // Sites "excluídos" são só arquivados (soft delete) e não bloqueiam a remoção do cliente.
+    const activeSites = await this.db.site.count({
+      where: { customerId: id, status: { not: 'ARCHIVED' } },
+    });
+    if (activeSites > 0) {
       throw new ConflictException({
         code: 'VALIDATION_FAILED',
         message: 'Cliente possui sites',
         fields: [{ path: 'id', code: 'has_sites', message: 'Remova os sites antes' }],
+      });
+    }
+    // Arquivados sem histórico (placas, scans, eventos, assinaturas) podem sair junto;
+    // os com histórico precisam ficar (FK) e mantêm o cliente.
+    const archived = await this.db.site.findMany({
+      where: { customerId: id, status: 'ARCHIVED' },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            plaques: true,
+            scanEvents: true,
+            plaqueMovements: true,
+            lifecycleEvents: true,
+            subscriptions: true,
+          },
+        },
+      },
+    });
+    const withHistory = archived.some((site) =>
+      Object.values(site._count).some((count) => count > 0),
+    );
+    if (withHistory) {
+      throw new ConflictException({
+        code: 'VALIDATION_FAILED',
+        message: 'Cliente possui sites arquivados com histórico e não pode ser removido',
+        fields: [{ path: 'id', code: 'has_site_history', message: 'Sites com histórico' }],
+      });
+    }
+    if (archived.length > 0) {
+      await this.db.site.deleteMany({
+        where: { id: { in: archived.map((site) => site.id) }, status: 'ARCHIVED' },
       });
     }
     await this.db.customer.delete({ where: { id } });

@@ -59,7 +59,7 @@ export const routes: Routes = [
       },
       {
         path: 'revenda',
-        canActivate: [authGuard, roleGuard('RESELLER')],
+        canActivate: [authGuard, roleGuard('RESELLER'), aal2Guard],
         loadChildren: () =>
           import('./features/reseller/reseller.routes').then((m) => m.resellerRoutes),
       },
