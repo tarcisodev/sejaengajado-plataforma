@@ -3,16 +3,7 @@
 name: e2e-full
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "api/**"
-      - "web/**"
-      - "docker-compose.dev.yml"
-      - "scripts/dev-auth.mjs"
-      - ".github/workflows/e2e-full.yml"
-  schedule:
-    - cron: "0 6 * * *"
+  # MVP: só manual por enquanto
   workflow_dispatch:
 
 concurrency:

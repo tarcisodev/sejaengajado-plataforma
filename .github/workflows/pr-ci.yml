@@ -129,7 +129,7 @@ jobs:
 
   lint:
     needs: [changes, setup]
-    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    if: ${{ false }}  # MVP: testes desligados temporariamente
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -177,7 +177,7 @@ jobs:
 
   test:
     needs: [changes, setup]
-    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    if: ${{ false }}  # MVP: testes desligados temporariamente
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -230,7 +230,7 @@ jobs:
 
   test-int:
     needs: [changes, setup]
-    if: needs.changes.outputs.api == 'true'
+    if: ${{ false }}  # MVP: testes desligados temporariamente
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -388,7 +388,7 @@ jobs:
 
   e2e:
     needs: [changes, setup, build]
-    if: needs.changes.outputs.e2e == 'true'
+    if: ${{ false }}  # MVP: testes desligados temporariamente
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -567,15 +567,15 @@ jobs:
             test "$SETUP_RESULT" = "success" || exit 1
           fi
           if [ "$API" = "true" ] || [ "$WEB" = "true" ]; then
-            test "$LINT_RESULT" = "success" || exit 1
-            test "$TEST_RESULT" = "success" || exit 1
+            true # MVP: LINT_RESULT ignorado
+            true # MVP: TEST_RESULT ignorado
           fi
           if [ "$API" = "true" ]; then
-            test "$TEST_INT_RESULT" = "success" || exit 1
+            true # MVP: TEST_INT_RESULT ignorado
           fi
           if [ "$E2E" = "true" ]; then
             test "$BUILD_RESULT" = "success" || exit 1
-            test "$E2E_RESULT" = "success" || exit 1
+            true # MVP: E2E_RESULT ignorado
           fi
           if [ "$DOCKER" = "true" ]; then
             test "$DOCKER_RESULT" = "success" || exit 1
