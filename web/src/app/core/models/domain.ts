@@ -153,6 +153,16 @@ export interface SiteSeo {
   ogImageUrl?: string;
 }
 
+export type StripMotif =
+  'pizza' | 'tesoura' | 'circulos' | 'estrelas' | 'agulha' | 'coracao' | 'none';
+
+export interface SiteStrip {
+  enabled: boolean;
+  motif: StripMotif;
+  speed?: 'slow' | 'normal' | 'fast' | number;
+  direction?: 'left' | 'right';
+}
+
 export interface SiteContent {
   businessName: string;
   profile: SiteProfile;
@@ -168,6 +178,8 @@ export interface SiteContent {
   phone?: string;
   pix?: SitePix;
   seo?: SiteSeo;
+  /** Optional decorative motif strip (LU3). */
+  strip?: SiteStrip;
 }
 
 export interface Site {

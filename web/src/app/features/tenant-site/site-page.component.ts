@@ -36,11 +36,12 @@ import {
   siteTitle,
   whatsappHref,
 } from './site-seo';
+import { AnimatedStripComponent } from './ui/animated-strip.component';
 import { SectionDividerComponent } from './ui/section-divider.component';
 
 @Component({
   selector: 'app-site-page',
-  imports: [NgStyle, SectionDividerComponent],
+  imports: [NgStyle, SectionDividerComponent, AnimatedStripComponent],
   templateUrl: './site-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-page.component.scss',

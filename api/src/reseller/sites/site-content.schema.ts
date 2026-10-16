@@ -70,7 +70,9 @@ export const siteContentSchema = z.object({
   strip: z
     .object({
       enabled: z.boolean().default(false),
-      motif: z.enum(['none', 'tesoura', 'pizza', 'agulha', 'coracao']).default('none'),
+      motif: z
+        .enum(['none', 'tesoura', 'pizza', 'agulha', 'coracao', 'circulos', 'estrelas'])
+        .default('none'),
       speed: z.enum(['slow', 'normal', 'fast']).default('normal'),
       direction: z.enum(['left', 'right']).default('left'),
     })

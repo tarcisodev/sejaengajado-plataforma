@@ -44,6 +44,15 @@
     </div>
   </header>
 
+  @if (site.content.strip?.enabled && site.content.strip.motif !== 'none') {
+    <app-animated-strip
+      [enabled]="site.content.strip.enabled"
+      [motif]="site.content.strip.motif"
+      [speed]="site.content.strip.speed ?? 'normal'"
+      [direction]="site.content.strip.direction ?? 'left'"
+    />
+  }
+
   @if (site.content.whatsapp || site.content.links?.length) {
     <ul class="links">
       @if (site.content.whatsapp) {

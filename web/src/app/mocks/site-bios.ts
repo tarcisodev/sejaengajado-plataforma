@@ -129,6 +129,7 @@ const BIOS: Record<string, SiteContent> = {
       uf: 'MG',
     },
     phone: '+5534999990001',
+    strip: { enabled: true, motif: 'tesoura', speed: 'normal', direction: 'left' },
     seo: {
       title: 'Barbearia do Zé | Corte em Uberaba',
       description: 'Corte e barba no centro de Uberaba. Chame no WhatsApp.',
@@ -176,6 +177,7 @@ const BIOS: Record<string, SiteContent> = {
     },
     phone: '+5534999990002',
     pix: { chave: 'forno@example.com', nome: 'Pizzaria Forno da Praça' },
+    strip: { enabled: true, motif: 'pizza', speed: 'normal', direction: 'left' },
     seo: {
       title: 'Pizzaria Forno da Praça | Pizza em Uberaba',
       description: 'Forno a lenha na praça de Uberaba. Chame no WhatsApp.',

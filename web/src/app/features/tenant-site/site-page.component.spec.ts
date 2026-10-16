@@ -44,6 +44,9 @@ describe('SitePageComponent', () => {
     expect(text).toContain('feito por');
     expect(fixture.nativeElement.querySelector('[data-block="pix"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-catalog-layout="grid"]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-animated-strip]')?.getAttribute('data-motif'),
+    ).toBe('tesoura');
     expect(fixture.nativeElement.querySelector('[data-google-rating]')?.textContent).toBe('—');
     expect(whatsapp.href).toContain('wa.me/5534999990001');
     expect(whatsapp.href).toContain(encodeURIComponent('Olá, quero horário na Barbearia do Zé.'));
