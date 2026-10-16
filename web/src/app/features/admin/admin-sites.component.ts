@@ -166,6 +166,12 @@ export class AdminSitesComponent {
     this.stateCode.set('');
     this.postalCode.set('');
     this.slug.set('');
+    this.customerId.set(
+      this.customers().find((customer) => customer.id === 'cust_admin')?.id ?? '',
+    );
+    this.templateId.set(
+      this.templates().find((template) => template.id === 'tpl_personalizado')?.id ?? '',
+    );
     this.creating.set(true);
   }
 
@@ -174,6 +180,10 @@ export class AdminSitesComponent {
     this.places.search(this.googleQuery()).subscribe({
       next: (rows) => {
         this.matches.set(rows);
+        if (rows.length === 1) {
+          this.applyPlace(rows[0]);
+          return;
+        }
         if (rows.length === 0) {
           this.notice.set('Nenhum lugar encontrado.');
         }

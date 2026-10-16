@@ -1,9 +1,11 @@
--- B3: FORCE RLS + policies + se_admin (BYPASSRLS) for ADMIN connection.
+-- B3: FORCE RLS + policies + se_admin for ADMIN connection.
+-- Atributo BYPASSRLS (se_admin / se_backup) e NOBYPASSRLS (se_app) exigem
+-- superuser — aplicar uma vez via infra/runbooks/db-bootstrap-roles.md.
 
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'se_admin') THEN
-    CREATE ROLE se_admin LOGIN PASSWORD 'se_admin' NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE;
+    CREATE ROLE se_admin LOGIN PASSWORD 'se_admin' NOSUPERUSER NOCREATEDB NOCREATEROLE;
   END IF;
 END
 $$;
@@ -14,9 +16,6 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO se_admin;
 GRANT SELECT ON plaque_stock TO se_admin;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO se_admin;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO se_admin;
-
--- Ensure se_app cannot bypass RLS even if privileges change later.
-ALTER ROLE se_app NOSUPERUSER NOBYPASSRLS;
 
 CREATE OR REPLACE FUNCTION app_reseller_id() RETURNS uuid
 LANGUAGE sql

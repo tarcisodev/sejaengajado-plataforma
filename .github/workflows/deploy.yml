@@ -82,6 +82,10 @@ jobs:
     env:
       IMAGE_TAG: ${{ inputs.rollback_tag || github.sha }}
       BACKUP_TAG: ${{ inputs.rollback_tag || github.sha }}
+      # Públicos / não-secretos — GitHub Environment vars (production).
+      S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+      ASAAS_BASE_URL: ${{ vars.ASAAS_BASE_URL }}
+      SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -114,7 +118,8 @@ jobs:
         if: ${{ inputs.rollback_tag == '' }}
         run: |
           chmod +x infra/scripts/wait-oneoff.sh
-          export IMAGE_TAG BACKUP_TAG
+          export IMAGE_TAG BACKUP_TAG S3_ENDPOINT SUPABASE_ANON_KEY
+          export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}"
           docker service update --detach=false \
             --image "${REGISTRY}/sejaengajado-api:${IMAGE_TAG}" \
             --replicas 1 sejaengajado_migrate \
@@ -124,7 +129,9 @@ jobs:
 
       - name: Stack deploy (SHA imutável)
         run: |
-          export IMAGE_TAG BACKUP_TAG
+          export IMAGE_TAG BACKUP_TAG S3_ENDPOINT SUPABASE_ANON_KEY
+          export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}"
+          test -n "$S3_ENDPOINT" || { echo "vars.S3_ENDPOINT obrigatório no environment production" >&2; exit 1; }
           # Fail closed if a :latest tag sneaks into the compose render.
           if docker stack config -c infra/stack.yml | grep -E ':latest([[:space:]]|$)'; then
             echo "proibido :latest em produção" >&2
@@ -135,8 +142,8 @@ jobs:
       - name: Gate de saúde
         run: |
           for i in $(seq 1 36); do
-            if curl -fsS "https://app.sejaengajado.com.br/api/health/ready" \
-              && curl -fsS -o /dev/null "https://teste.sejaengajado.com.br"; then
+            # Não usar teste.* — 404 sem site publicado. Ready = DB + R2.
+            if curl -fsS "https://app.sejaengajado.com.br/api/health/ready"; then
               echo "health ok"
               exit 0
             fi

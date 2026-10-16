@@ -680,7 +680,8 @@ GROUP BY reseller_id, plaque_type;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'se_app') THEN
-    CREATE ROLE se_app LOGIN PASSWORD 'se_app' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+    -- BYPASSRLS/NOBYPASSRLS exigem superuser — ver infra/runbooks/db-bootstrap-roles.md
+    CREATE ROLE se_app LOGIN PASSWORD 'se_app' NOSUPERUSER NOCREATEDB NOCREATEROLE;
   END IF;
 END
 $$;

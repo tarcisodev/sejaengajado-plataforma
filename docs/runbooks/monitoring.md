@@ -38,7 +38,8 @@ Monitores sugeridos (keyword `ok` onde couber) + alerta de certificado ≤14 dia
 - `https://sejaengajado.com.br`
 - `https://app.sejaengajado.com.br`
 - `https://app.sejaengajado.com.br/api/health/ready`
-- `https://teste.sejaengajado.com.br`
+
+Não monitorar `teste.*` até existir site publicado (responde 404 sem tenant).
 
 ## Traefik
 

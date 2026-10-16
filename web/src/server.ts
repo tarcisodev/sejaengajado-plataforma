@@ -28,6 +28,9 @@ function readSecretFile(path: string | undefined): string {
 const sentryDsn =
   readSecretFile(process.env['SENTRY_DSN_FILE']) || (process.env['SENTRY_DSN'] ?? '').trim();
 const sentryRelease = (process.env['SENTRY_RELEASE'] || process.env['IMAGE_TAG'] || '').trim();
+const supabaseUrl = (process.env['SUPABASE_URL'] ?? '').trim();
+const supabaseAnonKey = (process.env['SUPABASE_ANON_KEY'] ?? '').trim();
+const apiPublicUrl = (process.env['API_PUBLIC_URL'] ?? '/api').trim() || '/api';
 
 if (sentryDsn) {
   Sentry.init({
@@ -56,8 +59,8 @@ app.get('/healthz', (_req, res) => {
 });
 
 /**
- * Public runtime config for the browser. DSN is a Sentry write key (not a secret),
- * but the value is loaded from SENTRY_DSN_FILE on the server — never baked in the image.
+ * Public runtime config for the browser (no service_role / no private keys).
+ * Sentry DSN comes from SENTRY_DSN_FILE; Supabase anon from container env at deploy.
  */
 app.get('/se-public-config.json', (_req, res) => {
   res
@@ -68,6 +71,9 @@ app.get('/se-public-config.json', (_req, res) => {
       JSON.stringify({
         sentryDsn: sentryDsn || null,
         sentryRelease: sentryRelease || null,
+        supabaseUrl: supabaseUrl || null,
+        supabaseAnonKey: supabaseAnonKey || null,
+        apiUrl: apiPublicUrl,
       }),
     );
 });

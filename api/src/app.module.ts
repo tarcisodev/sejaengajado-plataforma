@@ -22,6 +22,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { loggerParams } from './logging/redact';
 import { PaymentsModule } from './payments/payments.module';
+import { PlacesModule } from './places/places.module';
 import { PublicModule } from './public/public.module';
 import { ReportsModule } from './reports/reports.module';
 import { ResellerModule } from './reseller/reseller.module';
@@ -57,6 +58,7 @@ export class AppModule {
         PublicModule,
         ResellerModule,
         PaymentsModule.register(),
+        PlacesModule,
         BillingModule,
       ],
       controllers: [HealthController],

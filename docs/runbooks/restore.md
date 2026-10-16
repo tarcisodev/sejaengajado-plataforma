@@ -38,9 +38,7 @@ A privkey **não** entra no Swarm nem no Passbolt só-na-VPS sem cópia offsite.
 
 | Data (UTC) | Ambiente | Dump | `RESTORE_RTO_SECONDS` | Operador |
 | --- | --- | --- | --- | --- |
-| _pendente — 1º ensaio antes de dados reais_ | GitHub-hosted | daily/* | _preencher_ | Tarciso |
-
-Após o primeiro `workflow_dispatch` verde, preencha a linha acima com o valor do summary.
+| 2026-10-15 | ensaio VPS / Postgres descartável | daily/* | **7** | Tarciso |
 
 ## Mídia (R2 `sejaengajado-media`)
 

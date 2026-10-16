@@ -17,7 +17,8 @@ fi
 MIN_RAM_MIB="${HOST_CHECK_MIN_RAM_MIB:-300}"
 MAX_DISK_PCT="${HOST_CHECK_MAX_DISK_PCT:-85}"
 STACK="${HOST_CHECK_STACK:-sejaengajado}"
-ACME_CF="${HOST_CHECK_ACME_CF:-/var/lib/docker/volumes/traefik_letsencrypt/_data/acme-cf.json}"
+# Volume Swarm dos certificados Traefik nesta VPS (override com HOST_CHECK_ACME_CF).
+ACME_CF="${HOST_CHECK_ACME_CF:-/var/lib/docker/volumes/volume_swarm_certificates/_data/acme-cf.json}"
 
 avail="$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)"
 disk="$(df --output=pcent / | tail -1 | tr -d ' %')"

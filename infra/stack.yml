@@ -1,9 +1,12 @@
 # Stack Swarm `sejaengajado` — single-node Hostinger.
 # Traefik v3.5.3 na rede TarcisoDevNet; certresolver `cfdns` (DNS Cloudflare).
 # `letsencryptresolver` (HTTP challenge) NÃO é usado neste stack.
-# Postgres: banco `sejaengajado` no Supabase self-hosted (sem serviço Postgres aqui).
+# Postgres: banco `sejaengajado` no Supabase self-hosted (host Docker `supabase_supabase_db`
+# na rede TarcisoDevNet — sem rede overlay separada).
 # Sem Redis (⏳P11). Sem valores de segredo — só nomes external.
 # Deploy na VPS: Tarciso/Atlas. Validar: docker stack config -c infra/stack.yml
+# Env do deploy (obrigatórios onde marcado): IMAGE_TAG, BACKUP_TAG, S3_ENDPOINT;
+# opcional: ASAAS_BASE_URL (default sandbox), SUPABASE_ANON_KEY.
 
 version: "3.8"
 
@@ -32,7 +35,10 @@ services:
       NODE_ENV: production
       PORT: "4000"
       API_INTERNAL_URL: http://api:3000
+      API_PUBLIC_URL: /api
       NODE_OPTIONS: --max-old-space-size=192
+      SUPABASE_URL: https://supabase.tarciso.dev
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
       SENTRY_RELEASE: ${IMAGE_TAG:?IMAGE_TAG required}
     secrets: [se_sentry_dsn]
@@ -80,14 +86,16 @@ services:
       NODE_OPTIONS: --max-old-space-size=256
       DATABASE_URL_FILE: /run/secrets/se_database_url
       ADMIN_DATABASE_URL_FILE: /run/secrets/se_admin_database_url
-      SUPABASE_URL: https://auth.sejaengajado.com.br
+      SUPABASE_URL: https://supabase.tarciso.dev
       SUPABASE_JWT_AUD: authenticated
       SUPABASE_JWT_SECRET_FILE: /run/secrets/se_supabase_jwt_secret
       SUPABASE_SERVICE_ROLE_KEY_FILE: /run/secrets/se_supabase_service_role_key
-      ASAAS_BASE_URL: https://api.asaas.com/v3
+      # Sandbox por padrão; produção: ASAAS_BASE_URL=https://api.asaas.com/v3 no deploy.
+      ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}
       ASAAS_API_KEY_FILE: /run/secrets/se_asaas_api_key
       ASAAS_WEBHOOK_TOKEN_FILE: /run/secrets/se_asaas_webhook_token
-      S3_ENDPOINT: https://r2.cloudflarestorage.com
+      # Conta R2: https://<ACCOUNT_ID>.r2.cloudflarestorage.com (env do deploy).
+      S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT required}
       S3_REGION: auto
       S3_BUCKET: se-uploads
       S3_BACKUP_BUCKET: se-backup
@@ -110,7 +118,8 @@ services:
       - se_smtp_url
       - se_hc_jobs_url
       - se_sentry_dsn
-    networks: [TarcisoDevNet, se_internal, supabase_network]
+    # DB via supabase_supabase_db na TarcisoDevNet (sem supabase_network).
+    networks: [TarcisoDevNet, se_internal]
     logging: *logging
     healthcheck:
       # Liveness — readiness (DB+R2) fica no Traefik LB abaixo.
@@ -162,7 +171,7 @@ services:
         "export DATABASE_URL=$$(tr -d '\\r\\n' < /run/secrets/se_admin_database_url) && npx prisma migrate deploy",
       ]
     secrets: [se_admin_database_url]
-    networks: [supabase_network]
+    networks: [TarcisoDevNet]
     deploy:
       replicas: 0
       restart_policy: { condition: none }
@@ -183,8 +192,8 @@ services:
       - se_backup_age_pubkey
       - se_rclone_conf
       - se_hc_backup_url
-    # supabase_network = Postgres; TarcisoDevNet = egress R2/Healthchecks
-    networks: [supabase_network, TarcisoDevNet]
+    # Postgres em supabase_supabase_db + egress R2/Healthchecks — ambos na TarcisoDevNet.
+    networks: [TarcisoDevNet]
     logging: *logging
     deploy:
       <<: *deploy_common
@@ -196,8 +205,6 @@ services:
 networks:
   TarcisoDevNet: { external: true }
   se_internal: { driver: overlay, internal: true, attachable: false }
-  # Nome a confirmar no levantamento F0.1 (rede overlay do Supabase self-hosted).
-  supabase_network: { external: true, name: supabase_network }
 
 secrets:
   se_database_url: { external: true, name: se_database_url_v1 }

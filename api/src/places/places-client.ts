@@ -1,5 +1,4 @@
-import { SiteAddress } from '../models/domain';
-import { PlaceMatch } from './place-match';
+import type { PlaceAddress, PlaceMatch } from './place-match';
 
 interface PlaceComponent {
   longText?: string;
@@ -42,7 +41,7 @@ export function toMatch(place: PlaceResult): PlaceMatch {
     return (form === 'short' ? found?.shortText : found?.longText) ?? '';
   };
   const street = [component('route'), component('street_number')].filter(Boolean).join(', ');
-  const address: SiteAddress = {
+  const address: PlaceAddress = {
     logradouro: street || place.formattedAddress || '',
     cidade: component('locality') || component('administrative_area_level_2'),
     uf: component('administrative_area_level_1', 'short'),

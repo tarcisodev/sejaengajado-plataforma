@@ -19,7 +19,7 @@ Referências: Fase 0 (`infra/runbooks/fase0/`), wildcard (`infra/runbooks/06-cer
 - [ ] R2: `se-uploads` / `se-backup` (+ mídia); lifecycle 30d no backup.
 - [ ] Healthchecks.io: `se-pg-backup-daily`, `se-restore-monthly`, `se-jobs`, `vps-host`.
 - [ ] Sentry project + DSN em `se_sentry_dsn_v1`.
-- [ ] UptimeRobot: raiz, `app.`, `app./api/health/ready`, `teste.` + alerta de certificado.
+- [ ] UptimeRobot: raiz, `app.`, `app./api/health/ready` + alerta de certificado (sem `teste.*` até haver site).
 - [ ] Asaas: sandbox e2e (05-B7) verde → conta produção aprovada; secrets trocados; URL webhook cadastrada.
 
 ## 3. Runner e CI
@@ -32,7 +32,7 @@ Referências: Fase 0 (`infra/runbooks/fase0/`), wildcard (`infra/runbooks/06-cer
 ## 4. Certificado wildcard (produção)
 
 - [ ] Runbook `06-cert-producao.md` executado na janela ⏳P22 (sem alteração DNS neste passo).
-- [ ] `openssl s_client -servername teste.sejaengajado.com.br` → emissor produção, SAN `*.sejaengajado.com.br` + apex.
+- [ ] `openssl s_client -servername app.sejaengajado.com.br` → emissor produção, SAN `*.sejaengajado.com.br` + apex.
 - [ ] Outros stacks Traefik (ts/painel/qr) ainda respondem.
 
 ## 5. Backup + restore (antes de dados reais)
@@ -58,10 +58,9 @@ curl -fsS https://app.sejaengajado.com.br/api/health
 curl -fsS https://app.sejaengajado.com.br/api/health/ready
 curl -sI https://sejaengajado.com.br | head -1
 curl -sI https://app.sejaengajado.com.br | head -1
-curl -fsS -o /dev/null -w '%{http_code}\n' https://teste.sejaengajado.com.br
 curl -sI http://sejaengajado.com.br | grep -i location   # redirect https
-echo | openssl s_client -servername teste.sejaengajado.com.br \
-  -connect teste.sejaengajado.com.br:443 2>/dev/null \
+echo | openssl s_client -servername app.sejaengajado.com.br \
+  -connect app.sejaengajado.com.br:443 2>/dev/null \
   | openssl x509 -noout -issuer -subject -dates -ext subjectAltName
 docker service ls | grep sejaengajado
 free -m

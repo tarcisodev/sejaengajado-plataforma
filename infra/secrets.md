@@ -21,9 +21,9 @@ read -rs V && printf '%s' "$V" | docker secret create <nome> - && unset V
 | Nome | Uso | Notas |
 | --- | --- | --- |
 | `cf_dns_api_token_v1` | Traefik `cfdns` (DNS challenge Cloudflare) | Zone DNS Edit + Zone Read; só no stack Traefik |
-| `se_database_url_v1` | Prisma app (`se_app`, sem BYPASSRLS) → `DATABASE_URL_FILE` | Banco `sejaengajado` no Postgres do Supabase |
-| `se_admin_database_url_v1` | Prisma admin (`se_admin`, BYPASSRLS) → `ADMIN_DATABASE_URL_FILE` | Só caminhos ADMIN / SYSTEM |
-| `se_backup_database_url_v1` | `pg_dump` role só leitura + `BYPASSRLS` | Nunca a role da app |
+| `se_database_url_v1` | Prisma app (`se_app`, sem BYPASSRLS) → `DATABASE_URL_FILE` | Host `supabase_supabase_db` na `TarcisoDevNet` |
+| `se_admin_database_url_v1` | Prisma admin (`se_admin`, BYPASSRLS) → `ADMIN_DATABASE_URL_FILE` | BYPASSRLS via bootstrap superuser |
+| `se_backup_database_url_v1` | `pg_dump` role só leitura + `BYPASSRLS` | Nunca a role da app; bootstrap em `db-bootstrap-roles.md` |
 | `se_supabase_service_role_key_v1` | Admin Auth API → `SUPABASE_SERVICE_ROLE_KEY_FILE` | |
 | `se_smtp_url_v1` | Avisos/jobs e-mail → `SMTP_URL_FILE` | |
 | `se_asaas_api_key_v1` | Asaas (produção no go-live) → `ASAAS_API_KEY_FILE` | Sandbox só local via arquivo |
@@ -55,5 +55,6 @@ Deploy (`.github/workflows/deploy.yml`) usa **apenas** `secrets.GITHUB_TOKEN` pa
 
 ## O que NÃO é secret
 
-- `SUPABASE_URL`, `ASAAS_BASE_URL`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_BACKUP_BUCKET`, `S3_REGION`, `ENABLE_DOCS` — env públicas no `stack.yml`.
+- `SUPABASE_URL` (`https://supabase.tarciso.dev`), `ASAAS_BASE_URL` (env deploy; default sandbox), `S3_ENDPOINT` (env deploy com account id R2), `S3_BUCKET`, `S3_BACKUP_BUCKET`, `S3_REGION`, `ENABLE_DOCS`, `SUPABASE_ANON_KEY` (anon pública no web-ssr) — não são Docker secrets.
 - Certresolver Traefik: **`cfdns`** (DNS Cloudflare, wildcard/produção). **`letsencryptresolver`** = HTTP challenge (outros stacks; não usar neste).
+- Roles BYPASSRLS: passo único `infra/runbooks/db-bootstrap-roles.md` (não nas migrations).

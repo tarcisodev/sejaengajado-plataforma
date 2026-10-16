@@ -9,24 +9,8 @@ import {
 } from '@angular/core';
 import * as Sentry from '@sentry/angular';
 
+import { loadPublicConfig } from '../config/public-config';
 import { scrubSentryEvent } from './scrub';
-
-interface PublicSentryConfig {
-  sentryDsn: string | null;
-  sentryRelease: string | null;
-}
-
-async function loadPublicConfig(): Promise<PublicSentryConfig> {
-  try {
-    const res = await fetch('/se-public-config.json', { credentials: 'same-origin' });
-    if (!res.ok) {
-      return { sentryDsn: null, sentryRelease: null };
-    }
-    return (await res.json()) as PublicSentryConfig;
-  } catch {
-    return { sentryDsn: null, sentryRelease: null };
-  }
-}
 
 /** Browser Sentry: DSN vem do SSR (arquivo *_FILE no container) via /se-public-config.json. */
 export function provideSentry(): EnvironmentProviders {
