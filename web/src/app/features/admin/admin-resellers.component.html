@@ -17,7 +17,22 @@
     <div hlmAlert variant="destructive" data-block-error>{{ error() }}</div>
   }
   @if (message()) {
-    <div hlmAlert>{{ message() }}</div>
+    <div hlmAlert data-create-reseller-message>
+      {{ message() }}
+      @if (inviteActionLink(); as link) {
+        <p class="mt-2 break-all text-sm" data-invite-link>{{ link }}</p>
+        <button
+          hlmBtn
+          class="mt-2 h-9"
+          type="button"
+          variant="outline"
+          data-copy-invite
+          (click)="copyInviteLink()"
+        >
+          Copiar link de convite
+        </button>
+      }
+    </div>
   }
   @if (creating()) {
     <section hlmCard>

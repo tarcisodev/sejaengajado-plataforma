@@ -95,6 +95,15 @@ export class ResellersService {
     }
 
     const invited = await this.supabaseAdmin.inviteUserByEmail(input.email);
+    // Link de recuperação/convite para o admin copiar quando o e-mail fica só capturado em local (P16).
+    let inviteActionLink: string | null = null;
+    try {
+      const recovery = await this.supabaseAdmin.generateRecoveryLink(input.email);
+      inviteActionLink = recovery.actionLink;
+    } catch {
+      inviteActionLink = null;
+    }
+
     const reseller = await this.db.reseller.create({
       data: {
         name: input.name,
@@ -121,7 +130,7 @@ export class ResellersService {
       },
     });
 
-    return reseller;
+    return { ...reseller, inviteActionLink };
   }
 
   async patch(id: string, input: z.infer<typeof patchResellerSchema>) {

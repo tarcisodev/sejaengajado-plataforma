@@ -104,6 +104,34 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
     await checkoutPending;
   });
 
+  it('posts admin reseller create with name/email/plan (FF1)', async () => {
+    const pending = firstValueFrom(
+      api.createReseller({
+        nome: 'Revenda Nova',
+        userId: 'nova@example.com',
+        resellerPlanId: '11111111-1111-4111-8111-111111111111',
+      }),
+    );
+    await Promise.resolve();
+    const req = http.expectOne((r) => r.url.includes('/admin/resellers') && r.method === 'POST');
+    expect(req.request.body).toEqual({
+      name: 'Revenda Nova',
+      email: 'nova@example.com',
+      resellerPlanId: '11111111-1111-4111-8111-111111111111',
+    });
+    req.flush({
+      id: 'r-new',
+      name: 'Revenda Nova',
+      resellerPlanId: '11111111-1111-4111-8111-111111111111',
+      status: 'ACTIVE',
+      users: [{ id: 'u-new' }],
+      inviteActionLink: 'https://auth.local/invite',
+    });
+    const created = await pending;
+    expect(created.inviteActionLink).toBe('https://auth.local/invite');
+    expect(created.nome).toBe('Revenda Nova');
+  });
+
   it('sends Idempotency-Key on plaque movement POST', async () => {
     const key = 'plaque-in-1';
     const pending = firstValueFrom(

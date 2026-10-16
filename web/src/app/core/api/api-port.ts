@@ -66,6 +66,12 @@ export interface CreateResellerCommand {
   resellerPlanId: string;
 }
 
+/** Resposta de criar revendedor (convite Supabase). */
+export interface CreateResellerResult extends Reseller {
+  /** Link de convite/recovery para copiar em dev (e-mail capturado localmente). */
+  inviteActionLink?: string | null;
+}
+
 export interface CreateSiteCommand {
   customerId: string;
   slug: string;
@@ -96,7 +102,7 @@ export interface ApiPort {
   listCoupons(): Observable<Coupon[]>;
   listResellers(): Observable<Reseller[]>;
   listResellerPlans(): Observable<ResellerPlan[]>;
-  createReseller(command: CreateResellerCommand): Observable<Reseller>;
+  createReseller(command: CreateResellerCommand): Observable<CreateResellerResult>;
   listCustomers(resellerId?: string | null): Observable<Customer[]>;
   createCustomer(command: CreateCustomerCommand): Observable<Customer>;
   listSites(resellerId?: string | null): Observable<Site[]>;

@@ -52,6 +52,7 @@ import {
   BlockResellerCommand,
   CreateCustomerCommand,
   CreateResellerCommand,
+  CreateResellerResult,
   CreateSiteCommand,
   CustomerOtp,
   NoticeRecord,
@@ -121,14 +122,19 @@ export class HttpApiService implements ApiPort {
       .pipe(map((body) => asItems(body).map(mapResellerPlan)));
   }
 
-  createReseller(command: CreateResellerCommand): Observable<Reseller> {
+  createReseller(command: CreateResellerCommand): Observable<CreateResellerResult> {
     return this.http
       .post<Record<string, unknown>>(this.url('/admin/resellers'), {
         name: command.nome.trim(),
         email: command.userId.trim(),
         resellerPlanId: command.resellerPlanId,
       })
-      .pipe(map(mapReseller));
+      .pipe(
+        map((body) => ({
+          ...mapReseller(body),
+          inviteActionLink: (body['inviteActionLink'] as string | null | undefined) ?? null,
+        })),
+      );
   }
 
   listCustomers(_resellerId?: string | null): Observable<Customer[]> {

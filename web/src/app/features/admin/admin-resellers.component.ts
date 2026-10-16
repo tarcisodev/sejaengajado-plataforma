@@ -43,6 +43,7 @@ export class AdminResellersComponent {
   readonly resellerPlanId = signal('');
   readonly graceDays = signal(30);
   readonly message = signal('');
+  readonly inviteActionLink = signal<string | null>(null);
   readonly error = signal('');
   readonly ready = signal(false);
   readonly placeholders = [1, 2, 3];
@@ -186,12 +187,26 @@ export class AdminResellersComponent {
         resellerPlanId: this.resellerPlanId(),
       })
       .subscribe({
-        next: () => {
+        next: (created) => {
           this.creating.set(false);
-          this.message.set('Revendedor criado (convite por e-mail).');
+          this.inviteActionLink.set(created.inviteActionLink ?? null);
+          this.message.set(
+            created.inviteActionLink
+              ? 'Revendedor criado. Em dev o e-mail fica capturado localmente — use o link abaixo (ou a caixa do Auth) para o OTP.'
+              : 'Revendedor criado (convite por e-mail).',
+          );
           this.reload();
         },
         error: () => toast.error('Não foi possível criar o revendedor.'),
       });
+  }
+
+  async copyInviteLink(): Promise<void> {
+    const link = this.inviteActionLink();
+    if (!link || !navigator.clipboard?.writeText) {
+      return;
+    }
+    await navigator.clipboard.writeText(link);
+    toast.success('Link de convite copiado.');
   }
 }

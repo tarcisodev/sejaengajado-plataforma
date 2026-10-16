@@ -18,6 +18,7 @@ import {
   BlockResellerCommand,
   CreateCustomerCommand,
   CreateResellerCommand,
+  CreateResellerResult,
   CreateSiteCommand,
   NoticeRecord,
 } from '../core/api/api-port';
@@ -191,8 +192,8 @@ export class MockApiService implements ApiPort {
     return of(structuredClone(this.state.resellerPlans));
   }
 
-  createReseller(command: CreateResellerCommand): Observable<Reseller> {
-    const reseller: Reseller = {
+  createReseller(command: CreateResellerCommand): Observable<CreateResellerResult> {
+    const reseller: CreateResellerResult = {
       id: `res_created_${this.state.resellers.length + 1}`,
       userId: command.userId.trim(),
       nome: command.nome.trim(),
@@ -202,6 +203,7 @@ export class MockApiService implements ApiPort {
       blockedAt: null,
       blockReason: null,
       asaasWalletId: null,
+      inviteActionLink: `https://auth.example.local/invite?email=${encodeURIComponent(command.userId.trim())}`,
     };
     this.state.resellers.push(reseller);
     return of(structuredClone(reseller));
