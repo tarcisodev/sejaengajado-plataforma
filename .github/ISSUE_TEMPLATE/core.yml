@@ -11,10 +11,40 @@ body:
     validations:
       required: true
   - type: textarea
-    id: passos
+    id: aceite
     attributes:
-      label: "Critério de aceite"
-      description: "- [ ] … (verificável; inclua o teste que prova)"
+      label: "Critérios de aceite (Dado/Quando/Então)"
+      description: |
+        Formato obrigatório, um cenário por bloco:
+        Dado … / Quando … / Então …
+        Inclua o teste que prova (unit/int/e2e) quando souber.
+      placeholder: |
+        Dado um admin autenticado com MFA
+        Quando ele publica um site DRAFT
+        Então o subdomínio responde 200 com o nome do negócio
+    validations:
+      required: true
+  - type: dropdown
+    id: papel
+    attributes:
+      label: "Papel afetado (admin/revendedor/cliente/público)"
+      multiple: true
+      options: [admin, revendedor, cliente, público]
+    validations:
+      required: true
+  - type: textarea
+    id: fora
+    attributes:
+      label: "Fora do escopo"
+      description: "O que explicitamente NÃO entra neste trabalho."
+      placeholder: "Ex.: impersonar, cupom no checkout, deploy manual…"
+    validations:
+      required: true
+  - type: dropdown
+    id: decisao
+    attributes:
+      label: "Decisão de negócio em aberto? (sim/não)"
+      options: ["não", "sim"]
     validations:
       required: true
   - type: dropdown
