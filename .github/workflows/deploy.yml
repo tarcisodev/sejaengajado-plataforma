@@ -35,9 +35,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Expand/contract — block DROP/RENAME in new migrations
+      - name: Expand/contract — block DROP/RENAME after production baseline
         env:
           BASE_REF: ${{ github.event.before }}
+          # Migrations ≤ 20261015250000 já aplicadas; ver check-migration-expand.sh
+          MIGRATION_EXPAND_BASELINE: "20261015250000"
         run: bash infra/scripts/check-migration-expand.sh
 
   build:
