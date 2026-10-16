@@ -21,10 +21,10 @@
 | SEO1 | DONE | 1164d01 | 2026-10-16 |
 | UI7 | DONE | 9fd9d66 | 2026-10-16 |
 | DOC1 | DONE | f8c73ef | 2026-10-16 |
-| HX | DONE | — | 2026-10-16 |
+| HX | DONE | f1cfaac | 2026-10-16 |
 
 ## Ultimo bloco
-HX — Happy-path e2e endurecido (Playwright + sandbox OK).
+HX — Happy-path e2e endurecido (f1cfaac; Playwright skip-safe + sandbox OK).
 
 ## Proximo
 _(fila PROGRESS vazia — Marco 1 / go-live checklist em `docs/GO-LIVE.md`)_
