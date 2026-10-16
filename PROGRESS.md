@@ -1,4 +1,4 @@
-﻿ï»¿# PROGRESS â Seja Engajado
+﻿# PROGRESS - Seja Engajado
 
 | Bloco | Status | Commit | Data |
 |---|---|---|---|
@@ -26,21 +26,21 @@
 | FLUXO-FELIZ M0 | DONE | 579ee61 | 2026-10-16 |
 
 ## Ultimo bloco
-FLUXO-FELIZ M0 â bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
+FLUXO-FELIZ M0 - bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
 
 ## Proximo
-FLUXO-FELIZ M1 â admin-site.spec + site-editor + 0.e/f5/0.c/0.d (apos aprovacao do deploy M0).
+FLUXO-FELIZ M1 - admin-site.spec + site-editor + 0.e/f5/0.c/0.d (apos aprovacao do deploy M0).
 
 ## Bloqueios / perguntas para o Tarciso
-_(nenhum dos #1â#6)_
+_(nenhum dos #1-#6)_
 
 ## Decisoes assumidas (recomendacao padrao)
-- P2/P2a â JWT HS256; P10 â pg-boss; P12 â 404 tenants; P27 â impersonacao read-only
-- Marca â opcao C; BR1 aplicar pack (jÃ¡ em web/public)
+- P2/P2a -> JWT HS256; P10 -> pg-boss; P12 -> 404 tenants; P27 -> impersonacao read-only
+- Marca -> opcao C; BR1 aplicar pack (ja em web/public)
 - FF3: LU1 reduzido a 1 tema (generico); demais nichos no LU1+
-- #4 â deploy teste OK (sÃ³ push; aprovaÃ§Ã£o manual no environment production)
-- #1 â SMTP Resend (`se_smtp_url_v1`)
-- #2 â secrets + Cloudflare/Traefik OK
-- #5 â precos-v1.md Â§4 (placa 10000, kit 15000)
-- #6 â juridico publicar agora; advogado depois (nÃ£o bloqueia). Artefato: `producao/juridico-final.tgz`
-- #3 â VPS 8G/2vCPU OK para piloto
+- #4 -> deploy teste OK (so push; aprovacao manual no environment production)
+- #1 -> SMTP Resend (se_smtp_url_v1)
+- #2 -> secrets + Cloudflare/Traefik OK
+- #5 -> precos-v1.md §4 (placa 10000, kit 15000)
+- #6 -> juridico publicar agora; advogado depois (nao bloqueia). Artefato: producao/juridico-final.tgz
+- #3 -> VPS 8G/2vCPU OK para piloto
