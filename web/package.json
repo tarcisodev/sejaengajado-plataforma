@@ -9,11 +9,13 @@
     "test": "ng test",
     "serve:ssr:web": "node dist/web/server/server.mjs",
     "lint": "ng lint",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
     "e2e": "playwright test",
     "e2e:happy": "playwright test e2e/happy-path.spec.ts",
     "e2e:fluxo-feliz": "playwright test e2e/fluxo-feliz",
+    "e2e:fluxo-feliz:smoke": "playwright test e2e/fluxo-feliz --grep @smoke",
     "e2e:publico:prod": "node scripts/e2e-publico-prod.mjs"
   },
   "private": true,

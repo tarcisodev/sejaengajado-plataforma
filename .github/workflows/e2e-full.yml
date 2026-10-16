@@ -1,0 +1,95 @@
+# Suíte e2e completa (fluxo-feliz) — push em master ou nightly.
+# No PR só roda @smoke (ver pr-ci.yml).
+name: e2e-full
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "api/**"
+      - "web/**"
+      - "docker-compose.dev.yml"
+      - "scripts/dev-auth.mjs"
+      - ".github/workflows/e2e-full.yml"
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-full
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  e2e-full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-pw-${{ hashFiles('web/package-lock.json') }}
+      - name: Dev auth + compose
+        run: |
+          cp .env.local.example .env.local
+          node scripts/dev-auth.mjs init
+          docker compose -f docker-compose.dev.yml --env-file .env.local up -d
+          for i in $(seq 1 60); do
+            docker compose -f docker-compose.dev.yml --env-file .env.local exec -T postgres pg_isready -U postgres -d sejaengajado && break
+            sleep 2
+          done
+      - name: API + Web + Playwright (full fluxo-feliz)
+        env:
+          DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          ADMIN_DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          ALLOW_DEMO_SEED: "1"
+        run: |
+          set -a
+          # shellcheck disable=SC1091
+          . .env.local
+          set +a
+          (cd api && npm ci && npx prisma generate && npx prisma migrate deploy && npm run build && npm run seed:demo || true && npm run seed:showcase || true)
+          export SUPABASE_JWT_SECRET_FILE="${SUPABASE_JWT_SECRET_FILE:-}"
+          if [ -z "$SUPABASE_JWT_SECRET_FILE" ] && [ -n "${SUPABASE_JWT_SECRET:-}" ]; then
+            mkdir -p .local/dev-secrets
+            printf '%s' "$SUPABASE_JWT_SECRET" > .local/dev-secrets/jwt
+            export SUPABASE_JWT_SECRET_FILE="$PWD/.local/dev-secrets/jwt"
+          fi
+          nohup env \
+            DATABASE_URL="$DATABASE_URL" \
+            ADMIN_DATABASE_URL="$ADMIN_DATABASE_URL" \
+            SUPABASE_URL="${SUPABASE_URL:-http://localhost:9999}" \
+            SUPABASE_JWT_SECRET_FILE="$SUPABASE_JWT_SECRET_FILE" \
+            ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}" \
+            PORT=3000 \
+            node api/dist/main.js > /tmp/se-api-e2e.log 2>&1 &
+          echo $! > /tmp/se-api-e2e.pid
+          for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:3000/api/health/ready" && break; sleep 2; done
+          (cd web && npm ci && npm run build && npx playwright install chromium --with-deps)
+          nohup env PORT=4000 API_INTERNAL_URL=http://127.0.0.1:3000 npm run --prefix web serve:ssr:web > /tmp/se-web-e2e.log 2>&1 &
+          echo $! > /tmp/se-web-e2e.pid
+          for i in $(seq 1 60); do curl -fsS -o /dev/null "http://127.0.0.1:4000/" && break; sleep 2; done
+          E2E_HAPPY_PATH=1 \
+          E2E_BASE_URL=http://127.0.0.1:4000 \
+          E2E_APEX=http://127.0.0.1:4000 \
+          E2E_APP_BASE=http://127.0.0.1:4000 \
+          E2E_API_BASE=http://127.0.0.1:3000 \
+          npm run --prefix web e2e:fluxo-feliz
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ -f /tmp/se-api-e2e.pid ]; then kill "$(cat /tmp/se-api-e2e.pid)" || true; fi
+          if [ -f /tmp/se-web-e2e.pid ]; then kill "$(cat /tmp/se-web-e2e.pid)" || true; fi
+          docker compose -f docker-compose.dev.yml --env-file .env.local down -v || true

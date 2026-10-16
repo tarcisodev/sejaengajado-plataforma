@@ -8,11 +8,12 @@ Deploy de produção continua em `.github/workflows/deploy.yml` com aprovação 
 ```
 branch → PR → master
    │
-   ├─ pr-ci (ubuntu-latest, GitHub-hosted)
-   │    paths-filter (docs-only → pr-ci-ok verde sem jobs pesados)
-   │    lint · test · test:int · build · bundle-budget
-   │    docker-build (push:false + smoke)
-   │    e2e fluxo-feliz (compose de dev) · migration-guard · gitleaks · risk-tier
+   ├─ pr-ci (ubuntu-latest, alvo < 5 min)
+   │    paths-filter (docs-only → só pr-ci-ok; web-only → sem test-int)
+   │    quick-api / quick-web (lint+typecheck+unit, 1× npm ci + cache nm)
+   │    test-int (só se api/**) · build (artifacts) · docker-build (só Dockerfile/pkg/src)
+   │    e2e @smoke (baixa api-dist/web-dist; Postgres service; Playwright cache)
+   │    suíte completa: e2e-full.yml (push master / nightly)
    │
    └─ agent-review (workflow_run, modo sombra)
         comenta score/gates · labels score:* + trilho:*

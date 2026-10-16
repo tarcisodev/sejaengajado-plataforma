@@ -18,7 +18,7 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
   test.skip(!prodSmoke && process.env['E2E_HAPPY_PATH'] !== '1', 'Set E2E_PUBLICO_PROD=1 or E2E_HAPPY_PATH=1');
 
   for (const demo of demos) {
-    test(`${demo.slug} returns 200 with business name`, async ({ request }) => {
+    test(`${demo.slug} returns 200 with business name @smoke`, async ({ request }) => {
       const url = prodSmoke
         ? `https://${demo.slug}.sejaengajado.com.br/`
         : `${apex}/?tenant=${demo.slug}`;
@@ -33,7 +33,7 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     });
   }
 
-  test('unknown subdomain returns a clean 404', async ({ request }) => {
+  test('unknown subdomain returns a clean 404 @smoke', async ({ request }) => {
     const url = prodSmoke
       ? 'https://slug-inexistente-fluxo-feliz.sejaengajado.com.br/'
       : `${apex}/?tenant=slug-inexistente-fluxo-feliz`;
@@ -44,13 +44,13 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     expect(body).toMatch(/não (encontr|está publicado)|Negócio não encontrado/i);
   });
 
-  test('API health ready', async ({ request }) => {
+  test('API health ready @smoke', async ({ request }) => {
     const healthBase = process.env['E2E_API_BASE'] ?? 'https://app.sejaengajado.com.br';
     const res = await request.get(`${healthBase.replace(/\/$/, '')}/api/health/ready`);
     expect(res.ok()).toBeTruthy();
   });
 
-  test('/entrar is reachable', async ({ request }) => {
+  test('/entrar is reachable @smoke', async ({ request }) => {
     const appBase = process.env['E2E_APP_BASE'] ?? 'https://app.sejaengajado.com.br';
     const res = await request.get(`${appBase.replace(/\/$/, '')}/entrar`);
     expect([200, 301, 302]).toContain(res.status());
