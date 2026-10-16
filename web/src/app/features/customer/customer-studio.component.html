@@ -319,6 +319,92 @@
                 />
               </div>
             </div>
+            <div hlmTabsContent="aparencia" class="grid gap-4" data-appearance-editor>
+              <div hlmField>
+                <label hlmFieldLabel for="niche">Tema por nicho</label>
+                <hlm-select
+                  [value]="site.content.theme.niche ?? 'generico'"
+                  [itemToString]="nicheLabel"
+                  (valueChange)="setNiche($event)"
+                >
+                  <hlm-select-trigger class="h-11 w-full" id="niche" data-appearance-niche>
+                    <hlm-select-value />
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    @for (niche of nicheOptions; track niche) {
+                      <hlm-select-item [value]="niche">{{ nicheLabel(niche) }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </hlm-select>
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="brand-color">Cor da marca</label>
+                <input
+                  hlmInput
+                  id="brand-color"
+                  class="h-11"
+                  type="color"
+                  data-appearance-brand
+                  [value]="site.content.theme.brandColor || site.content.theme.p1"
+                  (input)="setBrandColor(inputValue($event))"
+                />
+              </div>
+              @if (!brandContrastOk()) {
+                <div hlmAlert variant="destructive" data-contrast-warn>
+                  <p hlmAlertDescription>
+                    Essa cor não passa no contraste AA para texto. Sugestão:
+                    <button
+                      hlmBtn
+                      class="h-11"
+                      type="button"
+                      variant="outline"
+                      (click)="setBrandColor(suggestedBrandColor())"
+                    >
+                      Usar {{ suggestedBrandColor() }}
+                    </button>
+                  </p>
+                </div>
+              }
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="size-4"
+                  data-appearance-strip
+                  [checked]="site.content.strip?.enabled === true"
+                  (change)="setStripEnabled(inputChecked($event))"
+                />
+                Faixa animada
+              </label>
+              @if (site.content.strip?.enabled) {
+                <div hlmField>
+                  <label hlmFieldLabel for="strip-motif">Motivo da faixa</label>
+                  <hlm-select
+                    [value]="site.content.strip?.motif ?? 'circulos'"
+                    [itemToString]="stripLabel"
+                    (valueChange)="setStripMotif($event)"
+                  >
+                    <hlm-select-trigger class="h-11 w-full" id="strip-motif">
+                      <hlm-select-value />
+                    </hlm-select-trigger>
+                    <hlm-select-content>
+                      @for (motif of stripOptions; track motif) {
+                        <hlm-select-item [value]="motif">{{ stripLabel(motif) }}</hlm-select-item>
+                      }
+                    </hlm-select-content>
+                  </hlm-select>
+                </div>
+              }
+              <button
+                hlmBtn
+                class="h-11"
+                type="button"
+                variant="outline"
+                data-appearance-reset
+                (click)="resetAppearance()"
+              >
+                Restaurar padrão do tema
+              </button>
+            </div>
             <div hlmTabsContent="publicar" class="grid gap-4">
               @if (site.plaqueFidelityEndsAt) {
                 <h2 class="font-display text-xl">Cancelar o plano mensal</h2>
@@ -396,8 +482,36 @@
         </footer>
       }
     </section>
-    <div class="min-w-0 overflow-x-auto lg:sticky lg:top-6">
-      <app-site-page [site]="site" [embed]="true" />
+    <div class="min-w-0 lg:sticky lg:top-6" data-appearance-preview>
+      <div class="mb-2 flex flex-wrap gap-2">
+        <button
+          hlmBtn
+          class="h-11"
+          type="button"
+          [variant]="previewWidth() === 390 ? 'default' : 'outline'"
+          data-preview-390
+          (click)="setPreviewWidth(390)"
+        >
+          Mobile
+        </button>
+        <button
+          hlmBtn
+          class="h-11"
+          type="button"
+          [variant]="previewWidth() === 1440 ? 'default' : 'outline'"
+          data-preview-1440
+          (click)="setPreviewWidth(1440)"
+        >
+          Desktop
+        </button>
+      </div>
+      <div
+        class="overflow-x-auto rounded-lg border border-border bg-background"
+        [style.width.px]="previewWidth() === 390 ? 390 : null"
+        [style.maxWidth]="previewWidth() === 1440 ? '100%' : null"
+      >
+        <app-site-page [site]="site" [embed]="true" />
+      </div>
     </div>
   </div>
 }

@@ -111,12 +111,33 @@ describe('CustomerStudioComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-field="businessName"]')).toBeNull();
   });
 
+  it('updates niche and strip in the appearance editor and live preview', async () => {
+    await render(customer('user_forno', 'forno@example.com'));
+    fixture.componentInstance.activate('aparencia');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-appearance-editor]')).toBeTruthy();
+
+    fixture.componentInstance.setNiche('barbearia');
+    fixture.componentInstance.setStripEnabled(true);
+    fixture.componentInstance.setStripMotif('tesoura');
+    fixture.detectChanges();
+
+    const draft = fixture.componentInstance.draft();
+    expect(draft?.content.theme.niche).toBe('barbearia');
+    expect(draft?.content.strip?.motif).toBe('tesoura');
+    expect(fixture.nativeElement.querySelector('[data-animated-strip]')).toBeTruthy();
+
+    fixture.componentInstance.resetAppearance();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.draft()?.content.strip?.enabled).toBe(false);
+  });
+
   it('stores the plaque fine and keeps it after the plaque price changes', async () => {
     await render(customer('user_forno', 'forno@example.com'));
     const quote = await firstValueFrom(
       TestBed.inject(MockApiService).quotePlaquePenalty('site_forno', TODAY),
     );
-    fixture.componentInstance.step.set(5);
+    fixture.componentInstance.step.set(6);
     fixture.detectChanges();
 
     expect(

@@ -22,10 +22,34 @@ import { PlaquePenaltyQuote } from '../../core/api/plaque-penalty';
 import { AuthService } from '../../core/auth/auth.service';
 import { canEditSite, renewalLeadDays } from '../../core/customer/access';
 import { siteDraftErrors } from '../../core/customer/draft-errors';
-import { Cancellation, Site, SiteContent, SiteHours, Template } from '../../core/models/domain';
+import {
+  Cancellation,
+  Site,
+  SiteContent,
+  SiteHours,
+  StripMotif,
+  Template,
+} from '../../core/models/domain';
+import {
+  NICHE_THEMES,
+  NicheThemeKey,
+  contrastRatio,
+  pickTextColor,
+} from '../../core/theme/niche-themes';
 import { themeForTemplate } from '../../mocks/site-bios';
 import { formatBrl } from '../landing/landing-seo';
 import { SitePageComponent } from '../tenant-site/site-page.component';
+
+const NICHE_OPTIONS: NicheThemeKey[] = [
+  'generico',
+  'barbearia',
+  'restaurante',
+  'moda',
+  'beleza',
+  'saude',
+];
+
+const STRIP_OPTIONS: StripMotif[] = ['tesoura', 'pizza', 'circulos', 'estrelas', 'none'];
 
 const UPLOAD_ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
@@ -59,15 +83,19 @@ export class CustomerStudioComponent {
   private readonly auth = inject(AuthService);
   readonly today = inject(CUSTOMER_TODAY, { optional: true }) ?? new Date();
   readonly formatBrl = formatBrl;
-  readonly steps = ['Negócio', 'Links', 'Horários', 'Fotos', 'Modelo', 'Publicar'];
+  readonly steps = ['Negócio', 'Links', 'Horários', 'Fotos', 'Modelo', 'Aparência', 'Publicar'];
   readonly stepKeys: readonly string[] = [
     'negocio',
     'links',
     'horarios',
     'fotos',
     'modelo',
+    'aparencia',
     'publicar',
   ];
+  readonly nicheOptions = NICHE_OPTIONS;
+  readonly stripOptions = STRIP_OPTIONS;
+  readonly previewWidth = signal<390 | 1440>(390);
   readonly step = signal(0);
   readonly sites = signal<Site[]>([]);
   readonly templates = signal<Template[]>([]);
@@ -103,6 +131,42 @@ export class CustomerStudioComponent {
 
   readonly templateLabel = (id: string): string =>
     this.templates().find((item) => item.id === id)?.nome ?? '';
+
+  readonly nicheLabel = (value: string | null): string => {
+    switch (value) {
+      case 'barbearia':
+        return 'Barbearia';
+      case 'restaurante':
+        return 'Restaurante';
+      case 'moda':
+        return 'Moda';
+      case 'beleza':
+        return 'Beleza';
+      case 'saude':
+        return 'Saúde';
+      case 'generico':
+        return 'Genérico';
+      default:
+        return value ?? '';
+    }
+  };
+
+  readonly stripLabel = (value: string | null): string => {
+    switch (value) {
+      case 'tesoura':
+        return 'Tesoura';
+      case 'pizza':
+        return 'Pizza';
+      case 'circulos':
+        return 'Círculos';
+      case 'estrelas':
+        return 'Estrelas';
+      case 'none':
+        return 'Nenhum';
+      default:
+        return value ?? '';
+    }
+  };
 
   activate(tab: string): void {
     const index = this.stepKeys.indexOf(tab);
@@ -239,6 +303,111 @@ export class CustomerStudioComponent {
 
   patchColor(field: 'p1' | 'p2' | 'p3', value: string): void {
     this.patch((content) => ({ ...content, theme: { ...content.theme, [field]: value } }));
+  }
+
+  setNiche(niche: string | null | undefined): void {
+    if (!niche || !(niche in NICHE_THEMES)) {
+      return;
+    }
+    const key = niche as NicheThemeKey;
+    const pack = NICHE_THEMES[key];
+    this.patch((content) => ({
+      ...content,
+      theme: {
+        ...content.theme,
+        niche: key,
+        p1: pack.legacy.p1,
+        p2: pack.legacy.p2,
+        p3: pack.legacy.p3,
+        on3: pack.legacy.on3,
+        hi: pack.legacy.hi,
+        fontHeading: pack.legacy.fontHeading,
+        fontBody: pack.legacy.fontBody,
+        fontScale: pack.legacy.fontScale,
+        italic: pack.legacy.italic,
+        brandColor: undefined,
+      },
+    }));
+  }
+
+  setBrandColor(value: string): void {
+    this.patch((content) => ({
+      ...content,
+      theme: { ...content.theme, brandColor: value, p1: value },
+    }));
+  }
+
+  brandContrastOk(): boolean {
+    const brand = this.draft()?.content.theme.brandColor || this.draft()?.content.theme.p1;
+    if (!brand) {
+      return true;
+    }
+    return contrastRatio(brand, pickTextColor(brand)) >= 4.5;
+  }
+
+  suggestedBrandColor(): string {
+    const brand =
+      this.draft()?.content.theme.brandColor || this.draft()?.content.theme.p1 || '#1e3a5f';
+    const text = pickTextColor(brand);
+    return contrastRatio(brand, text) >= 4.5 ? brand : text === '#f4f7f6' ? '#102018' : '#f4f7f6';
+  }
+
+  setStripEnabled(enabled: boolean): void {
+    this.patch((content) => ({
+      ...content,
+      strip: {
+        enabled,
+        motif: content.strip?.motif ?? 'circulos',
+        speed: content.strip?.speed ?? 'normal',
+        direction: content.strip?.direction ?? 'left',
+      },
+    }));
+  }
+
+  setStripMotif(motif: string | null | undefined): void {
+    if (!motif) {
+      return;
+    }
+    this.patch((content) => ({
+      ...content,
+      strip: {
+        enabled: content.strip?.enabled ?? true,
+        motif: motif as StripMotif,
+        speed: content.strip?.speed ?? 'normal',
+        direction: content.strip?.direction ?? 'left',
+      },
+    }));
+  }
+
+  resetAppearance(): void {
+    const site = this.draft();
+    if (!site) {
+      return;
+    }
+    const niche = (site.content.theme.niche ?? 'generico') as NicheThemeKey;
+    const pack = NICHE_THEMES[niche] ?? NICHE_THEMES.generico;
+    this.patch((content) => ({
+      ...content,
+      theme: {
+        ...content.theme,
+        niche: pack.key,
+        brandColor: undefined,
+        p1: pack.legacy.p1,
+        p2: pack.legacy.p2,
+        p3: pack.legacy.p3,
+        on3: pack.legacy.on3,
+        hi: pack.legacy.hi,
+        fontHeading: pack.legacy.fontHeading,
+        fontBody: pack.legacy.fontBody,
+        fontScale: pack.legacy.fontScale,
+        italic: pack.legacy.italic,
+      },
+      strip: { enabled: false, motif: 'none', speed: 'normal', direction: 'left' },
+    }));
+  }
+
+  setPreviewWidth(width: 390 | 1440): void {
+    this.previewWidth.set(width);
   }
 
   setTemplate(templateId: string | null | undefined): void {
