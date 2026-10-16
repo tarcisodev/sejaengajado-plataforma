@@ -11,10 +11,38 @@ body:
     validations:
       required: true
   - type: textarea
-    id: passos
+    id: aceite
     attributes:
-      label: "Critério de aceite"
-      description: "- [ ] … (verificável)"
+      label: "Critérios de aceite (Dado/Quando/Então)"
+      description: |
+        Formato obrigatório:
+        Dado … / Quando … / Então …
+      placeholder: |
+        Dado …
+        Quando …
+        Então …
+    validations:
+      required: true
+  - type: dropdown
+    id: papel
+    attributes:
+      label: "Papel afetado (admin/revendedor/cliente/público)"
+      multiple: true
+      options: [admin, revendedor, cliente, público]
+    validations:
+      required: true
+  - type: textarea
+    id: fora
+    attributes:
+      label: "Fora do escopo"
+      description: "O que explicitamente NÃO entra neste trabalho."
+    validations:
+      required: true
+  - type: dropdown
+    id: decisao
+    attributes:
+      label: "Decisão de negócio em aberto? (sim/não)"
+      options: ["não", "sim"]
     validations:
       required: true
   - type: dropdown
