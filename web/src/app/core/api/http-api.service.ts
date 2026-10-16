@@ -403,7 +403,7 @@ export class HttpApiService implements ApiPort {
   requestCustomerOtp(email: string): Observable<CustomerOtp> {
     return new Observable((subscriber) => {
       void this.auth
-        .signInWithOtp(email)
+        .requestPasswordReset(email)
         .then(() => {
           subscriber.next({ delivered: true, previewCode: null });
           subscriber.complete();
@@ -412,10 +412,10 @@ export class HttpApiService implements ApiPort {
     });
   }
 
-  verifyCustomerOtp(email: string, code: string): Observable<User> {
+  verifyCustomerOtp(email: string, password: string): Observable<User> {
     return new Observable((subscriber) => {
       void this.auth
-        .verifyOtp(email, code)
+        .signInWithPassword(email, password)
         .then((me) => {
           subscriber.next({
             id: me.id,

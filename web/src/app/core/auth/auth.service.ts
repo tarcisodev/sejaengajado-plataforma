@@ -38,28 +38,36 @@ export class AuthService {
     return this.boot;
   }
 
-  async signInWithOtp(email: string): Promise<void> {
+  async signInWithPassword(email: string, password: string): Promise<AuthMe> {
     const sb = await this.requireClient();
-    const { error } = await sb.auth.signInWithOtp({
+    const { error } = await sb.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: false },
+      password,
+    });
+    if (error) {
+      throw error;
+    }
+    return this.refreshMe();
+  }
+
+  async requestPasswordReset(email: string): Promise<void> {
+    const sb = await this.requireClient();
+    const redirectTo =
+      typeof window !== 'undefined' ? `${window.location.origin}/entrar` : undefined;
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo,
     });
     if (error) {
       throw error;
     }
   }
 
-  async verifyOtp(email: string, token: string): Promise<AuthMe> {
+  async updatePassword(newPassword: string): Promise<void> {
     const sb = await this.requireClient();
-    const { error } = await sb.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.replace(/\D/g, ''),
-      type: 'email',
-    });
+    const { error } = await sb.auth.updateUser({ password: newPassword });
     if (error) {
       throw error;
     }
-    return this.refreshMe();
   }
 
   async refreshMe(): Promise<AuthMe> {

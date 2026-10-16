@@ -161,6 +161,13 @@ model Reseller {
   status            ResellerStatus @default(ACTIVE)
   resellerPlanId    String         @map("reseller_plan_id") @db.Uuid
   isPlatform        Boolean        @default(false) @map("is_platform")
+  document          String         @default("") @map("document")
+  phone             String         @default("") @map("phone")
+  addressLine       String         @default("") @map("address_line")
+  addressCity       String         @default("") @map("address_city")
+  addressUf         String         @default("") @map("address_uf")
+  addressCep        String         @default("") @map("address_cep")
+  notes             String         @default("") @map("notes")
   gatewayCustomerId String?        @map("gateway_customer_id")
   delinquentSince   DateTime?      @map("delinquent_since") @db.Timestamptz(3)
   blockedAt         DateTime?      @map("blocked_at") @db.Timestamptz(3)

@@ -149,8 +149,10 @@ export interface ApiPort {
   savePlan(plan: Plan): Observable<Plan>;
   saveCoupon(coupon: Coupon): Observable<Coupon>;
   deleteCoupon(couponId: string): Observable<void>;
+  /** Envia link de redefinição de senha (legado do nome OTP). */
   requestCustomerOtp(email: string): Observable<CustomerOtp>;
-  verifyCustomerOtp(email: string, code: string): Observable<User>;
+  /** Login com e-mail + senha (segundo argumento = senha). */
+  verifyCustomerOtp(email: string, password: string): Observable<User>;
   /** Sites do cliente autenticado (GET /customer/sites). */
   listMySites(): Observable<Site[]>;
   listSitesByCustomer(customerId: string): Observable<Site[]>;

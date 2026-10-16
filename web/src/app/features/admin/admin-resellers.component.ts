@@ -197,8 +197,8 @@ export class AdminResellersComponent {
           this.inviteActionLink.set(created.inviteActionLink ?? null);
           this.message.set(
             created.inviteActionLink
-              ? 'Revendedor criado. Em dev o e-mail fica capturado localmente — use o link abaixo (ou a caixa do Auth) para o OTP.'
-              : 'Revendedor criado (convite por e-mail).',
+              ? 'Revendedor criado. Use o link abaixo para definir a senha (primeiro acesso). Depois entre com e-mail + senha + MFA.'
+              : 'Revendedor criado (convite por e-mail para definir senha).',
           );
           this.reload();
         },

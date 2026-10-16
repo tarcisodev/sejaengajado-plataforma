@@ -74,6 +74,16 @@ export class ResellersController {
     return this.resellers.patch(id, parsed.data);
   }
 
+  @Post('admin/resellers/:id/password-reset')
+  @Audit({
+    action: 'reseller.password_reset',
+    entity: 'Reseller',
+    entityId: (_r, req) => req.params.id,
+  })
+  passwordReset(@Param('id') id: string) {
+    return this.resellers.sendPasswordReset(id);
+  }
+
   @Post('admin/resellers/:id/block')
   @Audit({ action: 'reseller.block', entity: 'Reseller', entityId: (_r, req) => req.params.id })
   block(@Param('id') id: string, @Body() body: unknown) {

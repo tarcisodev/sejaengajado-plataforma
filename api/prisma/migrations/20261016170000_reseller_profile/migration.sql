@@ -1,0 +1,8 @@
+-- Reseller profile fields (admin + self-service).
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "document" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "phone" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "address_line" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "address_city" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "address_uf" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "address_cep" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "resellers" ADD COLUMN IF NOT EXISTS "notes" TEXT NOT NULL DEFAULT '';
