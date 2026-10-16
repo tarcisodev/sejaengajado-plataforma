@@ -61,7 +61,8 @@ services:
       labels:
         - traefik.enable=true
         - traefik.swarm.network=TarcisoDevNet
-        - traefik.http.routers.se-web.rule=Host(`sejaengajado.com.br`) || Host(`app.sejaengajado.com.br`) || HostRegexp(`^[a-z0-9-]+\\.sejaengajado\\.com\\.br$$`)
+        # Aspas simples: uma `\` no regex; `$$` → `$` no Swarm (evita `\\.` duplicado).
+        - 'traefik.http.routers.se-web.rule=Host(`sejaengajado.com.br`) || Host(`app.sejaengajado.com.br`) || HostRegexp(`^[a-z0-9-]+\.sejaengajado\.com\.br$$`)'
         - traefik.http.routers.se-web.priority=1
         - traefik.http.routers.se-web.entrypoints=websecure
         - traefik.http.routers.se-web.tls.certresolver=cfdns

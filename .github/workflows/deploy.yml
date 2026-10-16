@@ -41,6 +41,8 @@ jobs:
           # Migrations ≤ 20261015250000 já aplicadas; ver check-migration-expand.sh
           MIGRATION_EXPAND_BASELINE: "20261015250000"
         run: bash infra/scripts/check-migration-expand.sh
+      - name: Traefik HostRegexp — single backslash after Compose $$
+        run: node infra/scripts/check-traefik-hostregexp.mjs
 
   build:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
@@ -167,6 +169,7 @@ jobs:
             web_ready=0
             front_ok=0
             web_hz=0
+            tenant_ok=0
             if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/api/health/ready" >/dev/null; then
               api_ready=1
             fi
@@ -176,16 +179,32 @@ jobs:
             if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/healthz" | grep -qx 'ok'; then
               web_hz=1
             fi
+            # Tenant host must hit web-ssr (not Traefik's bare "404 page not found").
+            tenant_body="$(mktemp)"
+            tenant_code=$(curl -sS --max-time 8 -o "$tenant_body" -w "%{http_code}" \
+              "https://demo-forno.sejaengajado.com.br/" || echo "000")
+            if [[ "$tenant_code" != "000" ]] && ! grep -Fqi '404 page not found' "$tenant_body"; then
+              tenant_ok=1
+            fi
+            rm -f "$tenant_body"
             # Running task count for web-ssr
             web_running=$(docker service ps sejaengajado_web-ssr --filter desired-state=running --format '{{.CurrentState}}' 2>/dev/null | grep -c '^Running' || true)
             [[ "${web_running:-0}" -ge 1 ]] && web_ready=1 || web_ready=0
 
-            echo "gate try=$i api_tag=$api_sha_ok web_tag=$web_sha_ok api_ready=$api_ready front=$front_ok healthz=$web_hz web_run=$web_ready upd=api:$api_upd/web:$web_upd"
+            # HostRegexp label must not be double-escaped after stack render.
+            rule_ok=0
+            rule=$(docker service inspect sejaengajado_web-ssr \
+              --format '{{index .Spec.Labels "traefik.http.routers.se-web.rule"}}' 2>/dev/null || true)
+            if [[ "$rule" == *'HostRegexp(`^[a-z0-9-]+\.sejaengajado\.com\.br$`)'* ]]; then
+              rule_ok=1
+            fi
 
-            if [[ "$api_sha_ok" -eq 1 && "$web_sha_ok" -eq 1 && "$api_ready" -eq 1 && "$front_ok" -eq 1 && "$web_hz" -eq 1 && "$web_ready" -eq 1 ]]; then
+            echo "gate try=$i api_tag=$api_sha_ok web_tag=$web_sha_ok api_ready=$api_ready front=$front_ok healthz=$web_hz tenant=$tenant_ok rule=$rule_ok web_run=$web_ready upd=api:$api_upd/web:$web_upd"
+
+            if [[ "$api_sha_ok" -eq 1 && "$web_sha_ok" -eq 1 && "$api_ready" -eq 1 && "$front_ok" -eq 1 && "$web_hz" -eq 1 && "$tenant_ok" -eq 1 && "$rule_ok" -eq 1 && "$web_ready" -eq 1 ]]; then
               # Update finished (or first deploy with empty UpdateStatus)
               if [[ -z "$api_upd" || "$api_upd" == "completed" ]] && [[ -z "$web_upd" || "$web_upd" == "completed" ]]; then
-                echo "health ok (api + web-ssr no SHA ${IMAGE_TAG})"
+                echo "health ok (api + web-ssr + tenant HostRegexp no SHA ${IMAGE_TAG})"
                 ok=1
                 break
               fi
@@ -196,6 +215,8 @@ jobs:
             echo "healthcheck falhou — serviços não convergiram no SHA ${IMAGE_TAG}" >&2
             docker service ps sejaengajado_api --no-trunc 2>/dev/null | head -20 || true
             docker service ps sejaengajado_web-ssr --no-trunc 2>/dev/null | head -20 || true
+            docker service inspect sejaengajado_web-ssr \
+              --format '{{index .Spec.Labels "traefik.http.routers.se-web.rule"}}' 2>/dev/null || true
             exit 1
           fi
 
