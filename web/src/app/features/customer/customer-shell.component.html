@@ -1,77 +1,62 @@
-@if (entering()) {
-  <a
-    class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-10 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-3 focus:ring-ring"
-    href="#conteudo"
-  >
-    Ir para o conteúdo
-  </a>
-  <main
-    id="conteudo"
-    class="grid min-h-dvh place-items-center bg-background px-4 py-6 text-foreground"
-  >
-    <app-customer-login />
-  </main>
-} @else {
-  <a
-    class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-10 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-3 focus:ring-ring"
-    href="#conteudo"
-  >
-    Ir para o conteúdo
-  </a>
-  <div class="min-h-dvh bg-background text-foreground">
-    <header class="flex items-center gap-4 border-b border-border px-4 py-3 md:px-8">
-      <p class="font-display text-sm text-primary">Seja Engajado</p>
-      <div class="ms-auto flex items-center gap-2">
+<a
+  class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-10 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-3 focus:ring-ring"
+  href="#conteudo"
+>
+  Ir para o conteúdo
+</a>
+<div class="min-h-dvh bg-background text-foreground">
+  <header class="flex items-center gap-4 border-b border-border px-4 py-3 md:px-8">
+    <p class="font-display text-sm text-primary">Seja Engajado</p>
+    <div class="ms-auto flex items-center gap-2">
+      <button
+        hlmBtn
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="size-11"
+        (click)="theme.toggle()"
+        [attr.aria-pressed]="theme.theme() === 'dark'"
+        aria-label="Tema"
+      >
+        <ng-icon [name]="theme.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" />
+      </button>
+      @if (auth.me(); as user) {
         <button
           hlmBtn
           type="button"
           variant="ghost"
-          size="icon"
           class="size-11"
-          (click)="theme.toggle()"
-          [attr.aria-pressed]="theme.theme() === 'dark'"
-          aria-label="Tema"
+          [hlmDropdownMenuTrigger]="accountMenu"
+          [attr.aria-label]="user.email"
         >
-          <ng-icon [name]="theme.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" />
+          <hlm-avatar class="size-11">
+            <span hlmAvatarFallback>{{ initial() }}</span>
+          </hlm-avatar>
         </button>
-        @if (session.user(); as user) {
-          <button
-            hlmBtn
-            type="button"
-            variant="ghost"
-            class="size-11"
-            [hlmDropdownMenuTrigger]="accountMenu"
-            [attr.aria-label]="user.email"
-          >
-            <hlm-avatar class="size-11">
-              <span hlmAvatarFallback>{{ initial() }}</span>
-            </hlm-avatar>
-          </button>
-          <ng-template #accountMenu>
-            <div hlmDropdownMenu>
-              <p hlmDropdownMenuLabel>{{ user.email }}</p>
-              <a hlmDropdownMenuItem routerLink="/conta">Conta</a>
-              <button hlmDropdownMenuItem type="button" (click)="leave()">Sair</button>
-            </div>
-          </ng-template>
-        }
-      </div>
-    </header>
-    <main id="conteudo" class="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:px-8">
-      <h1 class="font-display text-2xl md:text-3xl">
-        {{ checkout() ? 'Checkout' : 'Sua conta' }}
-      </h1>
-      @if (session.user()) {
-        @if (checkout()) {
-          <app-checkout />
-        } @else {
-          <p class="text-sm">
-            <a class="underline" routerLink="/conta/checkout">Ir para checkout</a>
-          </p>
-          <app-customer-studio />
-        }
+        <ng-template #accountMenu>
+          <div hlmDropdownMenu>
+            <p hlmDropdownMenuLabel>{{ user.email }}</p>
+            <a hlmDropdownMenuItem routerLink="/conta">Conta</a>
+            <button hlmDropdownMenuItem type="button" (click)="leave()">Sair</button>
+          </div>
+        </ng-template>
       }
-    </main>
-  </div>
-}
+    </div>
+  </header>
+  <main id="conteudo" class="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:px-8">
+    <h1 class="font-display text-2xl md:text-3xl">
+      {{ checkout() ? 'Checkout' : 'Sua conta' }}
+    </h1>
+    @if (auth.me()) {
+      @if (checkout()) {
+        <app-checkout />
+      } @else {
+        <p class="text-sm">
+          <a class="underline" routerLink="/conta/checkout">Ir para checkout</a>
+        </p>
+        <app-customer-studio />
+      }
+    }
+  </main>
+</div>
 <hlm-toaster />

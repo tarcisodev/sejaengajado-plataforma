@@ -1,0 +1,56 @@
+<section hlmCard>
+  <header hlmCardHeader>
+    <p class="font-display text-sm text-primary">Seja Engajado</p>
+    <h1 hlmCardTitle class="font-display text-2xl md:text-3xl">Verificação em duas etapas</h1>
+    <p hlmCardDescription>
+      @if (enrolled()) {
+        Abra o autenticador e informe o código de 6 dígitos.
+      } @else {
+        Escaneie o QR com o autenticador (Google Authenticator, 1Password, etc.) e confirme o
+        código.
+      }
+    </p>
+  </header>
+  <div hlmCardContent class="grid gap-4">
+    @if (qr(); as src) {
+      <div class="grid place-items-center rounded-lg bg-muted p-4">
+        <img [src]="src" width="180" height="180" alt="QR code TOTP" />
+      </div>
+    }
+    @if (secret(); as totpSecret) {
+      <p class="break-all text-xs text-muted-foreground">
+        Chave manual: <code>{{ totpSecret }}</code>
+      </p>
+    }
+    <form class="grid gap-4" (submit)="verify($event)">
+      <div hlmField>
+        <label hlmFieldLabel for="mfa-code">Código</label>
+        <input
+          hlmInput
+          id="mfa-code"
+          class="h-11"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          [value]="code()"
+          (input)="code.set(inputValue($event))"
+          required
+        />
+      </div>
+      <button
+        hlmBtn
+        class="h-11 w-full"
+        type="submit"
+        [disabled]="pending()"
+        [attr.aria-busy]="pending()"
+      >
+        Confirmar e ir ao admin
+      </button>
+    </form>
+    @if (error()) {
+      <div hlmAlert variant="destructive">
+        <ng-icon name="lucideTriangleAlert" />
+        <p hlmAlertDescription>{{ error() }}</p>
+      </div>
+    }
+  </div>
+</section>

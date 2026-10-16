@@ -1,10 +1,10 @@
 import { appArea } from './app-area';
 
 describe('appArea', () => {
-  it('keeps the customer login off the admin shell', () => {
+  it('classifies legacy customer vs admin path heads', () => {
     expect(appArea('/entrar')).toBe('customer');
     expect(appArea('/conta')).toBe('customer');
     expect(appArea('/')).toBe('admin');
-    expect(appArea('/revendedores')).toBe('admin');
+    expect(appArea('/admin')).toBe('admin');
   });
 });

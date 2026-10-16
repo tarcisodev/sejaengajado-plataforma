@@ -4,13 +4,6 @@
       @case ('landing') {
         <app-landing-page />
       }
-      @case ('app') {
-        @if (area() === 'customer') {
-          <app-customer-shell />
-        } @else {
-          <app-admin-shell />
-        }
-      }
       @case ('site') {
         <app-site-page [site]="view.site" />
       }
@@ -22,6 +15,10 @@
       }
       @case ('not-found') {
         <app-site-notice [view]="view" />
+      }
+      @case ('app') {
+        <!-- Host app. usa rotas autenticadas; não deveria chegar aqui. -->
+        <app-landing-page />
       }
     }
   </div>

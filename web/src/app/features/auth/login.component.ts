@@ -8,27 +8,25 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 
-import { API_PORT } from '../../core/api/api-port';
+import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
-import { CustomerSession } from './customer-session';
 
 @Component({
-  selector: 'app-customer-login',
+  selector: 'app-login',
   imports: [NgIcon, HlmAlertImports, HlmButton, HlmCardImports, HlmFieldImports, HlmInput],
   providers: [provideIcons({ lucideMoon, lucideSun, lucideTriangleAlert })],
   changeDetection: ChangeDetectionStrategy.Eager,
   host: { class: 'block w-full max-w-sm' },
-  templateUrl: './customer-login.component.html',
+  templateUrl: './login.component.html',
 })
-export class CustomerLoginComponent {
-  private readonly api = inject(API_PORT);
+export class LoginComponent {
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly session = inject(CustomerSession);
   readonly theme = inject(ThemeService);
 
   readonly email = signal('');
   readonly code = signal('');
-  readonly previewCode = signal<string | null>(null);
+  readonly codeSent = signal(false);
   readonly error = signal('');
   readonly pending = signal(false);
 
@@ -36,7 +34,7 @@ export class CustomerLoginComponent {
     return (event.target as HTMLInputElement).value;
   }
 
-  request(event: Event): void {
+  async request(event: Event): Promise<void> {
     event.preventDefault();
     const email = this.email().trim();
     if (!email) {
@@ -44,37 +42,33 @@ export class CustomerLoginComponent {
       return;
     }
     this.pending.set(true);
-    this.api.requestCustomerOtp(email).subscribe({
-      next: (otp) => {
-        this.previewCode.set(otp.previewCode);
-        this.error.set(
-          otp.delivered ? '' : 'Não encontramos uma conta de cliente com esse e-mail.',
-        );
-        this.pending.set(false);
-      },
-      error: () => this.pending.set(false),
-    });
+    this.error.set('');
+    try {
+      await this.auth.ensureReady();
+      await this.auth.signInWithOtp(email);
+      this.codeSent.set(true);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Não foi possível enviar o código.');
+    } finally {
+      this.pending.set(false);
+    }
   }
 
-  verify(event: Event): void {
+  async verify(event: Event): Promise<void> {
     event.preventDefault();
     if (!this.code().trim()) {
       this.error.set('Informe o código.');
       return;
     }
     this.pending.set(true);
+    this.error.set('');
     try {
-      this.api.verifyCustomerOtp(this.email(), this.code()).subscribe({
-        next: (user) => {
-          this.pending.set(false);
-          this.session.enter(user);
-          void this.router.navigateByUrl('/conta');
-        },
-        error: () => this.pending.set(false),
-      });
+      const me = await this.auth.verifyOtp(this.email(), this.code());
+      await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
     } catch {
-      this.pending.set(false);
       this.error.set('Código inválido.');
+    } finally {
+      this.pending.set(false);
     }
   }
 }

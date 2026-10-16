@@ -1,5 +1,10 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideAppInitializer,
+  provideZoneChangeDetection,
+  inject,
+} from '@angular/core';
 import {
   provideClientHydration,
   withEventReplay,
@@ -7,6 +12,8 @@ import {
 } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 
+import { apiProviders } from './core/api/api.providers';
+import { AuthService } from './core/auth/auth.service';
 import { authTokenInterceptor } from './core/auth/auth-token.interceptor';
 import { provideSentry } from './core/sentry/provide-sentry';
 import { provideSpartanHlm } from './shared/ui/utils/src/lib/provide-spartan-hlm';
@@ -20,5 +27,7 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay(), withNoIncrementalHydration()),
     provideSpartanHlm(),
     provideSentry(),
+    ...apiProviders,
+    provideAppInitializer(() => inject(AuthService).ensureReady()),
   ],
 };

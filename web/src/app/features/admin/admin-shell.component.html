@@ -66,7 +66,8 @@
         </button>
         <ng-template #accountMenu>
           <div hlmDropdownMenu>
-            <p hlmDropdownMenuLabel>Seja Engajado</p>
+            <p hlmDropdownMenuLabel>{{ auth.me()?.email ?? 'Seja Engajado' }}</p>
+            <button hlmDropdownMenuItem type="button" (click)="leave()">Sair</button>
           </div>
         </ng-template>
       </div>

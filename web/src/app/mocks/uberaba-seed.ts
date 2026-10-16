@@ -132,6 +132,15 @@ export function createUberabaSeed(): MockDatabase {
       schema: emptySchema,
       ativo: true,
     },
+    {
+      id: 'tpl_personalizado',
+      key: 'personalizado',
+      nome: 'Personalizado',
+      ramo: 'personalizado',
+      schemaType: 'LocalBusiness',
+      schema: emptySchema,
+      ativo: true,
+    },
   ];
 
   const users: User[] = [
@@ -171,6 +180,7 @@ export function createUberabaSeed(): MockDatabase {
   ];
 
   const customers: Customer[] = [
+    customer('cust_admin', null, null, 'Administrador', '34999990000'),
     customer('cust_ze', 'user_ze', null, 'Barbearia do Zé', '34999990001'),
     customer('cust_forno', 'user_forno', null, 'Pizzaria Forno da Praça', '34999990002'),
     customer('cust_ana', 'user_ana', RESELLER_TRIANGULO, 'Salão da Ana', '34999990003'),

@@ -26,6 +26,7 @@ import {
 } from '@spartan-ng/helm/sidebar';
 import { filter } from 'rxjs';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AdminSection, adminSection } from './admin-section';
 import { AdminConfigComponent } from './admin-config.component';
@@ -84,6 +85,7 @@ import { AdminSitesComponent } from './admin-sites.component';
 export class AdminShellComponent {
   private readonly location = inject(PlatformLocation);
   private readonly router = inject(Router);
+  readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly section = signal<AdminSection>(adminSection(this.location.pathname));
   readonly nav: {
@@ -92,20 +94,25 @@ export class AdminShellComponent {
     label: string;
     icon: string;
   }[] = [
-    { section: 'inicio', href: '/', label: 'Início', icon: 'lucideHouse' },
-    { section: 'clientes', href: '/clientes', label: 'Clientes', icon: 'lucideUsers' },
-    { section: 'revendedores', href: '/revendedores', label: 'Revendedores', icon: 'lucideStore' },
-    { section: 'sites', href: '/sites', label: 'Sites', icon: 'lucideGlobe' },
-    { section: 'planos', href: '/planos', label: 'Planos', icon: 'lucideCreditCard' },
+    { section: 'inicio', href: '/admin', label: 'Início', icon: 'lucideHouse' },
+    { section: 'clientes', href: '/admin/clientes', label: 'Clientes', icon: 'lucideUsers' },
+    {
+      section: 'revendedores',
+      href: '/admin/revendedores',
+      label: 'Revendedores',
+      icon: 'lucideStore',
+    },
+    { section: 'sites', href: '/admin/sites', label: 'Sites', icon: 'lucideGlobe' },
+    { section: 'planos', href: '/admin/planos', label: 'Planos', icon: 'lucideCreditCard' },
     {
       section: 'configuracoes',
-      href: '/configuracoes',
+      href: '/admin/configuracoes',
       label: 'Configurações',
       icon: 'lucideSettings',
     },
-    { section: 'cupons', href: '/cupons', label: 'Cupons', icon: 'lucideTicket' },
-    { section: 'receita', href: '/receita', label: 'Receita', icon: 'lucideWallet' },
-    { section: 'faturas', href: '/faturas', label: 'Minhas faturas', icon: 'lucideFileText' },
+    { section: 'cupons', href: '/admin/cupons', label: 'Cupons', icon: 'lucideTicket' },
+    { section: 'receita', href: '/admin/receita', label: 'Receita', icon: 'lucideWallet' },
+    { section: 'faturas', href: '/admin/faturas', label: 'Minhas faturas', icon: 'lucideFileText' },
   ];
 
   constructor() {
@@ -116,5 +123,9 @@ export class AdminShellComponent {
 
   title(): string {
     return this.nav.find((item) => item.section === this.section())?.label ?? 'Início';
+  }
+
+  leave(): void {
+    void this.auth.signOut();
   }
 }

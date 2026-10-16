@@ -2,7 +2,7 @@
   <header hlmCardHeader class="grid grid-cols-[1fr_auto] items-start gap-4">
     <div class="grid gap-2">
       <p class="font-display text-sm text-primary">Seja Engajado</p>
-      <h1 hlmCardTitle class="font-display text-2xl md:text-3xl">Sua conta</h1>
+      <h1 hlmCardTitle class="font-display text-2xl md:text-3xl">Entrar</h1>
     </div>
     <button
       hlmBtn
@@ -43,15 +43,9 @@
       </button>
     </form>
     <p class="text-sm text-muted-foreground">
-      Contas de exemplo: ze&#64;example.com, forno&#64;example.com e ana&#64;example.com.
+      Enviamos um código por e-mail. Só contas convidadas entram (sem auto-cadastro).
     </p>
-    @if (previewCode(); as inbox) {
-      <aside class="grid gap-2 rounded-lg bg-muted p-4 text-sm" aria-label="E-mail simulado">
-        <p>
-          Seu código de acesso é <strong data-otp>{{ inbox }}</strong
-          >.
-        </p>
-      </aside>
+    @if (codeSent()) {
       <form class="grid gap-4" (submit)="verify($event)">
         <div hlmField>
           <label hlmFieldLabel for="code">Código</label>

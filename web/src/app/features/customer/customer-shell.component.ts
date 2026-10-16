@@ -9,11 +9,9 @@ import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { HlmToaster } from '@spartan-ng/helm/sonner';
 import { filter } from 'rxjs';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
-import { appArea } from './app-area';
 import { CheckoutComponent } from '../billing/checkout.component';
-import { CustomerLoginComponent } from './customer-login.component';
-import { CustomerSession } from './customer-session';
 import { CustomerStudioComponent } from './customer-studio.component';
 
 @Component({
@@ -25,7 +23,6 @@ import { CustomerStudioComponent } from './customer-studio.component';
     HlmButton,
     HlmDropdownMenuImports,
     HlmToaster,
-    CustomerLoginComponent,
     CustomerStudioComponent,
     CheckoutComponent,
   ],
@@ -36,11 +33,8 @@ import { CustomerStudioComponent } from './customer-studio.component';
 export class CustomerShellComponent {
   private readonly location = inject(PlatformLocation);
   private readonly router = inject(Router);
-  readonly session = inject(CustomerSession);
+  readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
-  readonly entering = signal(
-    appArea(this.location.pathname || '/') === 'customer' && this.head() === 'entrar',
-  );
   readonly checkout = signal(false);
 
   constructor() {
@@ -51,26 +45,15 @@ export class CustomerShellComponent {
   }
 
   initial(): string {
-    return (this.session.user()?.email ?? '?').slice(0, 1).toUpperCase();
+    return (this.auth.me()?.email ?? '?').slice(0, 1).toUpperCase();
   }
 
   leave(): void {
-    this.session.clear();
-    void this.router.navigateByUrl('/entrar');
+    void this.auth.signOut();
   }
 
   private sync(): void {
     const parts = (this.location.pathname || '/').split('/').filter(Boolean);
-    const login = parts[0] === 'entrar';
-    const onCheckout = parts[0] === 'conta' && parts[1] === 'checkout';
-    this.entering.set(login);
-    this.checkout.set(onCheckout);
-    if (!login && !this.session.user()) {
-      void this.router.navigateByUrl('/entrar');
-    }
-  }
-
-  private head(): string {
-    return (this.location.pathname || '/').split('/').filter(Boolean)[0] ?? '';
+    this.checkout.set(parts[0] === 'conta' && parts[1] === 'checkout');
   }
 }

@@ -28,6 +28,18 @@ const THEME_KITCHEN: SiteTheme = {
   italic: 'italic',
 };
 
+const THEME_CUSTOM: SiteTheme = {
+  p1: '#2c2825',
+  p2: '#6b6258',
+  p3: '#efe6d8',
+  on3: '#2c2825',
+  hi: '#f7f3ec',
+  fontHeading: HEADING_SHOP,
+  fontBody: BODY,
+  fontScale: 1,
+  italic: 'normal',
+};
+
 const THEME_SERVICE: SiteTheme = {
   p1: '#1e3a5f',
   p2: '#3d5a4c',
@@ -50,6 +62,9 @@ function themeFor(templateId: string): SiteTheme {
   }
   if (templateId === 'tpl_servicos') {
     return THEME_SERVICE;
+  }
+  if (templateId === 'tpl_personalizado') {
+    return THEME_CUSTOM;
   }
   return THEME_BARBER;
 }

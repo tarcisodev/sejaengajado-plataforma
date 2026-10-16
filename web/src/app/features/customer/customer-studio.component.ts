@@ -24,7 +24,7 @@ import { Cancellation, Site, SiteContent, SiteHours, Template } from '../../core
 import { themeForTemplate } from '../../mocks/site-bios';
 import { formatBrl } from '../landing/landing-seo';
 import { SitePageComponent } from '../tenant-site/site-page.component';
-import { CustomerSession } from './customer-session';
+import { AuthService } from '../../core/auth/auth.service';
 
 export const CUSTOMER_TODAY = new InjectionToken<Date>('CUSTOMER_TODAY');
 
@@ -52,7 +52,7 @@ export const CUSTOMER_TODAY = new InjectionToken<Date>('CUSTOMER_TODAY');
 })
 export class CustomerStudioComponent {
   private readonly api = inject(API_PORT);
-  private readonly session = inject(CustomerSession);
+  private readonly auth = inject(AuthService);
   readonly today = inject(CUSTOMER_TODAY, { optional: true }) ?? new Date();
   readonly formatBrl = formatBrl;
   readonly steps = ['Negócio', 'Links', 'Horários', 'Fotos', 'Modelo', 'Publicar'];
@@ -77,7 +77,7 @@ export class CustomerStudioComponent {
   readonly monthlySent = signal(false);
 
   constructor() {
-    const user = this.session.user();
+    const user = this.auth.me();
     if (!user) {
       return;
     }
@@ -309,7 +309,7 @@ export class CustomerStudioComponent {
 
   askChange(): void {
     const site = this.draft();
-    const user = this.session.user();
+    const user = this.auth.me();
     if (!site || !user) {
       return;
     }
@@ -327,7 +327,7 @@ export class CustomerStudioComponent {
 
   askMonthly(): void {
     const site = this.draft();
-    const user = this.session.user();
+    const user = this.auth.me();
     if (!site || !user) {
       return;
     }

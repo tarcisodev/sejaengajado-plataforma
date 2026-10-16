@@ -1,34 +1,43 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
+import { AuthService } from '../../core/auth/auth.service';
+import type { AuthMe } from '../../core/auth/auth.types';
 import { User } from '../../core/models/domain';
 import { MockApiService } from '../../mocks/mock-api.service';
 import { formatBrl } from '../landing/landing-seo';
 import { CUSTOMER_TODAY, CustomerStudioComponent } from './customer-studio.component';
-import { CustomerSession } from './customer-session';
 
 const TODAY = new Date('2026-10-14T15:00:00.000Z');
 
 describe('CustomerStudioComponent', () => {
   let fixture: ComponentFixture<CustomerStudioComponent>;
+  const me = signal<AuthMe | null>(null);
 
   afterEach(() => {
-    sessionStorage.clear();
     fixture?.destroy();
   });
 
   async function render(user: User): Promise<void> {
+    me.set({
+      id: user.id,
+      email: user.email,
+      role: 'CUSTOMER',
+      resellerId: null,
+      status: 'ACTIVE',
+      aal: 'aal1',
+    });
     TestBed.configureTestingModule({
       imports: [CustomerStudioComponent],
       providers: [
         MockApiService,
         { provide: API_PORT, useExisting: MockApiService },
-        CustomerSession,
+        { provide: AuthService, useValue: { me } },
         { provide: CUSTOMER_TODAY, useValue: TODAY },
       ],
     });
-    TestBed.inject(CustomerSession).enter(user);
     fixture = TestBed.createComponent(CustomerStudioComponent);
     fixture.detectChanges();
   }

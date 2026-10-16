@@ -1,5 +1,6 @@
 dist
 coverage
+src/environments/environment.local.ts
 node_modules
 .angular
 package-lock.json
