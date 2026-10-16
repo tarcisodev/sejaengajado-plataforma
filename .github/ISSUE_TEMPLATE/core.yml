@@ -1,0 +1,43 @@
+name: "🧱 Core (fluxo principal / MVP)"
+description: "Algo necessário para o fluxo feliz / MVP funcionar."
+title: "[core] área: resumo"
+labels: ["type: core", "status: triagem"]
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: "Qual parte do fluxo principal falta ou quebra."
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: "Critério de aceite"
+      description: "- [ ] … (verificável; inclua o teste que prova)"
+    validations:
+      required: true
+  - type: dropdown
+    id: impacto
+    attributes:
+      label: Impacto (severidade × alcance → prioridade, ver TRIAGEM.md)
+      options:
+        - "P0 — bloqueia fluxo feliz / produção / segurança / dinheiro"
+        - "P1 — atrapalha fluxo feliz, tem contorno"
+        - "P2 — importante, não bloqueia"
+        - "P3 — polimento"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options: [web, api, infra, biosite, painel, revenda, pagamentos, ux]
+    validations:
+      required: true
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto (commit, PR, logs, prints)
+      description: "Sem segredos, tokens ou dados pessoais reais."

@@ -1,0 +1,20 @@
+# nome: [cor, descrição]
+- {name: "type: bug",        color: "d73a4a", description: "Algo quebrado"}
+- {name: "type: melhoria",   color: "a2eeef", description: "Ideia/ajuste fora do fluxo principal"}
+- {name: "type: core",       color: "5319e7", description: "Necessário para o fluxo principal/MVP"}
+- {name: "priority: P0",     color: "b60205", description: "Bloqueia fluxo feliz/produção/segurança/dinheiro"}
+- {name: "priority: P1",     color: "d93f0b", description: "Atrapalha fluxo feliz, tem contorno"}
+- {name: "priority: P2",     color: "fbca04", description: "Importante, não bloqueia"}
+- {name: "priority: P3",     color: "c5def5", description: "Polimento"}
+- {name: "area: web",        color: "1d76db", description: ""}
+- {name: "area: api",        color: "1d76db", description: ""}
+- {name: "area: infra",      color: "1d76db", description: ""}
+- {name: "area: biosite",    color: "1d76db", description: ""}
+- {name: "area: painel",     color: "1d76db", description: ""}
+- {name: "area: revenda",    color: "1d76db", description: ""}
+- {name: "area: pagamentos", color: "1d76db", description: ""}
+- {name: "area: ux",         color: "1d76db", description: ""}
+- {name: "status: triagem",       color: "ededed", description: "Aguardando classificação"}
+- {name: "status: pronto",        color: "0e8a16", description: "Classificada, pode começar"}
+- {name: "status: em-andamento",  color: "0052cc", description: "Alguém está trabalhando"}
+- {name: "status: bloqueado",     color: "000000", description: "Depende de decisão/externo"}

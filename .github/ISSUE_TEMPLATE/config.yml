@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Regras de triagem
+    url: https://github.com/tarcisodev/sejaengajado-plataforma/blob/HEAD/TRIAGEM.md
+    about: Leia antes de abrir uma issue.

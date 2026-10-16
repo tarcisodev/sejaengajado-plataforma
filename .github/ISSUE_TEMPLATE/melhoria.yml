@@ -1,0 +1,43 @@
+name: "✨ Melhoria"
+description: "Ideia, ajuste ou nova capacidade que não é necessária para o fluxo principal."
+title: "[melhoria] área: resumo"
+labels: ["type: melhoria", "status: triagem"]
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: "Problema ou oportunidade e a proposta."
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: "Critério de aceite"
+      description: "- [ ] … (verificável)"
+    validations:
+      required: true
+  - type: dropdown
+    id: impacto
+    attributes:
+      label: Impacto (severidade × alcance → prioridade, ver TRIAGEM.md)
+      options:
+        - "P0 — bloqueia fluxo feliz / produção / segurança / dinheiro"
+        - "P1 — atrapalha fluxo feliz, tem contorno"
+        - "P2 — importante, não bloqueia"
+        - "P3 — polimento"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options: [web, api, infra, biosite, painel, revenda, pagamentos, ux]
+    validations:
+      required: true
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto (commit, PR, logs, prints)
+      description: "Sem segredos, tokens ou dados pessoais reais."

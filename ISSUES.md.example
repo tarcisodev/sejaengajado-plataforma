@@ -1,0 +1,4 @@
+# ISSUES (fallback sem GitHub) — ordenar pela regra do TRIAGEM.md
+| # | Título `[tipo] área: resumo` | type | priority | area | status | Aceite / passos | Ref |
+|---|---|---|---|---|---|---|---|
+| 1 | [bug] api: exemplo | bug | P1 | api | triagem | 1. … esperado … | abc1234 |
