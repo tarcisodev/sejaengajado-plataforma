@@ -1,13 +1,10 @@
-// Karma configuration for Angular unit tests (CI + local).
-// CHROME_BIN: set in CI (setup-chrome / puppeteer); falls back to puppeteer locally.
-
+// Karma — ChromeHeadlessCI with --no-sandbox for CI (ubuntu-latest / containers).
 try {
   if (!process.env.CHROME_BIN) {
-    // Optional when puppeteer is installed (local / npm ci).
     process.env.CHROME_BIN = require('puppeteer').executablePath();
   }
 } catch {
-  // CHROME_BIN must come from the environment (e.g. browser-actions/setup-chrome).
+  // CHROME_BIN from browser-actions/setup-chrome in CI.
 }
 
 module.exports = function (config) {

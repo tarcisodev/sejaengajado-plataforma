@@ -8,7 +8,7 @@ Queremos PR obrigatório em `master`, CI completo no runner VPS (sem secrets de 
 
 ## 2. Decisão
 
-1. **pr-ci** em todo `pull_request` → `master`: lint, unit, int, build, e2e fluxo feliz (compose de dev), migration-guard, gitleaks, orçamento de bundle.
+1. **pr-ci** em todo `pull_request` → `master` em **ubuntu-latest** (não na VPS): lint, unit, int, build, docker-build (push:false + smoke), e2e fluxo feliz (compose de dev), migration-guard, gitleaks, orçamento de bundle. Docs-only: paths-filter; `pr-ci-ok` sempre reporta.
 2. **Trilhos de risco** (`baixo` / `medio` / `alto`) via `.github/risk-paths.yml` + `scripts/ci/risk-tier.ts`.
 3. **agent-review** (modo sombra): após pr-ci, monta contexto, chama o LLM com a rubrica §4, posta comentário fixo + labels; **não** aprova nem faz merge.
 4. Teto mensal de tokens (`MONTHLY_TOKEN_CAP`); secret `REVIEW_LLM_API_KEY`. Identidade futura: GitHub App `se-reviewer` (`APP_ID` + `APP_PRIVATE_KEY`); enquanto isso, `GITHUB_TOKEN` só para comentar.

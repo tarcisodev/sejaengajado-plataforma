@@ -59,7 +59,10 @@ describe('reseller isolation (SEC-GOLIVE)', () => {
       const custA = await request(app.getHttpServer())
         .post('/api/reseller/customers')
         .set('Authorization', `Bearer ${sessionA.token}`)
-        .send({ name: 'Cliente A', email: 'cliente.a@example.com' })
+        .send({
+          name: 'Cliente A',
+          email: `cliente.a.${randomUUID().slice(0, 8)}@example.com`,
+        })
         .expect(201);
 
       const siteA = await request(app.getHttpServer())
