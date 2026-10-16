@@ -123,6 +123,7 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
       this.syncTheme();
       this.mapLoaded.set(false);
       this.mapSrc.set(null);
+      this.loadMap();
       this.refreshOpenNow();
       this.categoryFilter.set(null);
     }
@@ -441,6 +442,12 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     this.meta.updateTag({ name: 'twitter:title', content: title });
     this.meta.updateTag({ name: 'twitter:description', content: description });
     this.meta.updateTag({ name: 'twitter:image', content: image });
+    const keywords = (content.profile?.tags ?? []).map((tag: string) => tag.trim()).filter(Boolean);
+    if (keywords.length) {
+      this.meta.updateTag({ name: 'keywords', content: [...new Set(keywords)].join(', ') });
+    } else {
+      this.meta.removeTag("name='keywords'");
+    }
     this.upsertCanonical(url);
     this.upsertJsonLd(schemaType);
     this.upsertAnalytics(content.analytics);
