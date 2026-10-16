@@ -1,45 +1,31 @@
-import { toMatch } from './places-client';
+import { searchPlaces } from './places-client';
 
-describe('places-client toMatch', () => {
-  it('maps a place into name, phone and address', () => {
-    const match = toMatch({
-      displayName: { text: 'Padaria Central' },
-      nationalPhoneNumber: '(34) 3333-0000',
-      addressComponents: [
-        { longText: 'Rua A', shortText: 'Rua A', types: ['route'] },
-        { longText: '10', shortText: '10', types: ['street_number'] },
-        { longText: 'Uberaba', shortText: 'Uberaba', types: ['locality'] },
-        { longText: 'Minas Gerais', shortText: 'MG', types: ['administrative_area_level_1'] },
-        { longText: '38000-000', shortText: '38000-000', types: ['postal_code'] },
-      ],
-    });
+describe('places-client SSRF', () => {
+  const originalFetch = globalThis.fetch;
 
-    expect(match).toEqual({
-      nome: 'Padaria Central',
-      telefone: '(34) 3333-0000',
-      address: { logradouro: 'Rua A, 10', cidade: 'Uberaba', uf: 'MG', cep: '38000-000' },
-    });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
-  it('uses the city from the administrative area when locality is absent', () => {
-    const match = toMatch({
-      displayName: { text: 'Tarciso Dev' },
-      nationalPhoneNumber: '(34) 9999-0000',
-      formattedAddress: 'Rua dos Crisântemos, 322 - Lourdes, Uberaba - MG, 38035-080',
-      addressComponents: [
-        { longText: '322', shortText: '322', types: ['street_number'] },
-        { longText: 'Rua dos Crisântemos', shortText: 'R. dos Crisântemos', types: ['route'] },
-        { longText: 'Uberaba', shortText: 'Uberaba', types: ['administrative_area_level_2'] },
-        { longText: 'Minas Gerais', shortText: 'MG', types: ['administrative_area_level_1'] },
-        { longText: '38035-080', shortText: '38035-080', types: ['postal_code'] },
-      ],
-    });
+  it('always calls the fixed Google Places URL (never a user-supplied host)', async () => {
+    const fetchMock = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ places: [] }),
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    expect(match.address).toEqual({
-      logradouro: 'Rua dos Crisântemos, 322',
-      cidade: 'Uberaba',
-      uf: 'MG',
-      cep: '38035-080',
-    });
+    await searchPlaces('padaria uberaba', 'test-key-from-file');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const call = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const url = call[0];
+    const init = call[1];
+    expect(url).toBe('https://places.googleapis.com/v1/places:searchText');
+    expect(url.startsWith('https://places.googleapis.com/')).toBe(true);
+    expect((init.headers as Record<string, string>)['X-Goog-Api-Key']).toBe(
+      'test-key-from-file',
+    );
+    const body = JSON.parse(String(init.body)) as { textQuery: string };
+    expect(body.textQuery).toBe('padaria uberaba');
   });
 });

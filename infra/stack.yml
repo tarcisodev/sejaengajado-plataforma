@@ -7,7 +7,7 @@
 # Sem Redis (⏳P11). Sem valores de segredo — só nomes external.
 # Deploy na VPS: Tarciso/Atlas. Validar: docker stack config -c infra/stack.yml
 # Env do deploy (obrigatórios onde marcado): IMAGE_TAG, BACKUP_TAG, S3_ENDPOINT;
-# opcional: ASAAS_BASE_URL (default sandbox), SUPABASE_ANON_KEY (= se_auth_anon_key).
+# opcional: ASAAS_BASE_URL (default produção api.asaas.com), SUPABASE_ANON_KEY (= se_auth_anon_key).
 
 version: "3.8"
 
@@ -93,8 +93,8 @@ services:
       SUPABASE_JWT_AUD: authenticated
       SUPABASE_JWT_SECRET_FILE: /run/secrets/se_supabase_jwt_secret
       SUPABASE_SERVICE_ROLE_KEY_FILE: /run/secrets/se_supabase_service_role_key
-      # Sandbox por padrão; virar produção: ASAAS_BASE_URL=https://api.asaas.com/v3 (env do deploy).
-      ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}
+      # Produção por padrão; sandbox: ASAAS_BASE_URL=https://sandbox.asaas.com/api/v3 no env do deploy.
+      ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://api.asaas.com/v3}
       ASAAS_API_KEY_FILE: /run/secrets/se_asaas_api_key
       ASAAS_WEBHOOK_TOKEN_FILE: /run/secrets/se_asaas_webhook_token
       # Melhor Envio — cotação de frete (token só via *_FILE).
