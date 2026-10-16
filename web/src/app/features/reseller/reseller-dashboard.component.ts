@@ -26,11 +26,15 @@ import { formatBrl } from '../landing/landing-seo';
         </section>
         <section hlmCard class="p-4">
           <p class="text-sm text-muted-foreground">Margem prevista</p>
-          <p class="mt-1 font-display text-3xl">{{ formatBrl(dash.predictedMarginCents) }}</p>
+          <p class="mt-1 font-display text-3xl" data-predicted-margin>
+            {{ formatBrl(dash.predictedMarginCents) }}
+          </p>
         </section>
         <section hlmCard class="p-4">
           <p class="text-sm text-muted-foreground">Margem realizada</p>
-          <p class="mt-1 font-display text-3xl">{{ formatBrl(dash.realizedMarginCents) }}</p>
+          <p class="mt-1 font-display text-3xl" data-realized-margin>
+            {{ formatBrl(dash.realizedMarginCents) }}
+          </p>
         </section>
         <section hlmCard class="p-4">
           <p class="text-sm text-muted-foreground">Saldo</p>
@@ -47,16 +51,21 @@ import { formatBrl } from '../landing/landing-seo';
           </section>
         }
       </div>
-      @if (dash.stock.length) {
-        <section class="mt-6">
+      <section class="mt-6" data-dashboard-stock>
+        <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="font-display text-xl">Estoque de placas</h2>
+          <a hlmBtn variant="outline" class="h-11" routerLink="/revenda/estoque">Gerenciar</a>
+        </div>
+        @if (dash.stock.length) {
           <ul class="mt-2 space-y-1 text-sm">
             @for (row of dash.stock; track row.plaqueType) {
-              <li>{{ row.plaqueType }}: {{ row.qty }}</li>
+              <li [attr.data-stock-type]="row.plaqueType">{{ row.plaqueType }}: {{ row.qty }}</li>
             }
           </ul>
-        </section>
-      }
+        } @else {
+          <p class="mt-2 text-sm text-muted-foreground">Sem saldo no dashboard.</p>
+        }
+      </section>
     } @else {
       <p class="text-sm text-muted-foreground">Carregando painel…</p>
     }

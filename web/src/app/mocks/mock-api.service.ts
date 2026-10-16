@@ -17,6 +17,8 @@ import {
 import type {
   CursorPage,
   LedgerStatementDto,
+  PlaqueMovementDto,
+  PlaqueStockItemDto,
   ResellerCustomerDto,
   ResellerDashboardDto,
   ResellerPriceItemDto,
@@ -869,6 +871,84 @@ export class MockApiService implements ApiPort {
     }));
     const closingCents = items.reduce((sum, item) => sum + item.amountCents, 0);
     return of({ items, nextCursor: null, openingCents: 0, closingCents });
+  }
+
+  listResellerPlaqueStock(): Observable<{ items: PlaqueStockItemDto[] }> {
+    return of({
+      items: this.state.plaqueStock
+        .filter((row) => row.resellerId === RESELLER_TRIANGULO)
+        .map((row) => ({
+          plaqueType: row.tipo,
+          qty: row.qtd,
+          avgCostCents: row.custoMedio,
+        })),
+    });
+  }
+
+  private readonly plaqueMoveByKey = new Map<string, PlaqueMovementDto>();
+
+  listResellerPlaqueMovements(_cursor?: string | null): Observable<CursorPage<PlaqueMovementDto>> {
+    return of({
+      items: [...this.plaqueMoveByKey.values()].reverse(),
+      nextCursor: null,
+    });
+  }
+
+  recordResellerPlaqueMovement(
+    body:
+      | {
+          type: 'IN';
+          plaqueType: 'QR' | 'NFC';
+          qty: number;
+          unitCostCents?: number;
+          reason?: string;
+        }
+      | {
+          type: 'OUT';
+          plaqueType: 'QR' | 'NFC';
+          qty: number;
+          reason: 'GIFT';
+          siteId: string;
+        },
+    idempotencyKey: string,
+  ): Observable<PlaqueMovementDto> {
+    const cached = this.plaqueMoveByKey.get(idempotencyKey);
+    if (cached) {
+      return of(structuredClone(cached));
+    }
+    const stock = this.state.plaqueStock.find(
+      (row) => row.resellerId === RESELLER_TRIANGULO && row.tipo === body.plaqueType,
+    );
+    if (body.type === 'OUT') {
+      if (!stock || stock.qtd < body.qty) {
+        return throwError(() => ({ status: 409, error: { code: 'STOCK_INSUFFICIENT' } }));
+      }
+      stock.qtd -= body.qty;
+    } else {
+      if (stock) {
+        stock.qtd += body.qty;
+      } else {
+        this.state.plaqueStock.push({
+          resellerId: RESELLER_TRIANGULO,
+          tipo: body.plaqueType,
+          qtd: body.qty,
+          custoMedio: body.unitCostCents ?? 0,
+        });
+      }
+    }
+    const movement: PlaqueMovementDto = {
+      id: `pm_${Date.now()}`,
+      resellerId: RESELLER_TRIANGULO,
+      type: body.type,
+      plaqueType: body.plaqueType,
+      qty: body.qty,
+      unitCostCents: body.type === 'IN' ? (body.unitCostCents ?? null) : null,
+      siteId: body.type === 'OUT' ? body.siteId : null,
+      reason: body.type === 'OUT' ? body.reason : (body.reason ?? null),
+      createdAt: new Date().toISOString(),
+    };
+    this.plaqueMoveByKey.set(idempotencyKey, movement);
+    return of(structuredClone(movement));
   }
 
   getResellerLedgerBalance(): Observable<{ balanceCents: number }> {

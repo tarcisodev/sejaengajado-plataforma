@@ -103,4 +103,31 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
     });
     await checkoutPending;
   });
+
+  it('sends Idempotency-Key on plaque movement POST', async () => {
+    const key = 'plaque-in-1';
+    const pending = firstValueFrom(
+      api.recordResellerPlaqueMovement(
+        { type: 'IN', plaqueType: 'QR', qty: 2, unitCostCents: 1300 },
+        key,
+      ),
+    );
+    await Promise.resolve();
+    const req = http.expectOne(
+      (r) => r.url.includes('/reseller/plaques/movements') && r.method === 'POST',
+    );
+    expect(req.request.headers.get('Idempotency-Key')).toBe(key);
+    req.flush({
+      id: 'm1',
+      resellerId: 'r1',
+      type: 'IN',
+      plaqueType: 'QR',
+      qty: 2,
+      unitCostCents: 1300,
+      siteId: null,
+      reason: 'compra',
+      createdAt: new Date().toISOString(),
+    });
+    await pending;
+  });
 });

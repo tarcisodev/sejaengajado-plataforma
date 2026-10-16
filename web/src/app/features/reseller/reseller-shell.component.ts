@@ -7,6 +7,7 @@ import {
   lucideGlobe,
   lucideHouse,
   lucideMoon,
+  lucidePackage,
   lucideReceipt,
   lucideShoppingCart,
   lucideSun,
@@ -26,6 +27,7 @@ import { ResellerLedgerComponent } from './reseller-ledger.component';
 import { ResellerSalesComponent } from './reseller-sales.component';
 import { ResellerSection, resellerSection } from './reseller-section';
 import { ResellerSitesComponent } from './reseller-sites.component';
+import { ResellerStockComponent } from './reseller-stock.component';
 
 @Component({
   selector: 'app-reseller-shell',
@@ -39,6 +41,7 @@ import { ResellerSitesComponent } from './reseller-sites.component';
     ResellerCustomersComponent,
     ResellerSitesComponent,
     ResellerSalesComponent,
+    ResellerStockComponent,
     ResellerLedgerComponent,
     MyInvoicesComponent,
   ],
@@ -48,6 +51,7 @@ import { ResellerSitesComponent } from './reseller-sites.component';
       lucideGlobe,
       lucideHouse,
       lucideMoon,
+      lucidePackage,
       lucideReceipt,
       lucideShoppingCart,
       lucideSun,
@@ -87,6 +91,7 @@ export class ResellerShellComponent {
     { section: 'clientes', href: '/revenda/clientes', label: 'Clientes', icon: 'lucideUsers' },
     { section: 'sites', href: '/revenda/sites', label: 'Sites', icon: 'lucideGlobe' },
     { section: 'vendas', href: '/revenda/vendas', label: 'Vendas', icon: 'lucideShoppingCart' },
+    { section: 'estoque', href: '/revenda/estoque', label: 'Estoque', icon: 'lucidePackage' },
     { section: 'extrato', href: '/revenda/extrato', label: 'Extrato', icon: 'lucideReceipt' },
     { section: 'faturas', href: '/revenda/faturas', label: 'Faturas', icon: 'lucideFileText' },
   ];

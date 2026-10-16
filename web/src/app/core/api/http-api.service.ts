@@ -48,6 +48,8 @@ import { PlaquePenaltyQuote } from './plaque-penalty';
 import type {
   CursorPage,
   LedgerStatementDto,
+  PlaqueMovementDto,
+  PlaqueStockItemDto,
   ResellerCustomerDto,
   ResellerDashboardDto,
   ResellerPriceItemDto,
@@ -453,6 +455,39 @@ export class HttpApiService implements ApiPort {
 
   listResellerPrices(): Observable<{ items: ResellerPriceItemDto[] }> {
     return this.http.get<{ items: ResellerPriceItemDto[] }>(this.url('/reseller/prices'));
+  }
+
+  listResellerPlaqueStock(): Observable<{ items: PlaqueStockItemDto[] }> {
+    return this.http.get<{ items: PlaqueStockItemDto[] }>(this.url('/reseller/plaques/stock'));
+  }
+
+  listResellerPlaqueMovements(cursor?: string | null): Observable<CursorPage<PlaqueMovementDto>> {
+    return this.http.get<CursorPage<PlaqueMovementDto>>(this.url('/reseller/plaques/movements'), {
+      params: cursorParams(cursor),
+    });
+  }
+
+  recordResellerPlaqueMovement(
+    body:
+      | {
+          type: 'IN';
+          plaqueType: 'QR' | 'NFC';
+          qty: number;
+          unitCostCents?: number;
+          reason?: string;
+        }
+      | {
+          type: 'OUT';
+          plaqueType: 'QR' | 'NFC';
+          qty: number;
+          reason: 'GIFT';
+          siteId: string;
+        },
+    idempotencyKey: string,
+  ): Observable<PlaqueMovementDto> {
+    return this.http.post<PlaqueMovementDto>(this.url('/reseller/plaques/movements'), body, {
+      headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+    });
   }
 
   private url(path: string): string {

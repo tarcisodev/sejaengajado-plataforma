@@ -112,3 +112,21 @@ export interface SlugCheckDto {
   available: boolean;
   code?: string;
 }
+
+export interface PlaqueStockItemDto {
+  plaqueType: string;
+  qty: number;
+  avgCostCents: number | null;
+}
+
+export interface PlaqueMovementDto {
+  id: string;
+  resellerId: string;
+  type: 'IN' | 'OUT' | 'ADJUST';
+  plaqueType: string;
+  qty: number;
+  unitCostCents: number | null;
+  siteId: string | null;
+  reason: string | null;
+  createdAt: string;
+}

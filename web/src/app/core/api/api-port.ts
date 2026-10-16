@@ -5,6 +5,8 @@ import { PlaquePenaltyQuote } from './plaque-penalty';
 import type {
   CursorPage,
   LedgerStatementDto,
+  PlaqueMovementDto,
+  PlaqueStockItemDto,
   ResellerCustomerDto,
   ResellerDashboardDto,
   ResellerPriceItemDto,
@@ -173,6 +175,26 @@ export interface ApiPort {
   getResellerLedgerBalance(): Observable<{ balanceCents: number }>;
   listResellerWholesale(): Observable<{ items: WholesaleItemDto[] }>;
   listResellerPrices(): Observable<{ items: ResellerPriceItemDto[] }>;
+  listResellerPlaqueStock(): Observable<{ items: PlaqueStockItemDto[] }>;
+  listResellerPlaqueMovements(cursor?: string | null): Observable<CursorPage<PlaqueMovementDto>>;
+  recordResellerPlaqueMovement(
+    body:
+      | {
+          type: 'IN';
+          plaqueType: 'QR' | 'NFC';
+          qty: number;
+          unitCostCents?: number;
+          reason?: string;
+        }
+      | {
+          type: 'OUT';
+          plaqueType: 'QR' | 'NFC';
+          qty: number;
+          reason: 'GIFT';
+          siteId: string;
+        },
+    idempotencyKey: string,
+  ): Observable<PlaqueMovementDto>;
 }
 
 export interface CustomerOtp {
