@@ -19,7 +19,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
     "seed:demo": "tsx prisma/seed-demo.ts",
-    "seed:showcase": "node dist/prisma/seed-showcase.js",
+    "seed:showcase": "node dist-seed/seed-showcase.js",
     "dev:seed-admin": "tsx scripts/seed-dev-admin.ts"
   },
   "prisma": {

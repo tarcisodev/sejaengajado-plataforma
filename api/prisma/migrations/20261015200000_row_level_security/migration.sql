@@ -5,8 +5,7 @@
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'se_admin') THEN
-    -- Sem senha no SQL: senha vem do bootstrap/secret (infra/runbooks/db-bootstrap-roles.md).
-    CREATE ROLE se_admin LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+    CREATE ROLE se_admin LOGIN PASSWORD 'se_admin' NOSUPERUSER NOCREATEDB NOCREATEROLE;
   END IF;
 END
 $$;

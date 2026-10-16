@@ -13,5 +13,5 @@
     "baseUrl": ".",
     "incremental": true
   },
-  "include": ["src", "test", "prisma/seed-showcase.ts", "prisma/demo-seed-guard.ts", "prisma/*.spec.ts"]
+  "include": ["src", "test"]
 }

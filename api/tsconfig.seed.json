@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES2022",
-    "outDir": "dist/prisma",
+    "outDir": "dist-seed",
     "rootDir": "prisma",
     "esModuleInterop": true,
     "strict": true,

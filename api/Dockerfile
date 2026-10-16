@@ -19,10 +19,13 @@ ENV NODE_ENV=production
 RUN apk add --no-cache wget
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
+COPY --from=build --chown=node:node /app/dist-seed ./dist-seed
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh \
+  && test -f /app/dist/main.js \
+  && test -f /app/dist-seed/seed-showcase.js
 USER node
 EXPOSE 3000
 # Liveness only — readiness (DB+R2) is Traefik LB /api/health/ready.

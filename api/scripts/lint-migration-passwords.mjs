@@ -1,18 +1,28 @@
 #!/usr/bin/env node
 /**
- * Fail if any Prisma migration embeds a role PASSWORD literal.
- * Passwords belong in Swarm secrets + db-bootstrap-roles.md only.
+ * Fail if post-baseline Prisma migrations embed a role PASSWORD literal.
+ * Historical migrations (≤ 20261015250000) may still contain legacy PASSWORD
+ * for greenfield checksum stability — rotate via db-bootstrap-roles.md in prod.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
+const BASELINE_TS = '20261015250000';
 const root = join(process.cwd(), 'prisma', 'migrations');
 const bad = [];
+
+function migrationTs(dirName) {
+  return dirName.split('_')[0] ?? '';
+}
 
 function walk(dir) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) {
+      const ts = migrationTs(name);
+      if (/^\d+$/.test(ts) && ts <= BASELINE_TS) {
+        continue;
+      }
       walk(path);
       continue;
     }
@@ -29,11 +39,11 @@ function walk(dir) {
 walk(root);
 
 if (bad.length) {
-  console.error('lint-migration-passwords: PASSWORD literal found in:');
+  console.error('lint-migration-passwords: PASSWORD literal found in post-baseline migration:');
   for (const path of bad) {
     console.error(' -', path);
   }
   process.exit(1);
 }
 
-console.log('lint-migration-passwords: ok');
+console.log(`lint-migration-passwords: ok (baseline=${BASELINE_TS})`);

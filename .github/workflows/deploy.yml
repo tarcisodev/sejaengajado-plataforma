@@ -77,6 +77,12 @@ jobs:
           tags: ${{ env.REGISTRY }}/sejaengajado-${{ matrix.app }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+      - name: API image must keep dist/main.js (seed compiles to dist-seed/)
+        if: matrix.app == 'api'
+        run: |
+          img="${{ env.REGISTRY }}/sejaengajado-api:${{ github.sha }}"
+          docker pull "$img"
+          docker run --rm --entrypoint sh "$img" -c 'test -f /app/dist/main.js && test -f /app/dist-seed/seed-showcase.js'
 
   deploy:
     needs: [build]

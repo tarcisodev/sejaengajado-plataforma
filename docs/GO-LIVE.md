@@ -100,7 +100,7 @@ Após deploy + migrate na VPS (Atlas), criar os 3 biosites de demonstração (id
 # Dentro do container api em execução (admin DB via secret):
 cid=$(docker ps -q -f name=sejaengajado_api | head -1)
 docker exec -u node "$cid" sh -c \
-  'export DATABASE_URL="$(tr -d "\n\r" < /run/secrets/se_admin_database_url)" && node dist/prisma/seed-showcase.js'
+  'export DATABASE_URL="$(tr -d "\n\r" < /run/secrets/se_admin_database_url)" && node dist-seed/seed-showcase.js'
 # equivalente: … && npm run seed:showcase
 ```
 
