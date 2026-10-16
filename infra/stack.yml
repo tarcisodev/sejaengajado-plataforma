@@ -111,6 +111,7 @@ services:
       HC_JOBS_URL_FILE: /run/secrets/se_hc_jobs_url
       SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
       SENTRY_RELEASE: ${IMAGE_TAG:?IMAGE_TAG required}
+      GOOGLE_PLACES_API_KEY_FILE: /run/secrets/se_google_places_key_v1
       ENABLE_DOCS: "false"
     secrets:
       - se_database_url
@@ -125,6 +126,7 @@ services:
       - se_smtp_url
       - se_hc_jobs_url
       - se_sentry_dsn
+      - se_google_places_key_v1
     # DB via supabase_supabase_db na TarcisoDevNet (sem supabase_network).
     networks: [TarcisoDevNet, se_internal]
     logging: *logging
@@ -230,3 +232,4 @@ secrets:
   se_hc_backup_url: { external: true, name: se_hc_backup_url_v1 }
   se_hc_jobs_url: { external: true, name: se_hc_jobs_url_v1 }
   se_sentry_dsn: { external: true, name: se_sentry_dsn_v1 }
+  se_google_places_key_v1: { external: true }
