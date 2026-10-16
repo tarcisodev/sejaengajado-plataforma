@@ -8,6 +8,11 @@ name: build-and-deploy
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "PROGRESS.md"
+      - ".github/ISSUE_TEMPLATE/**"
   workflow_dispatch:
     inputs:
       rollback_tag:
@@ -98,6 +103,9 @@ jobs:
       SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Redeploy de SHA antigo: compose/scripts do commit de destino.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '' && inputs.rollback_tag || github.sha }}
 
       - name: Login GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -132,8 +140,7 @@ jobs:
           export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}"
           docker service update --detach=true --with-registry-auth \
             --image "${REGISTRY}/sejaengajado-api:${IMAGE_TAG}" \
-            --replicas 1 sejaengajado_migrate \
-            || docker stack deploy --with-registry-auth -c infra/stack.yml sejaengajado
+            --replicas 1 sejaengajado_migrate
           ./infra/scripts/wait-oneoff.sh sejaengajado_migrate 180
           docker service scale sejaengajado_migrate=0
 
@@ -148,6 +155,7 @@ jobs:
             exit 1
           fi
           docker stack deploy --with-registry-auth --prune=false -c infra/stack.yml sejaengajado
+          echo "DEPLOYED=1" >> "$GITHUB_ENV"
 
       - name: Gate de saúde
         run: |
@@ -185,21 +193,29 @@ jobs:
             if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/healthz" | grep -qx 'ok'; then
               web_hz=1
             fi
-            # Smoke somente-leitura (publico.spec): 3 demos 200+nome; slug inexistente 404 limpo.
+            # Smoke somente-leitura: cada demo N vezes (intermitência não passa com 1 GET).
             tenant_ok=1
+            TENANT_ATTEMPTS="${TENANT_SMOKE_ATTEMPTS:-5}"
             for pair in "demo-forno:Forno" "demo-barbearia:Barbearia" "demo-estudio:Luz"; do
               slug="${pair%%:*}"
               needle="${pair##*:}"
-              body="$(mktemp)"
-              code=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
-                "https://${slug}.sejaengajado.com.br/" || echo "000")
-              if [[ "$code" != "200" ]] || ! grep -Fq "$needle" "$body"; then
+              ok_n=0
+              for ((t=1; t<=TENANT_ATTEMPTS; t++)); do
+                body="$(mktemp)"
+                code=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
+                  "https://${slug}.sejaengajado.com.br/" || echo "000")
+                if [[ "$code" == "200" ]] && grep -Fq "$needle" "$body" \
+                  && ! grep -Eiq 'Negócio não encontrado|Não encontramos esse negócio' "$body"; then
+                  ok_n=$((ok_n + 1))
+                fi
+                rm -f "$body"
+              done
+              if [[ "$ok_n" -lt "$TENANT_ATTEMPTS" ]]; then
+                echo "tenant smoke FAIL slug=$slug ok=$ok_n/$TENANT_ATTEMPTS"
                 tenant_ok=0
+              else
+                echo "tenant smoke OK slug=$slug ok=$ok_n/$TENANT_ATTEMPTS"
               fi
-              if grep -Eiq 'Negócio não encontrado|Não encontramos esse negócio' "$body"; then
-                tenant_ok=0
-              fi
-              rm -f "$body"
             done
             miss_body="$(mktemp)"
             miss_code=$(curl -sS --max-time 10 -o "$miss_body" -w "%{http_code}" \
@@ -241,10 +257,28 @@ jobs:
             exit 1
           fi
 
-      - name: Rollback automático (redeploy implícito via Swarm + aviso de SHA)
-        if: failure() && env.PREV_TAG != ''
+      - name: Rollback automático (só se stack deploy já rodou)
+        if: failure() && env.DEPLOYED == '1' && env.PREV_TAG != ''
         run: |
-          docker service rollback sejaengajado_api || true
-          docker service rollback sejaengajado_web-ssr || true
-          echo "::error::rollback Swarm para tag anterior (${PREV_TAG}). Migrations NÃO foram revertidas."
-          echo "Para redeploy explícito de um SHA: workflow_dispatch com rollback_tag=<sha>"
+          set -euo pipefail
+          echo "rollback Swarm → tag anterior ${PREV_TAG}"
+          docker service rollback sejaengajado_api
+          docker service rollback sejaengajado_web-ssr
+          # Confere que a tag voltou (não engolir falha).
+          for i in $(seq 1 24); do
+            api_img=$(docker service inspect sejaengajado_api --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+            web_img=$(docker service inspect sejaengajado_web-ssr --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+            api_ok=0
+            web_ok=0
+            [[ "$api_img" == *":${PREV_TAG}"* ]] && api_ok=1
+            [[ "$web_img" == *":${PREV_TAG}"* ]] && web_ok=1
+            echo "rollback check try=$i api_ok=$api_ok web_ok=$web_ok"
+            if [[ "$api_ok" -eq 1 && "$web_ok" -eq 1 ]]; then
+              echo "::error::rollback Swarm para tag anterior (${PREV_TAG}). Migrations NÃO foram revertidas."
+              echo "Para redeploy explícito de um SHA: workflow_dispatch com rollback_tag=<sha>"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::rollback não confirmou tag ${PREV_TAG} em api/web-ssr" >&2
+          exit 1

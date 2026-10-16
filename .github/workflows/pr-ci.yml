@@ -1,4 +1,5 @@
-# PR CI — ADR-003 etapa 1. Sem secrets de produção. Não altera deploy.yml.
+# PR CI — ADR-003 + PROMPT-PIPELINE PR A.
+# Roda em ubuntu-latest (não compete com produção na VPS). Sem secrets de produção.
 name: pr-ci
 
 on:
@@ -17,8 +18,27 @@ env:
   NODE_VERSION: "22"
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!docs/**'
+              - '!PROGRESS.md'
+              - '!.github/ISSUE_TEMPLATE/**'
+
   risk-tier:
-    runs-on: [self-hosted, linux, vps]
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     outputs:
       tier: ${{ steps.tier.outputs.tier }}
     steps:
@@ -41,7 +61,9 @@ jobs:
           path: risk.json
 
   migration-guard:
-    runs-on: [self-hosted, linux, vps]
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,7 +77,9 @@ jobs:
         run: node infra/scripts/check-traefik-hostregexp.mjs
 
   gitleaks:
-    runs-on: [self-hosted, linux, vps]
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,7 +92,9 @@ jobs:
             --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
 
   lint:
-    runs-on: [self-hosted, linux, vps]
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -92,7 +118,9 @@ jobs:
           npm run format:check
 
   test:
-    runs-on: [self-hosted, linux, vps]
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,14 +136,21 @@ jobs:
           npm ci
           npx prisma generate
           npm test
+      - name: Chrome for Karma
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
       - name: Web unit
         working-directory: web
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           npm ci
-          npm test -- --watch=false --browsers=ChromeHeadless
+          npm test -- --watch=false --browsers=ChromeHeadlessCI
 
   test-int:
-    runs-on: [self-hosted, linux, vps]
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -131,8 +166,9 @@ jobs:
           npm run test:int
 
   build:
-    runs-on: [self-hosted, linux, vps]
-    needs: [lint]
+    needs: [changes, lint]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -161,11 +197,62 @@ jobs:
           path: web/dist/web/browser
           retention-days: 3
 
+  docker-build:
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: api
+            context: api
+            file: api/Dockerfile
+          - app: web
+            context: web
+            file: web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          load: true
+          tags: se-pr-${{ matrix.app }}:${{ github.sha }}
+          cache-from: type=gha,scope=pr-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=pr-${{ matrix.app }}
+      - name: Smoke API image
+        if: matrix.app == 'api'
+        run: |
+          set -euo pipefail
+          img="se-pr-api:${{ github.sha }}"
+          docker run --rm --entrypoint sh "$img" -c 'test -f /app/dist/main.js && test -f /app/dist-seed/seed-showcase.js'
+          # Carrega o bundle (entrypoint exige secrets). timeout=processo ficou de pé; ≠0=falhou bootstrap após load.
+          set +e
+          timeout 20s docker run --rm --entrypoint node "$img" -e "require('/app/dist/main.js')"
+          code=$?
+          set -e
+          echo "smoke api exit=$code"
+          # 125–127 = docker não rodou a imagem
+          if [ "$code" -eq 125 ] || [ "$code" -eq 126 ] || [ "$code" -eq 127 ]; then
+            exit 1
+          fi
+      - name: Smoke Web image
+        if: matrix.app == 'web'
+        run: |
+          set -euo pipefail
+          img="se-pr-web:${{ github.sha }}"
+          docker run --rm --entrypoint sh "$img" -c 'test -f /app/dist/web/server/server.mjs'
+
   e2e:
-    runs-on: [self-hosted, linux, vps]
-    needs: [build]
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
     concurrency:
-      group: pr-e2e
+      group: pr-e2e-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
@@ -191,7 +278,6 @@ jobs:
       - name: API migrate + seed + start
         working-directory: api
         env:
-          # Migrate/seed como superuser local; app usa o mesmo DB no CI (sem Swarm secrets).
           DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
           ADMIN_DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
           ALLOW_DEMO_SEED: "1"
@@ -208,7 +294,6 @@ jobs:
           npm run build
           npm run seed:demo || true
           npm run seed:showcase || node dist-seed/seed-showcase.js || true
-          # JWT secret file gerado pelo dev-auth
           export SUPABASE_JWT_SECRET_FILE="${SUPABASE_JWT_SECRET_FILE:-}"
           if [ -z "$SUPABASE_JWT_SECRET_FILE" ] && [ -n "${SUPABASE_JWT_SECRET:-}" ]; then
             mkdir -p ../.local/dev-secrets
@@ -237,7 +322,7 @@ jobs:
         run: |
           npm ci
           npm run build
-          npx playwright install chromium
+          npx playwright install chromium --with-deps
           nohup env PORT=4000 API_INTERNAL_URL=http://127.0.0.1:3000 npm run serve:ssr:web > /tmp/se-web-e2e.log 2>&1 &
           echo $! > /tmp/se-web-e2e.pid
           for i in $(seq 1 60); do
@@ -261,11 +346,25 @@ jobs:
 
   pr-ci-ok:
     if: always()
-    needs: [risk-tier, migration-guard, gitleaks, lint, test, test-int, build, e2e]
-    runs-on: [self-hosted, linux, vps]
+    needs:
+      [
+        changes,
+        risk-tier,
+        migration-guard,
+        gitleaks,
+        lint,
+        test,
+        test-int,
+        build,
+        docker-build,
+        e2e,
+      ]
+    runs-on: ubuntu-latest
     steps:
       - name: Aggregate
         run: |
+          code="${{ needs.changes.outputs.code }}"
+          echo "code=$code"
           echo "risk=${{ needs.risk-tier.result }}"
           echo "migration=${{ needs.migration-guard.result }}"
           echo "gitleaks=${{ needs.gitleaks.result }}"
@@ -273,7 +372,22 @@ jobs:
           echo "test=${{ needs.test.result }}"
           echo "test-int=${{ needs.test-int.result }}"
           echo "build=${{ needs.build.result }}"
+          echo "docker-build=${{ needs.docker-build.result }}"
           echo "e2e=${{ needs.e2e.result }}"
-          for r in ${{ needs.risk-tier.result }} ${{ needs.migration-guard.result }} ${{ needs.gitleaks.result }} ${{ needs.lint.result }} ${{ needs.test.result }} ${{ needs.test-int.result }} ${{ needs.build.result }} ${{ needs.e2e.result }}; do
+          if [ "$code" != "true" ]; then
+            echo "docs-only / paths-filter: pr-ci-ok"
+            test "${{ needs.changes.result }}" = "success"
+            exit 0
+          fi
+          for r in \
+            ${{ needs.risk-tier.result }} \
+            ${{ needs.migration-guard.result }} \
+            ${{ needs.gitleaks.result }} \
+            ${{ needs.lint.result }} \
+            ${{ needs.test.result }} \
+            ${{ needs.test-int.result }} \
+            ${{ needs.build.result }} \
+            ${{ needs.docker-build.result }} \
+            ${{ needs.e2e.result }}; do
             test "$r" = "success" || exit 1
           done

@@ -29,7 +29,8 @@
 FLUXO-FELIZ M0 - bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
 
 ## Proximo
-FLUXO-FELIZ M1 - admin-site.spec + site-editor + 0.e/f5/0.c/0.d (apos aprovacao do deploy M0).
+PROMPT-PIPELINE PR A (#12) — pr-ci ubuntu-latest, docker smoke, rollback seguro; depois B (#13) e C (#14).
+FLUXO-FELIZ M1+ em paralelo (issue #8 / #10).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1-#6)_
