@@ -241,10 +241,21 @@
     }
   </section>
 } @else {
-  <div class="mb-4 flex justify-end">
+  <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <label class="grid w-full gap-1 text-sm sm:max-w-sm">
+      Buscar site
+      <input
+        hlmInput
+        class="h-11"
+        data-sites-search
+        [value]="query()"
+        (input)="query.set($any($event.target).value)"
+        placeholder="Slug ou cliente"
+      />
+    </label>
     <button
       hlmBtn
-      class="h-11"
+      class="h-11 w-full sm:w-auto"
       type="button"
       data-open-wizard
       [disabled]="!operable()"
@@ -253,72 +264,163 @@
       Criar site
     </button>
   </div>
+  <p class="text-sm text-muted-foreground" data-sites-count>
+    {{ visibleRows().length }} resultado(s)
+  </p>
 }
 
-<section class="mt-6 overflow-x-auto">
-  <table hlmTable class="w-full min-w-[36rem]">
-    <thead>
-      <tr hlmTr>
-        <th hlmTh>Slug</th>
-        <th hlmTh>Cliente</th>
-        <th hlmTh>Status</th>
-        <th hlmTh></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (row of rows(); track row.id) {
-        <tr hlmTr [attr.data-site-id]="row.id" [attr.data-reseller-id]="row.resellerId">
-          <td hlmTd>
-            <a class="underline" [href]="publicUrl(row.slug)">{{ row.slug }}</a>
-          </td>
-          <td hlmTd>{{ row.customer?.name ?? row.customerId }}</td>
-          <td hlmTd>
-            <span hlmBadge variant="secondary">{{ row.status }}</span>
-          </td>
-          <td hlmTd>
-            <div class="flex flex-wrap gap-2">
-              @if (row.status === 'DRAFT' || row.status === 'READ_ONLY') {
-                <button
-                  hlmBtn
-                  class="h-11"
-                  type="button"
-                  variant="outline"
-                  [disabled]="!operable()"
-                  (click)="publish(row.id)"
-                >
-                  Publicar
-                </button>
-              }
-              @if (row.status === 'PUBLISHED') {
-                <button
-                  hlmBtn
-                  class="h-11"
-                  type="button"
-                  variant="outline"
-                  (click)="unpublish(row.id)"
-                >
-                  Despublicar
-                </button>
-              }
-              @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
-                <button
-                  hlmBtn
-                  class="h-11"
-                  type="button"
-                  variant="outline"
-                  data-open-plaque
-                  (click)="openPlaque(row)"
-                >
-                  Placa
-                </button>
-              }
+@if (!wizardOpen()) {
+  <ul class="mt-4 grid gap-3 md:hidden" data-sites-cards>
+    @if (visibleRows().length === 0) {
+      <li hlmCard class="p-4 text-sm text-muted-foreground">Nenhum site ainda.</li>
+    } @else {
+      @for (row of visibleRows(); track row.id) {
+        <li hlmCard class="grid gap-3 p-4" [attr.data-site-id]="row.id">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <a class="font-medium underline" [href]="publicUrl(row.slug)">{{ row.slug }}</a>
+              <p class="mt-1 text-sm text-muted-foreground">
+                {{ row.customer?.name ?? row.customerId }}
+              </p>
             </div>
-          </td>
-        </tr>
+            <span hlmBadge [variant]="statusVariant(row.status)" [attr.data-status]="row.status">{{
+              statusLabel(row.status)
+            }}</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <a
+              hlmBtn
+              class="h-11 min-w-28"
+              variant="outline"
+              [href]="publicUrl(row.slug)"
+              target="_blank"
+              rel="noopener"
+              >Prévia</a
+            >
+            @if (row.status === 'DRAFT' || row.status === 'READ_ONLY') {
+              <button
+                hlmBtn
+                class="h-11 min-w-28"
+                type="button"
+                [disabled]="!operable()"
+                (click)="publish(row.id)"
+              >
+                Publicar
+              </button>
+            }
+            @if (row.status === 'PUBLISHED') {
+              <button
+                hlmBtn
+                class="h-11 min-w-28"
+                type="button"
+                variant="outline"
+                (click)="unpublish(row.id)"
+              >
+                Despublicar
+              </button>
+            }
+            @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+              <button
+                hlmBtn
+                class="h-11 min-w-28"
+                type="button"
+                variant="outline"
+                data-open-plaque
+                (click)="openPlaque(row)"
+              >
+                Placa
+              </button>
+            }
+          </div>
+        </li>
       }
-    </tbody>
-  </table>
-</section>
+    }
+  </ul>
+
+  <section class="mt-6 hidden overflow-x-auto md:block">
+    <table hlmTable class="w-full min-w-[36rem]">
+      <thead>
+        <tr hlmTr>
+          <th hlmTh>Slug</th>
+          <th hlmTh>Cliente</th>
+          <th hlmTh>Status</th>
+          <th hlmTh></th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (visibleRows().length === 0) {
+          <tr hlmTr>
+            <td hlmTd colspan="4">Nenhum site ainda.</td>
+          </tr>
+        }
+        @for (row of visibleRows(); track row.id) {
+          <tr hlmTr [attr.data-site-id]="row.id" [attr.data-reseller-id]="row.resellerId">
+            <td hlmTd>
+              <a class="underline" [href]="publicUrl(row.slug)">{{ row.slug }}</a>
+            </td>
+            <td hlmTd>{{ row.customer?.name ?? row.customerId }}</td>
+            <td hlmTd>
+              <span
+                hlmBadge
+                [variant]="statusVariant(row.status)"
+                [attr.data-status]="row.status"
+                >{{ statusLabel(row.status) }}</span
+              >
+            </td>
+            <td hlmTd>
+              <div class="flex flex-wrap gap-2">
+                <a
+                  hlmBtn
+                  class="h-11 min-w-28"
+                  variant="outline"
+                  [href]="publicUrl(row.slug)"
+                  target="_blank"
+                  rel="noopener"
+                  >Prévia</a
+                >
+                @if (row.status === 'DRAFT' || row.status === 'READ_ONLY') {
+                  <button
+                    hlmBtn
+                    class="h-11 min-w-28"
+                    type="button"
+                    variant="outline"
+                    [disabled]="!operable()"
+                    (click)="publish(row.id)"
+                  >
+                    Publicar
+                  </button>
+                }
+                @if (row.status === 'PUBLISHED') {
+                  <button
+                    hlmBtn
+                    class="h-11 min-w-28"
+                    type="button"
+                    variant="outline"
+                    (click)="unpublish(row.id)"
+                  >
+                    Despublicar
+                  </button>
+                }
+                @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+                  <button
+                    hlmBtn
+                    class="h-11 min-w-28"
+                    type="button"
+                    variant="outline"
+                    data-open-plaque
+                    (click)="openPlaque(row)"
+                  >
+                    Placa
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}
 
 @if (plaqueSite(); as plaque) {
   <section hlmCard class="mt-6 p-4 md:p-6" data-plaque-panel>

@@ -27,6 +27,9 @@ describe('AdminSitesComponent', () => {
 
     expect(text).toContain('Oficina Suspensa');
     expect(text).not.toContain('Barbearia do Zé');
+    expect(fixture.nativeElement.querySelector('[data-status="SUSPENDED"]')?.textContent).toContain(
+      'Suspenso',
+    );
 
     const button = [...fixture.nativeElement.querySelectorAll('button')].find((item) =>
       (item as HTMLButtonElement).textContent?.includes('Reativar'),
@@ -37,6 +40,17 @@ describe('AdminSitesComponent', () => {
 
     const sites = await firstValueFrom(TestBed.inject(MockApiService).listSites());
     expect(sites.find((site) => site.slug === 'oficina-suspensa')?.status).toBe('PUBLISHED');
+  });
+
+  it('asks confirmation before suspending', () => {
+    const site = fixture.componentInstance.rows().find((row) => row.status === 'PUBLISHED');
+    expect(site).toBeTruthy();
+    fixture.componentInstance.askSuspend(site!);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-suspend-dialog]')).toBeTruthy();
+    fixture.componentInstance.cancelSuspend();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-suspend-dialog]')).toBeNull();
   });
 
   it('opens creation on the admin customer and the custom template', () => {

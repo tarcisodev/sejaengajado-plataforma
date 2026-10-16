@@ -222,7 +222,7 @@
           <span id="site-status">Status</span>
           <hlm-select
             [value]="status()"
-            [itemToString]="statusLabel"
+            [itemToString]="filterStatusLabel"
             (valueChange)="setStatus($event)"
           >
             <hlm-select-trigger class="h-11! w-full" aria-labelledby="site-status">
@@ -241,9 +241,120 @@
           </hlm-select>
         </div>
       </div>
-      <button hlmBtn class="h-11" type="button" (click)="openCreate()">Criar site</button>
+      <button
+        hlmBtn
+        class="h-11 w-full sm:w-auto"
+        type="button"
+        data-create-site
+        (click)="openCreate()"
+      >
+        Criar site
+      </button>
     </div>
-    <section hlmCard class="min-w-0 overflow-visible">
+    <p class="mt-3 text-sm text-muted-foreground" data-sites-count>
+      {{ ready() ? visible().length : '…' }} resultado(s)
+    </p>
+
+    @if (confirmSuspendId(); as suspendId) {
+      <div
+        class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        data-suspend-dialog
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="suspend-title"
+      >
+        <div hlmCard class="w-full max-w-md p-4">
+          <h2 id="suspend-title" class="font-display text-lg">Suspender site?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">
+            O site fica inacessível até ser reativado.
+          </p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button
+              hlmBtn
+              class="h-11 min-w-28"
+              type="button"
+              variant="destructive"
+              (click)="confirmSuspend()"
+            >
+              Suspender
+            </button>
+            <button
+              hlmBtn
+              class="h-11 min-w-28"
+              type="button"
+              variant="outline"
+              (click)="cancelSuspend()"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Mobile cards -->
+    <ul class="mt-3 grid gap-3 md:hidden" data-sites-cards>
+      @if (!ready()) {
+        @for (row of placeholders; track row) {
+          <li hlmCard class="p-4"><div hlmSkeleton class="h-16 w-full"></div></li>
+        }
+      } @else if (visible().length === 0) {
+        <li hlmCard class="p-4 text-sm text-muted-foreground">Nenhum resultado</li>
+      } @else {
+        @for (row of visible(); track row.id) {
+          <li hlmCard class="grid gap-3 p-4" [attr.data-site-id]="row.id">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p class="font-medium">{{ row.content.businessName }}</p>
+                <a
+                  class="mt-1 inline-flex items-center gap-1 text-sm underline"
+                  target="_blank"
+                  rel="noopener"
+                  [href]="previewHref(row.slug)"
+                  >{{ row.slug }}.sejaengajado.com.br</a
+                >
+              </div>
+              <span
+                hlmBadge
+                [variant]="statusVariant(row.status)"
+                [attr.data-status]="row.status"
+                >{{ statusLabel(row.status) }}</span
+              >
+            </div>
+            <p class="text-sm text-muted-foreground">{{ planName(row.planId) }}</p>
+            <div class="flex flex-wrap gap-2">
+              <a
+                hlmBtn
+                class="h-11 min-w-28"
+                variant="outline"
+                target="_blank"
+                rel="noopener"
+                [href]="previewHref(row.slug)"
+                >Prévia</a
+              >
+              @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+                <button
+                  hlmBtn
+                  class="h-11 min-w-28"
+                  type="button"
+                  variant="destructive"
+                  (click)="askSuspend(row)"
+                >
+                  Suspender
+                </button>
+              }
+              @if (row.status === 'SUSPENDED') {
+                <button hlmBtn class="h-11 min-w-28" type="button" (click)="reactivate(row)">
+                  Reativar
+                </button>
+              }
+            </div>
+          </li>
+        }
+      }
+    </ul>
+
+    <section hlmCard class="mt-3 hidden min-w-0 overflow-visible md:block">
       <div hlmTableContainer>
         <table hlmTable>
           <caption hlmCaption>
@@ -271,18 +382,31 @@
               </tr>
             } @else {
               @for (row of visible(); track row.id) {
-                <tr hlmTr>
+                <tr hlmTr [attr.data-site-id]="row.id">
                   <td hlmTd>{{ row.content.businessName }}</td>
-                  <td hlmTd>{{ row.slug }}</td>
                   <td hlmTd>
-                    <span hlmBadge [variant]="tone(row.status)">{{ row.status }}</span>
+                    <a
+                      class="inline-flex items-center gap-1 underline"
+                      target="_blank"
+                      rel="noopener"
+                      [href]="previewHref(row.slug)"
+                      >{{ row.slug }}.sejaengajado.com.br</a
+                    >
+                  </td>
+                  <td hlmTd>
+                    <span
+                      hlmBadge
+                      [variant]="statusVariant(row.status)"
+                      [attr.data-status]="row.status"
+                      >{{ statusLabel(row.status) }}</span
+                    >
                   </td>
                   <td hlmTd>{{ planName(row.planId) }}</td>
                   <td hlmTd>
                     <div class="flex flex-wrap gap-2">
                       <a
                         hlmBtn
-                        class="h-11"
+                        class="h-11 min-w-28"
                         variant="outline"
                         target="_blank"
                         rel="noopener"
@@ -293,16 +417,21 @@
                       @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
                         <button
                           hlmBtn
-                          class="h-11"
+                          class="h-11 min-w-28"
                           type="button"
                           variant="destructive"
-                          (click)="suspend(row)"
+                          (click)="askSuspend(row)"
                         >
                           Suspender
                         </button>
                       }
                       @if (row.status === 'SUSPENDED') {
-                        <button hlmBtn class="h-11" type="button" (click)="reactivate(row)">
+                        <button
+                          hlmBtn
+                          class="h-11 min-w-28"
+                          type="button"
+                          (click)="reactivate(row)"
+                        >
                           Reativar
                         </button>
                       }

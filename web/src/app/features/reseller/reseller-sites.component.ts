@@ -17,6 +17,7 @@ import type {
 } from '../../core/api/reseller-api.types';
 import { AuthService } from '../../core/auth/auth.service';
 import type { Site, SiteContent } from '../../core/models/domain';
+import { siteStatusBadgeVariant, siteStatusLabel } from '../../core/site/site-status-label';
 import { SitePageComponent } from '../tenant-site/site-page.component';
 import { formatBrl } from '../landing/landing-seo';
 import { plaqueNfcPayload, plaqueReviewUrl, plaqueSiteUrl } from './plaque-links';
@@ -44,8 +45,11 @@ export class ResellerSitesComponent {
   private readonly auth = inject(AuthService);
   readonly formatBrl = formatBrl;
   readonly rows = signal<ResellerSiteDto[]>([]);
+  readonly query = signal('');
   readonly customers = signal<ResellerCustomerDto[]>([]);
   readonly options = signal<SiteOptionsDto | null>(null);
+  readonly statusLabel = siteStatusLabel;
+  readonly statusVariant = siteStatusBadgeVariant;
   readonly step = signal<WizardStep>('cliente');
   readonly wizardOpen = signal(false);
   readonly customerId = signal('');
@@ -292,6 +296,19 @@ export class ResellerSitesComponent {
 
   publicUrl(slug: string): string {
     return `https://${slug}.sejaengajado.com.br`;
+  }
+
+  visibleRows(): ResellerSiteDto[] {
+    const q = this.query().trim().toLowerCase();
+    if (!q) {
+      return this.rows();
+    }
+    return this.rows().filter((row) => {
+      const customer = row.customer?.name?.toLowerCase() ?? '';
+      return (
+        row.slug.includes(q) || customer.includes(q) || row.customerId.toLowerCase().includes(q)
+      );
+    });
   }
 
   openPlaque(site: ResellerSiteDto): void {

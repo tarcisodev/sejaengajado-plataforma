@@ -15,6 +15,7 @@ import { API_PORT } from '../../core/api/api-port';
 import { GooglePlacesService } from '../../core/google/google-places.service';
 import { PlaceMatch } from '../../core/google/place-match';
 import { Customer, Plan, Site, SiteStatus, Template } from '../../core/models/domain';
+import { siteStatusBadgeVariant, siteStatusLabel } from '../../core/site/site-status-label';
 import { tenantPreviewUrl } from '../../core/tenant/resolve-host';
 
 @Component({
@@ -61,6 +62,9 @@ export class AdminSitesComponent {
   readonly postalCode = signal('');
   readonly slug = signal('');
   readonly placeholders = [1, 2, 3];
+  readonly confirmSuspendId = signal<string | null>(null);
+  readonly statusLabel = siteStatusLabel;
+  readonly statusVariant = siteStatusBadgeVariant;
 
   constructor() {
     this.reload();
@@ -112,33 +116,34 @@ export class AdminSitesComponent {
     return (event.target as HTMLInputElement).value;
   }
 
-  statusLabel = (value: string | null): string => {
-    switch (value) {
-      case 'PUBLISHED':
-        return 'Publicado';
-      case 'READ_ONLY':
-        return 'Só leitura';
-      case 'SUSPENDED':
-        return 'Suspenso';
-      case 'DRAFT':
-        return 'Rascunho';
-      case 'ARCHIVED':
-        return 'Arquivado';
-      default:
-        return 'Todos';
+  filterStatusLabel = (value: string | null): string => {
+    if (!value) {
+      return 'Todos';
     }
+    return siteStatusLabel(value);
   };
 
   setStatus(value: string | null | undefined): void {
     this.status.set((value ?? '') as SiteStatus | '');
   }
 
-  tone(status: string): 'destructive' | 'secondary' {
-    return status === 'SUSPENDED' || status === 'READ_ONLY' ? 'destructive' : 'secondary';
+  askSuspend(site: Site): void {
+    this.confirmSuspendId.set(site.id);
   }
 
-  suspend(site: Site): void {
-    this.api.setSiteStatus(site.id, 'SUSPENDED').subscribe(() => this.reload());
+  cancelSuspend(): void {
+    this.confirmSuspendId.set(null);
+  }
+
+  confirmSuspend(): void {
+    const id = this.confirmSuspendId();
+    if (!id) {
+      return;
+    }
+    this.api.setSiteStatus(id, 'SUSPENDED').subscribe(() => {
+      this.confirmSuspendId.set(null);
+      this.reload();
+    });
   }
 
   reactivate(site: Site): void {
