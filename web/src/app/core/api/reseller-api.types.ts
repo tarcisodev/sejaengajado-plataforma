@@ -17,6 +17,12 @@ export interface ResellerDashboardDto {
     period: string;
     totalCents: number;
     status: string;
+    lines?: {
+      description: string;
+      qty: number;
+      unitCents: number;
+      totalCents: number;
+    }[];
   } | null;
   monthFrom: string;
   monthToExclusive: string;

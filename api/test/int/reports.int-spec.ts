@@ -142,6 +142,22 @@ async function seedReportsWorld() {
       period: '2026-03',
       status: 'OPEN',
       totalCents: 9900,
+      lines: {
+        create: [
+          {
+            description: 'Mensalidade',
+            qty: 1,
+            unitCents: 4900,
+            totalCents: 4900,
+          },
+          {
+            description: 'Atacado / placas',
+            qty: 1,
+            unitCents: 5000,
+            totalCents: 5000,
+          },
+        ],
+      },
     },
   });
 
@@ -222,6 +238,12 @@ describe('reseller dashboard and reports', () => {
         totalCents: 9900,
         status: 'OPEN',
       });
+      expect(dash.body.openInvoice.lines).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ description: 'Mensalidade', totalCents: 4900 }),
+          expect.objectContaining({ description: 'Atacado / placas', totalCents: 5000 }),
+        ]),
+      );
 
       const report = await request(app.getHttpServer())
         .get('/api/reseller/reports/sales')

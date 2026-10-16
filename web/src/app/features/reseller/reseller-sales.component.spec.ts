@@ -87,6 +87,23 @@ describe('ResellerSalesComponent (AW4)', () => {
     expect(text).toContain('Placa QR');
   });
 
+  it('shows live margin as price − cost in cents (FF5)', () => {
+    const { fixture } = setup();
+    // qty 1 × (1000 − 150) = 850
+    expect(
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('[data-margin]')!
+        .textContent!.replace(/\u00a0/g, ' '),
+    ).toContain(formatBrl(850).replace(/\u00a0/g, ' '));
+    fixture.componentInstance.qty.set(2);
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('[data-margin]')!
+        .textContent!.replace(/\u00a0/g, ' '),
+    ).toContain(formatBrl(1700).replace(/\u00a0/g, ' '));
+  });
+
   it('reuses one Idempotency-Key when submit is clicked twice while in-flight', () => {
     const pending = new Subject<unknown>();
     const recordSpy = jasmine

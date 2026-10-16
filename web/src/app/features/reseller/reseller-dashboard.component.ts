@@ -25,10 +25,11 @@ import { formatBrl } from '../landing/landing-seo';
           </p>
         </section>
         <section hlmCard class="p-4">
-          <p class="text-sm text-muted-foreground">Margem prevista</p>
+          <p class="text-sm text-muted-foreground">Lucro previsto (preço − custo)</p>
           <p class="mt-1 font-display text-3xl" data-predicted-margin>
             {{ formatBrl(dash.predictedMarginCents) }}
           </p>
+          <p class="mt-1 text-xs text-muted-foreground">valor de exemplo</p>
         </section>
         <section hlmCard class="p-4">
           <p class="text-sm text-muted-foreground">Margem realizada</p>
@@ -37,17 +38,39 @@ import { formatBrl } from '../landing/landing-seo';
           </p>
         </section>
         <section hlmCard class="p-4">
-          <p class="text-sm text-muted-foreground">Saldo</p>
+          <p class="text-sm text-muted-foreground">Saldo (ledger)</p>
           <p class="mt-1 font-display text-3xl" data-balance>
             {{ formatBrl(dash.balanceCents) }}
           </p>
+          <a hlmBtn variant="outline" class="mt-3 h-11" routerLink="/revenda/extrato">Extrato</a>
         </section>
         @if (dash.openInvoice; as inv) {
-          <section hlmCard class="p-4">
-            <p class="text-sm text-muted-foreground">Fatura aberta</p>
-            <p class="mt-1 font-display text-2xl">{{ formatBrl(inv.totalCents) }}</p>
-            <p class="mt-1 text-sm text-muted-foreground">{{ inv.period }} · {{ inv.status }}</p>
-            <a hlmBtn class="mt-3 h-11" routerLink="/revenda/faturas">Ver faturas</a>
+          <section hlmCard class="p-4 sm:col-span-2" data-amount-due>
+            <p class="text-sm text-muted-foreground">A pagar à plataforma</p>
+            <p class="mt-1 font-display text-2xl" data-open-invoice-total>
+              {{ formatBrl(inv.totalCents) }}
+            </p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              {{ inv.period }} · {{ inv.status }}
+              <span class="ms-1 text-xs">(valores de exemplo)</span>
+            </p>
+            @if (inv.lines?.length) {
+              <ul class="mt-3 space-y-1 text-sm" data-invoice-lines>
+                @for (line of inv.lines; track line.description + line.totalCents) {
+                  <li>
+                    {{ line.description }}
+                    @if (line.qty > 1) {
+                      · {{ line.qty }}×
+                    }
+                    — {{ formatBrl(line.totalCents) }}
+                  </li>
+                }
+              </ul>
+            }
+            <div class="mt-3 flex flex-wrap gap-2">
+              <a hlmBtn class="h-11" routerLink="/revenda/faturas">Ver faturas</a>
+              <a hlmBtn variant="outline" class="h-11" routerLink="/revenda/vendas">Vendas</a>
+            </div>
           </section>
         }
       </div>

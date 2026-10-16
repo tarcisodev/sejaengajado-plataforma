@@ -179,6 +179,7 @@ export class ReportsService {
             status: { in: ['OPEN', 'OVERDUE'] },
           },
           orderBy: { period: 'desc' },
+          include: { lines: true },
         }),
         this.sumLedger(db, resellerId, mode, 'IN', 'SALE', from, toExclusive, true),
         this.sumLedger(
@@ -218,6 +219,12 @@ export class ReportsService {
             period: openInvoice.period,
             totalCents: openInvoice.totalCents,
             status: openInvoice.status,
+            lines: openInvoice.lines.map((line) => ({
+              description: line.description,
+              qty: line.qty,
+              unitCents: line.unitCents,
+              totalCents: line.totalCents,
+            })),
           }
         : null,
       monthFrom: from.toISOString(),
