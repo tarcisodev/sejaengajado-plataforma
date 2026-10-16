@@ -1,0 +1,117 @@
+<div class="grid gap-4">
+  <section hlmCard class="p-4 md:p-6">
+    <label class="grid max-w-md gap-2 text-sm">
+      Revendedor
+      <select
+        class="h-11 rounded-lg border border-input bg-background px-3"
+        data-wholesale-reseller
+        [value]="resellerId()"
+        (change)="onReseller($event)"
+      >
+        @for (row of resellers(); track row.id) {
+          <option [value]="row.id">{{ row.nome }}</option>
+        }
+      </select>
+    </label>
+  </section>
+
+  <section hlmCard class="p-4 md:p-6">
+    <h2 class="font-display text-xl">Nova vigência</h2>
+    @if (error()) {
+      <p class="mt-2 text-sm text-destructive" data-wholesale-error>{{ error() }}</p>
+    }
+    <form class="mt-4 grid gap-3 sm:grid-cols-2" data-wholesale-form (submit)="save($event)">
+      <label class="grid gap-1 text-sm sm:col-span-2">
+        Produto
+        <select
+          class="h-11 rounded-lg border border-input bg-background px-3"
+          name="productId"
+          required
+        >
+          @for (product of products(); track product.id) {
+            <option [value]="product.id">
+              {{ product.name }} (base {{ formatBrl(product.baseWholesaleCents) }})
+            </option>
+          }
+        </select>
+      </label>
+      <label class="grid gap-1 text-sm">
+        Preço (centavos)
+        <input hlmInput class="h-11" name="priceCents" type="number" min="1" required />
+      </label>
+      <label class="grid gap-1 text-sm">
+        Válido de
+        <input hlmInput class="h-11" name="validFrom" type="datetime-local" required />
+      </label>
+      <label class="grid gap-1 text-sm sm:col-span-2">
+        Válido até (opcional)
+        <input hlmInput class="h-11" name="validTo" type="datetime-local" />
+      </label>
+      <div>
+        <button hlmBtn class="h-11" type="submit" data-wholesale-submit>Registrar vigência</button>
+      </div>
+    </form>
+  </section>
+
+  @if (data(); as wholesale) {
+    <section>
+      <h2 class="font-display text-xl">Vigente</h2>
+      <div class="mt-2 overflow-x-auto">
+        <table hlmTable class="w-full min-w-[32rem]">
+          <thead>
+            <tr hlmTr>
+              <th hlmTh>Produto</th>
+              <th hlmTh>Preço</th>
+              <th hlmTh>De</th>
+              <th hlmTh>Até</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of wholesale.current; track row.id) {
+              <tr hlmTr data-wholesale-current>
+                <td hlmTd>{{ row.name || row.code }}</td>
+                <td hlmTd>{{ formatBrl(row.priceCents) }}</td>
+                <td hlmTd>{{ row.validFrom | date: 'short' }}</td>
+                <td hlmTd>{{ row.validTo ? (row.validTo | date: 'short') : '—' }}</td>
+              </tr>
+            } @empty {
+              <tr hlmTr>
+                <td hlmTd colspan="4">Nenhuma vigência aberta</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="font-display text-xl">Histórico</h2>
+      <div class="mt-2 overflow-x-auto">
+        <table hlmTable class="w-full min-w-[32rem]">
+          <thead>
+            <tr hlmTr>
+              <th hlmTh>Produto</th>
+              <th hlmTh>Preço</th>
+              <th hlmTh>De</th>
+              <th hlmTh>Até</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of wholesale.history; track row.id) {
+              <tr hlmTr data-wholesale-history>
+                <td hlmTd>{{ row.name || row.code }}</td>
+                <td hlmTd>{{ formatBrl(row.priceCents) }}</td>
+                <td hlmTd>{{ row.validFrom | date: 'short' }}</td>
+                <td hlmTd>{{ row.validTo ? (row.validTo | date: 'short') : '—' }}</td>
+              </tr>
+            } @empty {
+              <tr hlmTr>
+                <td hlmTd colspan="4">Sem histórico</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>

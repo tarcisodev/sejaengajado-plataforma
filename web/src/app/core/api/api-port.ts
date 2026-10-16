@@ -1,6 +1,18 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import type {
+  AdminPlaqueMoveCommand,
+  AdminProductDto,
+  ImpersonateResultDto,
+  PlaqueMovementDto as AdminPlaqueMovementDto,
+  PlaqueStockRowDto,
+  ResellerSummaryDto,
+  ResellerWholesaleAdminDto,
+  SetWholesaleCommand,
+  TransferPlaquesCommand,
+  WholesalePriceRowDto,
+} from './admin-api.types';
 import { PlaquePenaltyQuote } from './plaque-penalty';
 import type {
   CursorPage,
@@ -195,6 +207,28 @@ export interface ApiPort {
         },
     idempotencyKey: string,
   ): Observable<PlaqueMovementDto>;
+
+  /** Admin — B2 */
+  getReseller(id: string): Observable<Reseller>;
+  getResellerSummary(id: string): Observable<ResellerSummaryDto>;
+  suspendResellerSites(id: string): Observable<{ count: number }>;
+  impersonateReseller(id: string): Observable<ImpersonateResultDto>;
+  listAdminProducts(): Observable<AdminProductDto[]>;
+  listResellerWholesaleAdmin(resellerId: string): Observable<ResellerWholesaleAdminDto>;
+  setResellerWholesale(
+    resellerId: string,
+    body: SetWholesaleCommand,
+  ): Observable<WholesalePriceRowDto>;
+  getAdminPlaqueStock(resellerId: string): Observable<PlaqueStockRowDto[]>;
+  listAdminPlaqueMovements(
+    resellerId: string,
+    cursor?: string | null,
+  ): Observable<CursorPage<AdminPlaqueMovementDto>>;
+  postAdminPlaqueMovement(
+    body: AdminPlaqueMoveCommand,
+    idempotencyKey: string,
+  ): Observable<AdminPlaqueMovementDto>;
+  transferPlaques(body: TransferPlaquesCommand, idempotencyKey: string): Observable<unknown>;
 }
 
 export interface CustomerOtp {

@@ -2,9 +2,11 @@ export type AdminSection =
   | 'inicio'
   | 'clientes'
   | 'revendedores'
+  | 'atacado'
   | 'sites'
   | 'planos'
   | 'configuracoes'
+  | 'placas'
   | 'cupons'
   | 'receita'
   | 'faturas';
@@ -12,9 +14,11 @@ export type AdminSection =
 const SECTIONS: AdminSection[] = [
   'clientes',
   'revendedores',
+  'atacado',
   'sites',
   'planos',
   'configuracoes',
+  'placas',
   'cupons',
   'receita',
   'faturas',

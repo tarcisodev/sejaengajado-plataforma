@@ -135,6 +135,41 @@ export class WholesaleService {
     return { items };
   }
 
+  /** Admin: vigente (janela aberta ou ativa em `now`) + histórico por revendedor. */
+  async listForResellerAdmin(resellerId: string, at?: Date) {
+    const reseller = await this.adminDb.reseller.findUnique({ where: { id: resellerId } });
+    if (!reseller) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Não encontrado' });
+    }
+    const when = asOfInSaoPaulo(at);
+    const rows = await this.adminDb.wholesalePrice.findMany({
+      where: { resellerId },
+      include: { product: true },
+      orderBy: [{ product: { code: 'asc' } }, { validFrom: 'desc' }],
+    });
+    const current = rows.filter(
+      (row) =>
+        row.validFrom.getTime() <= when.getTime() &&
+        (row.validTo == null || row.validTo.getTime() > when.getTime()),
+    );
+    const history = rows.filter((row) => !current.some((c) => c.id === row.id));
+    const mapRow = (row: (typeof rows)[number]) => ({
+      id: row.id,
+      productId: row.productId,
+      code: row.product.code,
+      name: row.product.name,
+      priceCents: row.priceCents,
+      validFrom: row.validFrom.toISOString(),
+      validTo: row.validTo?.toISOString() ?? null,
+    });
+    return {
+      resellerId,
+      asOf: when.toISOString(),
+      current: current.map(mapRow),
+      history: history.map(mapRow),
+    };
+  }
+
   async listSuggestedPrices() {
     const rows = await this.db.resellerPrice.findMany({
       include: { product: true },

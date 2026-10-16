@@ -1,6 +1,18 @@
 import { Injectable } from '@angular/core';
 import { Observable, map, of, throwError } from 'rxjs';
 
+import type {
+  AdminPlaqueMoveCommand,
+  AdminProductDto,
+  ImpersonateResultDto,
+  PlaqueMovementDto as AdminPlaqueMovementDto,
+  PlaqueStockRowDto,
+  ResellerSummaryDto,
+  ResellerWholesaleAdminDto,
+  SetWholesaleCommand,
+  TransferPlaquesCommand,
+  WholesalePriceRowDto,
+} from '../core/api/admin-api.types';
 import {
   ApiPort,
   BlockResellerCommand,
@@ -63,6 +75,24 @@ export class MockApiService implements ApiPort {
   private readonly state: MockDatabase = createUberabaSeed();
   private otpEmail: string | null = null;
   private readonly checkoutByGateway = new Map<string, CheckoutResult>();
+  private readonly wholesaleByReseller = new Map<string, WholesalePriceRowDto[]>();
+  private readonly plaqueMoves: AdminPlaqueMovementDto[] = [];
+  private readonly adminProducts: AdminProductDto[] = [
+    {
+      id: 'prod_site_pronto',
+      code: 'SITE_ONE_TIME',
+      name: 'Site Pronto',
+      baseWholesaleCents: 4_900,
+    },
+    {
+      id: 'prod_site_pro',
+      code: 'SITE_PRO',
+      name: 'Site Engajado Pro',
+      baseWholesaleCents: 2_900,
+    },
+    { id: 'prod_plaque_qr', code: 'PLAQUE_QR', name: 'Placa QR', baseWholesaleCents: 1_500 },
+    { id: 'prod_plaque_nfc', code: 'PLAQUE_NFC', name: 'Placa NFC', baseWholesaleCents: 2_500 },
+  ];
   private readonly myInvoices: MyResellerInvoice[] = [
     {
       id: 'inv_mock_pending',
@@ -981,6 +1011,177 @@ export class MockApiService implements ApiPort {
         })),
       })),
     );
+  }
+
+  getReseller(id: string): Observable<Reseller> {
+    const row = this.state.resellers.find((item) => item.id === id);
+    if (!row) {
+      return throwError(() => new Error('reseller not found'));
+    }
+    return of(structuredClone(row));
+  }
+
+  getResellerSummary(id: string): Observable<ResellerSummaryDto> {
+    const reseller = this.state.resellers.find((item) => item.id === id);
+    if (!reseller) {
+      return throwError(() => new Error('reseller not found'));
+    }
+    const stock = this.state.plaqueStock
+      .filter((row) => row.resellerId === id)
+      .map((row) => ({ plaque_type: row.tipo, qty: row.qtd }));
+    return of({
+      id: reseller.id,
+      name: reseller.nome,
+      status: reseller.status,
+      sites: this.state.sites.filter((site) => site.resellerId === id).length,
+      sales: this.state.payments.filter((payment) => payment.resellerId === id).length,
+      stock,
+    });
+  }
+
+  suspendResellerSites(id: string): Observable<{ count: number }> {
+    let count = 0;
+    for (const site of this.state.sites) {
+      if (
+        site.resellerId === id &&
+        (site.status === 'PUBLISHED' || site.status === 'READ_ONLY' || site.status === 'DRAFT')
+      ) {
+        site.status = 'SUSPENDED';
+        count += 1;
+      }
+    }
+    return of({ count });
+  }
+
+  impersonateReseller(id: string): Observable<ImpersonateResultDto> {
+    const reseller = this.state.resellers.find((item) => item.id === id);
+    if (!reseller) {
+      return throwError(() => new Error('reseller not found'));
+    }
+    return of({
+      mode: 'read',
+      resellerId: reseller.id,
+      name: reseller.nome,
+      status: reseller.status,
+    });
+  }
+
+  listAdminProducts(): Observable<AdminProductDto[]> {
+    return of(structuredClone(this.adminProducts));
+  }
+
+  listResellerWholesaleAdmin(resellerId: string): Observable<ResellerWholesaleAdminDto> {
+    const rows = this.wholesaleByReseller.get(resellerId) ?? [];
+    const current = rows.filter((row) => row.validTo == null);
+    const history = rows.filter((row) => row.validTo != null);
+    return of({
+      resellerId,
+      asOf: new Date().toISOString(),
+      current: structuredClone(current),
+      history: structuredClone(history),
+    });
+  }
+
+  setResellerWholesale(
+    resellerId: string,
+    body: SetWholesaleCommand,
+  ): Observable<WholesalePriceRowDto> {
+    const product = this.adminProducts.find((item) => item.id === body.productId);
+    const rows = this.wholesaleByReseller.get(resellerId) ?? [];
+    for (const row of rows) {
+      if (row.productId === body.productId && row.validTo == null) {
+        row.validTo = body.validFrom;
+      }
+    }
+    const created: WholesalePriceRowDto = {
+      id: `wp_${rows.length + 1}`,
+      productId: body.productId,
+      code: product?.code ?? '',
+      name: product?.name ?? '',
+      priceCents: body.priceCents,
+      validFrom: body.validFrom,
+      validTo: body.validTo ?? null,
+    };
+    rows.push(created);
+    this.wholesaleByReseller.set(resellerId, rows);
+    return of(structuredClone(created));
+  }
+
+  getAdminPlaqueStock(resellerId: string): Observable<PlaqueStockRowDto[]> {
+    return of(
+      this.state.plaqueStock
+        .filter((row) => row.resellerId === resellerId)
+        .map((row) => ({
+          plaqueType: row.tipo,
+          qty: row.qtd,
+          avgCostCents: row.custoMedio,
+        })),
+    );
+  }
+
+  listAdminPlaqueMovements(
+    resellerId: string,
+    _cursor?: string | null,
+  ): Observable<CursorPage<AdminPlaqueMovementDto>> {
+    return of({
+      items: this.plaqueMoves.filter((row) => row.resellerId === resellerId),
+      nextCursor: null,
+    });
+  }
+
+  postAdminPlaqueMovement(
+    body: AdminPlaqueMoveCommand,
+    _idempotencyKey: string,
+  ): Observable<AdminPlaqueMovementDto> {
+    const stock = this.state.plaqueStock.find(
+      (row) => row.resellerId === body.resellerId && row.tipo === body.plaqueType,
+    );
+    if (stock) {
+      stock.qtd += body.type === 'IN' ? body.qty : body.qty;
+    } else {
+      this.state.plaqueStock.push({
+        resellerId: body.resellerId,
+        tipo: body.plaqueType,
+        qtd: body.qty,
+        custoMedio: body.unitCostCents ?? 0,
+      });
+    }
+    const move: AdminPlaqueMovementDto = {
+      id: `pm_${this.plaqueMoves.length + 1}`,
+      resellerId: body.resellerId,
+      type: body.type,
+      plaqueType: body.plaqueType,
+      qty: body.qty,
+      unitCostCents: body.unitCostCents ?? null,
+      reason: body.reason ?? null,
+      createdAt: new Date().toISOString(),
+    };
+    this.plaqueMoves.push(move);
+    return of(structuredClone(move));
+  }
+
+  transferPlaques(body: TransferPlaquesCommand, _idempotencyKey: string): Observable<unknown> {
+    const from = this.state.plaqueStock.find(
+      (row) => row.resellerId === RESELLER_TRIANGULO && row.tipo === body.plaqueType,
+    );
+    if (!from || from.qtd < body.qty) {
+      return throwError(() => new Error('STOCK_INSUFFICIENT'));
+    }
+    from.qtd -= body.qty;
+    const to = this.state.plaqueStock.find(
+      (row) => row.resellerId === body.toResellerId && row.tipo === body.plaqueType,
+    );
+    if (to) {
+      to.qtd += body.qty;
+    } else {
+      this.state.plaqueStock.push({
+        resellerId: body.toResellerId,
+        tipo: body.plaqueType,
+        qtd: body.qty,
+        custoMedio: from.custoMedio,
+      });
+    }
+    return of({ ok: true });
   }
 
   private toResellerSiteDto(site: Site): ResellerSiteDto {

@@ -1,0 +1,121 @@
+<div class="grid gap-4">
+  <section hlmCard class="p-4 md:p-6">
+    <label class="grid max-w-md gap-2 text-sm">
+      Revendedor (estoque)
+      <select
+        class="h-11 rounded-lg border border-input bg-background px-3"
+        data-plaque-reseller
+        [value]="resellerId()"
+        (change)="onReseller($event)"
+      >
+        @for (row of resellers(); track row.id) {
+          <option [value]="row.id">{{ row.nome }}</option>
+        }
+      </select>
+    </label>
+    <ul class="mt-4 flex flex-wrap gap-4 text-sm" data-plaque-stock>
+      @for (row of stock(); track row.plaqueType) {
+        <li>
+          {{ row.plaqueType }}: <span class="tabular-nums">{{ row.qty }}</span>
+          @if (row.avgCostCents !== null) {
+            <span class="text-muted-foreground">
+              (custo médio {{ formatBrl(row.avgCostCents) }})
+            </span>
+          }
+        </li>
+      } @empty {
+        <li class="text-muted-foreground">Sem saldo</li>
+      }
+    </ul>
+  </section>
+
+  <section hlmCard class="p-4 md:p-6">
+    <h2 class="font-display text-xl">Entrada / ajuste</h2>
+    <form class="mt-4 grid gap-3 sm:grid-cols-2" data-plaque-in (submit)="moveIn($event)">
+      <label class="grid gap-1 text-sm">
+        Tipo
+        <select class="h-11 rounded-lg border border-input bg-background px-3" name="plaqueType">
+          <option value="QR">QR</option>
+          <option value="NFC">NFC</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-sm">
+        Quantidade
+        <input hlmInput class="h-11" name="qty" type="number" min="1" required />
+      </label>
+      <label class="grid gap-1 text-sm">
+        Custo unitário (centavos)
+        <input hlmInput class="h-11" name="unitCostCents" type="number" min="0" />
+      </label>
+      <label class="grid gap-1 text-sm">
+        Motivo
+        <input hlmInput class="h-11" name="reason" />
+      </label>
+      <div>
+        <button hlmBtn class="h-11" type="submit">Registrar entrada</button>
+      </div>
+    </form>
+  </section>
+
+  <section hlmCard class="p-4 md:p-6">
+    <h2 class="font-display text-xl">Transferir da plataforma</h2>
+    <form class="mt-4 grid gap-3 sm:grid-cols-2" data-plaque-transfer (submit)="transfer($event)">
+      <label class="grid gap-1 text-sm sm:col-span-2">
+        Para revendedor
+        <select
+          class="h-11 rounded-lg border border-input bg-background px-3"
+          name="toResellerId"
+          required
+        >
+          @for (row of resellers(); track row.id) {
+            <option [value]="row.id">{{ row.nome }}</option>
+          }
+        </select>
+      </label>
+      <label class="grid gap-1 text-sm">
+        Tipo
+        <select class="h-11 rounded-lg border border-input bg-background px-3" name="plaqueType">
+          <option value="QR">QR</option>
+          <option value="NFC">NFC</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-sm">
+        Quantidade
+        <input hlmInput class="h-11" name="qty" type="number" min="1" required />
+      </label>
+      <div>
+        <button hlmBtn class="h-11" type="submit">Transferir</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="overflow-x-auto">
+    <h2 class="font-display text-xl">Movimentos</h2>
+    <table hlmTable class="mt-2 w-full min-w-[36rem]">
+      <thead>
+        <tr hlmTr>
+          <th hlmTh>Quando</th>
+          <th hlmTh>Tipo</th>
+          <th hlmTh>Placa</th>
+          <th hlmTh>Qtd</th>
+          <th hlmTh>Motivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of movements(); track row.id) {
+          <tr hlmTr>
+            <td hlmTd>{{ row.createdAt | date: 'short' }}</td>
+            <td hlmTd>{{ row.type }}</td>
+            <td hlmTd>{{ row.plaqueType }}</td>
+            <td hlmTd class="tabular-nums">{{ row.qty }}</td>
+            <td hlmTd>{{ row.reason ?? '—' }}</td>
+          </tr>
+        } @empty {
+          <tr hlmTr>
+            <td hlmTd colspan="5">Sem movimentos</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+</div>

@@ -2,10 +2,12 @@ import { PlatformLocation } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideBadgeDollarSign,
   lucideCreditCard,
   lucideGlobe,
   lucideHouse,
   lucideMoon,
+  lucideQrCode,
   lucideSettings,
   lucideStore,
   lucideSun,
@@ -34,8 +36,10 @@ import { AdminConfigComponent } from './admin-config.component';
 import { AdminCouponsComponent } from './admin-coupons.component';
 import { AdminCustomersComponent } from './admin-customers.component';
 import { AdminDashboardComponent } from './admin-dashboard.component';
+import { AdminPlaquesComponent } from './admin-plaques.component';
 import { AdminPlansComponent } from './admin-plans.component';
 import { AdminResellersComponent } from './admin-resellers.component';
+import { AdminWholesaleComponent } from './admin-wholesale.component';
 import { MyInvoicesComponent } from '../billing/my-invoices.component';
 import { AdminRevenueComponent } from './admin-revenue.component';
 import { AdminSitesComponent } from './admin-sites.component';
@@ -53,6 +57,8 @@ import { AdminSitesComponent } from './admin-sites.component';
     AdminDashboardComponent,
     AdminCustomersComponent,
     AdminResellersComponent,
+    AdminWholesaleComponent,
+    AdminPlaquesComponent,
     AdminSitesComponent,
     AdminPlansComponent,
     AdminConfigComponent,
@@ -67,11 +73,13 @@ import { AdminSitesComponent } from './admin-sites.component';
     }),
     HlmSidebarService,
     provideIcons({
+      lucideBadgeDollarSign,
       lucideCreditCard,
       lucideFileText,
       lucideGlobe,
       lucideHouse,
       lucideMoon,
+      lucideQrCode,
       lucideSettings,
       lucideStore,
       lucideSun,
@@ -99,6 +107,12 @@ export class AdminShellComponent {
         label: 'Revendedores',
         icon: 'lucideStore',
       },
+      {
+        section: 'atacado',
+        href: '/admin/atacado',
+        label: 'Atacado',
+        icon: 'lucideBadgeDollarSign',
+      },
       { section: 'sites', href: '/admin/sites', label: 'Sites', icon: 'lucideGlobe' },
       { section: 'planos', href: '/admin/planos', label: 'Planos', icon: 'lucideCreditCard' },
       {
@@ -107,6 +121,7 @@ export class AdminShellComponent {
         label: 'Configurações',
         icon: 'lucideSettings',
       },
+      { section: 'placas', href: '/admin/placas', label: 'Placas', icon: 'lucideQrCode' },
       { section: 'cupons', href: '/admin/cupons', label: 'Cupons', icon: 'lucideTicket' },
       { section: 'receita', href: '/admin/receita', label: 'Receita', icon: 'lucideWallet' },
       {

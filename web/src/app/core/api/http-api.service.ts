@@ -35,6 +35,18 @@ import {
   toApiPlatformConfig,
   unsupported,
 } from './api-mappers';
+import type {
+  AdminPlaqueMoveCommand,
+  AdminProductDto,
+  ImpersonateResultDto,
+  PlaqueMovementDto as AdminPlaqueMovementDto,
+  PlaqueStockRowDto,
+  ResellerSummaryDto,
+  ResellerWholesaleAdminDto,
+  SetWholesaleCommand,
+  TransferPlaquesCommand,
+  WholesalePriceRowDto,
+} from './admin-api.types';
 import {
   ApiPort,
   BlockResellerCommand,
@@ -486,6 +498,104 @@ export class HttpApiService implements ApiPort {
     idempotencyKey: string,
   ): Observable<PlaqueMovementDto> {
     return this.http.post<PlaqueMovementDto>(this.url('/reseller/plaques/movements'), body, {
+      headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+    });
+  }
+
+  getReseller(id: string): Observable<Reseller> {
+    return this.http
+      .get<Record<string, unknown>>(this.url(`/admin/resellers/${id}`))
+      .pipe(map(mapReseller));
+  }
+
+  getResellerSummary(id: string): Observable<ResellerSummaryDto> {
+    return this.http.get<ResellerSummaryDto>(this.url(`/admin/resellers/${id}/summary`));
+  }
+
+  suspendResellerSites(id: string): Observable<{ count: number }> {
+    return this.http.post<{ count: number }>(this.url(`/admin/resellers/${id}/suspend-sites`), {});
+  }
+
+  impersonateReseller(id: string): Observable<ImpersonateResultDto> {
+    return this.http.post<ImpersonateResultDto>(this.url(`/admin/resellers/${id}/impersonate`), {});
+  }
+
+  listAdminProducts(): Observable<AdminProductDto[]> {
+    return this.http
+      .get<AdminProductDto[] | { items: AdminProductDto[] }>(this.url('/admin/products'))
+      .pipe(map((body) => (Array.isArray(body) ? body : (body.items ?? []))));
+  }
+
+  listResellerWholesaleAdmin(resellerId: string): Observable<ResellerWholesaleAdminDto> {
+    return this.http.get<ResellerWholesaleAdminDto>(
+      this.url(`/admin/resellers/${resellerId}/wholesale`),
+    );
+  }
+
+  setResellerWholesale(
+    resellerId: string,
+    body: SetWholesaleCommand,
+  ): Observable<WholesalePriceRowDto> {
+    return this.http
+      .post<{
+        id: string;
+        productId: string;
+        priceCents: number;
+        validFrom: string | Date;
+        validTo: string | Date | null;
+      }>(this.url(`/admin/resellers/${resellerId}/wholesale`), body)
+      .pipe(
+        map((row) => ({
+          id: row.id,
+          productId: row.productId,
+          code: '',
+          name: '',
+          priceCents: row.priceCents,
+          validFrom:
+            typeof row.validFrom === 'string'
+              ? row.validFrom
+              : new Date(row.validFrom).toISOString(),
+          validTo: row.validTo
+            ? typeof row.validTo === 'string'
+              ? row.validTo
+              : new Date(row.validTo).toISOString()
+            : null,
+        })),
+      );
+  }
+
+  getAdminPlaqueStock(resellerId: string): Observable<PlaqueStockRowDto[]> {
+    return this.http
+      .get<{ items: PlaqueStockRowDto[] }>(this.url('/admin/plaques/stock'), {
+        params: new HttpParams().set('resellerId', resellerId),
+      })
+      .pipe(map((body) => body.items ?? []));
+  }
+
+  listAdminPlaqueMovements(
+    resellerId: string,
+    cursor?: string | null,
+  ): Observable<CursorPage<AdminPlaqueMovementDto>> {
+    let params = new HttpParams().set('resellerId', resellerId);
+    if (cursor) {
+      params = params.set('cursor', cursor);
+    }
+    return this.http.get<CursorPage<AdminPlaqueMovementDto>>(this.url('/admin/plaques/movements'), {
+      params,
+    });
+  }
+
+  postAdminPlaqueMovement(
+    body: AdminPlaqueMoveCommand,
+    idempotencyKey: string,
+  ): Observable<AdminPlaqueMovementDto> {
+    return this.http.post<AdminPlaqueMovementDto>(this.url('/admin/plaques/movements'), body, {
+      headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+    });
+  }
+
+  transferPlaques(body: TransferPlaquesCommand, idempotencyKey: string): Observable<unknown> {
+    return this.http.post(this.url('/admin/plaques/transfer'), body, {
       headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
     });
   }

@@ -10,6 +10,19 @@ import { WholesaleService } from './wholesale.service';
 export class WholesaleController {
   constructor(private readonly wholesale: WholesaleService) {}
 
+  @Get('admin/resellers/:id/wholesale')
+  @Roles('ADMIN')
+  listWholesaleAdmin(@Param('id') resellerId: string, @Query('at') atRaw?: string) {
+    if (!atRaw) {
+      return this.wholesale.listForResellerAdmin(resellerId);
+    }
+    const at = new Date(atRaw);
+    if (Number.isNaN(at.getTime())) {
+      return this.wholesale.listForResellerAdmin(resellerId);
+    }
+    return this.wholesale.listForResellerAdmin(resellerId, at);
+  }
+
   @Post('admin/resellers/:id/wholesale')
   @Roles('ADMIN')
   @Audit({

@@ -6,7 +6,7 @@
 | AW3 | DONE | 100de96 | 2026-10-16 |
 | AW4 | DONE | 0b7c375 | 2026-10-16 |
 | AW5 | DONE | 722da00 | 2026-10-16 |
-| AW6 | TODO | — | — |
+| AW6 | DONE | — | 2026-10-16 |
 | AW7 | TODO | — | — |
 | UI7 | TODO | — | — |
 | SSR1 | TODO | — | — |
@@ -22,13 +22,13 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-AW5 — Financeiro e estoque: `/revenda/estoque` (PlaqueStock + movimentos IN/brinde), ApiPort plaques com Idempotency-Key; extrato e faturas existentes; margem no dashboard. Specs stock/ledger/http. Stash AW6 intacto.
+AW6 — Admin na API: revendedores (block/impersonate P27), atacado com vigencia, placas admin, ApiPort/Http/mock. Stash AW6 aplicado e descartado. Brand pack do stash NAO commitado (BR1 bloqueado).
 
 ## Proximo
-AW6 — Admin conectado a API (revendedores, atacado, configs, impersonacao P27).
+AW7 — Painel do cliente real (edicao Pro, Pronto leitura, READ_ONLY, faturas/checkout).
 
 ## Bloqueios / perguntas para o Tarciso
-- **BR1:** escolha de marca A, B ou C ainda pendente.
+- **BR1:** escolha de marca A, B ou C ainda pendente (pack brand/ ficou untracked local).
 - Push x deploy: decidido — push ok; deploy exige aprovacao manual do Tarciso.
 
 ## Decisoes assumidas (recomendacao padrao)

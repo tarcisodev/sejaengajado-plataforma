@@ -41,8 +41,10 @@ describe('AdminShellComponent', () => {
     // Com apiUrl setado (environment de teste), telas sem endpoint ficam ocultas.
     expect(hrefs).toEqual([
       '/admin/revendedores',
+      '/admin/atacado',
       '/admin/planos',
       '/admin/configuracoes',
+      '/admin/placas',
       '/admin/cupons',
     ]);
   });

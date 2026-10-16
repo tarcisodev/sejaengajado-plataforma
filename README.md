@@ -28,7 +28,7 @@ O painel e a landing ficam em `http://127.0.0.1:4200/`. O admin local é `http:/
 
 Em `web/src/environments/environment.development.ts`, defina `apiUrl` com a base da API, por exemplo `http://localhost:3000`. Reinicie o `ng serve`. O cliente chama essa origem; os caminhos estão em `HttpApiService`.
 
-Sem `apiUrl`, o desenvolvimento continua no mock. A chave do Google Places fica em `web/.env` como `GOOGLE_PLACES_API_KEY`. O `npm start` copia essa chave para um arquivo local que o git ignora. Não commite segredo.
+Sem `apiUrl`, o desenvolvimento continua no mock. A chave do Google Places fica só na API (`GOOGLE_PLACES_API_KEY` ou `GOOGLE_PLACES_API_KEY_FILE` em `api/.env`). O web chama `GET /api/places/search`.
 
 Fora do Docker, na pasta `web`:
 

@@ -31,7 +31,17 @@ describe('AdminResellersComponent', () => {
   });
 
   it('keeps an empty block reason from calling the API', async () => {
-    submit(row('Vitrine Centro'), '');
+    const target = row('Vitrine Centro');
+    (
+      target.querySelector(
+        'button[hlmAlertDialogTrigger], button[variant="destructive"]',
+      ) as HTMLButtonElement | null
+    )?.click();
+    fixture.componentInstance.openBlock(
+      fixture.componentInstance.rows().find((item) => item.nome === 'Vitrine Centro')!.id,
+    );
+    fixture.componentInstance.blockReason.set('');
+    fixture.componentInstance.confirmBlock();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Motivo obrigatório');
@@ -39,25 +49,17 @@ describe('AdminResellersComponent', () => {
     expect(resellers.find((item) => item.nome === 'Vitrine Centro')?.status).toBe('ACTIVE');
   });
 
-  it('suspends the chosen site and leaves it suspended after unblock', async () => {
-    const midias = row('Mídias Uberaba');
-    submit(midias, 'placa desviada', 'Padaria São Benedito');
+  it('blocks with a reason via dialog confirm', async () => {
+    const id = fixture.componentInstance.rows().find((item) => item.nome === 'Vitrine Centro')!.id;
+    fixture.componentInstance.openBlock(id);
+    fixture.componentInstance.blockReason.set('inadimplência');
+    fixture.componentInstance.confirmBlock();
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(row('Mídias Uberaba').textContent).toContain('BLOCKED');
-    let sites = await firstValueFrom(TestBed.inject(MockApiService).listSites());
-    expect(sites.find((site) => site.id === 'site_padaria')?.status).toBe('SUSPENDED');
-
-    const unblock = [...row('Mídias Uberaba').querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Desbloquear'),
-    ) as HTMLButtonElement;
-    unblock.click();
-    fixture.detectChanges();
-
-    sites = await firstValueFrom(TestBed.inject(MockApiService).listSites());
     const resellers = await firstValueFrom(TestBed.inject(MockApiService).listResellers());
-    expect(resellers.find((item) => item.id === 'res_atrasado')?.status).toBe('ACTIVE');
-    expect(sites.find((site) => site.id === 'site_padaria')?.status).toBe('SUSPENDED');
+    expect(resellers.find((item) => item.id === id)?.status).toBe('BLOCKED');
   });
 
   function row(name: string): HTMLTableRowElement {
@@ -68,17 +70,5 @@ describe('AdminResellersComponent', () => {
       throw new Error(name);
     }
     return found;
-  }
-
-  function submit(target: ParentNode, reason: string, siteName?: string): void {
-    const input = target.querySelector('input[name="reason"]') as HTMLInputElement;
-    input.value = reason;
-    if (siteName) {
-      const box = [...target.querySelectorAll('input[type="checkbox"]')].find((item) =>
-        item.parentElement?.textContent?.includes(siteName),
-      ) as HTMLInputElement;
-      box.checked = true;
-    }
-    (target.querySelector('button[type="submit"]') as HTMLButtonElement).click();
   }
 });
