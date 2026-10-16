@@ -4,7 +4,7 @@
 |---|---|---|---|
 | IK0 | DONE | d4dc2cc | 2026-10-16 |
 | AW2 | DONE | 8b30e2e | 2026-10-16 |
-| FF1 | DONE | — | 2026-10-16 |
+| FF1 | DONE | a36aa8a | 2026-10-16 |
 | FF2 | TODO | — | — |
 | FF3 | TODO | — | — |
 | FF4 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-FF1 — Admin cria revendedor + convite: API devolve `inviteActionLink` (recovery) para copiar em dev; UI mostra link; specs HttpApi + admin-resellers. OTP do revendedor segue pelo fluxo Auth existente; MFA aal2 continua so no admin.
+FF1 — Admin cria revendedor + convite: API devolve inviteActionLink; UI mostra link; specs HttpApi + admin-resellers. OTP pelo Auth existente; MFA aal2 so no admin.
 
 ## Proximo
-FF2 — Revendedor cria cliente + biosite por wizard (04-B3). Parte ja veio do AW3; fechar gaps vs aceite FF2.
+FF2 — Revendedor cria cliente + biosite por wizard (04-B3).
 
 ## Bloqueios / perguntas para o Tarciso
 - #5 P6 valores reais
