@@ -140,7 +140,11 @@ export function addressLine(content: SiteContent): string {
     return '';
   }
   const city = [address.cidade, address.uf].filter(Boolean).join(' - ');
-  const parts = [address.logradouro, address.bairro, city].filter((part) => part && part.trim());
+  const street = [address.logradouro, address.numero, address.complemento]
+    .map((part) => (part ?? '').trim())
+    .filter(Boolean)
+    .join(', ');
+  const parts = [street, address.bairro, city].filter((part) => part && part.trim());
   const line = parts.join(', ');
   return address.cep ? `${line}, ${address.cep}` : line;
 }

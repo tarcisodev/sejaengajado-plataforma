@@ -287,7 +287,16 @@
       @if (addressLine()) {
         <p class="addr">{{ addressLine() }}</p>
         @if (mapLoaded() && mapSrc(); as src) {
-          <iframe class="map" [src]="src" title="Mapa do negócio" loading="lazy"></iframe>
+          <iframe
+            class="map"
+            [src]="src"
+            [title]="'Mapa: ' + addressLine()"
+            [attr.aria-label]="'Mapa com a localização: ' + addressLine()"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            allowfullscreen
+            data-map-embed
+          ></iframe>
         } @else {
           <div class="map-ph" data-map-placeholder>
             <button type="button" class="btn ghost" data-load-map (click)="loadMap()">Ver mapa</button>

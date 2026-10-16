@@ -414,6 +414,13 @@ section h2 {
   background: color-mix(in srgb, #{$pri} 8%, #fff);
 }
 
+.map {
+  display: block;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  max-height: 22rem;
+}
+
 .pix {
   text-align: center;
 
