@@ -18,16 +18,16 @@
 | LU1+ | DONE | 1cb2560 | 2026-10-16 |
 | LU5 | DONE | 5781005 | 2026-10-16 |
 | LU6 | DONE | 221e96a | 2026-10-16 |
-| SEO1 | TODO | — | — |
+| SEO1 | DONE | 1164d01 | 2026-10-16 |
 | UI7 | TODO | — | — |
 | DOC1 | TODO | — | — |
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-LU6 — Lista /sites polish (221e96a).
+SEO1 — SEO biosite (1164d01).
 
 ## Proximo
-SEO1 — SEO do biosite (JSON-LD nicho, openingHours, OG completo).
+UI7 — Editor de aparência com prévia ao vivo (04-B6 / Lumen B5).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
