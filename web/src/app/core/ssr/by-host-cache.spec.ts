@@ -41,8 +41,6 @@ describe('ByHostMemoryCache', () => {
 
   it('builds the canonical tenant host from a slug', () => {
     expect(canonicalTenantHost('Demo-Forno')).toBe('demo-forno.sejaengajado.com.br');
-    expect(normalizeHost('Demo-Forno.sejaengajado.com.br.')).toBe(
-      'demo-forno.sejaengajado.com.br',
-    );
+    expect(normalizeHost('Demo-Forno.sejaengajado.com.br.')).toBe('demo-forno.sejaengajado.com.br');
   });
 });

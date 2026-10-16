@@ -22,7 +22,7 @@ x-deploy-common: &deploy_common
       monitor: 45s,
       delay: 5s,
     }
-  rollback_config: { parallelism: 1, order: start-first, failure_action: pause, monitor: 30s }
+  rollback_config: { parallelism: 1, order: start-first, failure_action: continue, monitor: 30s }
   placement: { constraints: [node.role == manager] }
 
 x-logging: &logging

@@ -25,6 +25,26 @@ function txStub(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function appDbWithTx(tx: unknown = txStub()) {
+  return {
+    $transaction: jest.fn(async (fn: (client: unknown) => Promise<unknown>) => fn(tx)),
+  };
+}
+
+function makeService(
+  adminDb: unknown = {},
+  db: unknown = {},
+  appDb: unknown = {},
+  ledger: unknown = {},
+) {
+  return new StockService(
+    adminDb as never,
+    db as never,
+    appDb as never,
+    ledger as never,
+  );
+}
+
 describe('StockService helpers', () => {
   it('computes integer average cost', () => {
     expect(averageCostCents(1000, 3)).toBe(333);
@@ -40,7 +60,7 @@ describe('StockService', () => {
         { plaque_type: 'QR', qty: 5, avg_cost_cents: 100 },
       ]),
     };
-    const service = new StockService(adminDb as never, {} as never, {} as never);
+    const service = makeService(adminDb);
     await expect(service.listStock(resellerId)).resolves.toEqual({
       items: [{ plaqueType: 'QR', qty: 5, avgCostCents: 100 }],
     });
@@ -56,7 +76,7 @@ describe('StockService', () => {
         }),
       ),
     };
-    const service = new StockService({} as never, db as never, {} as never);
+    const service = makeService({}, db);
     const result = await runWithTenantAsync(actor, () => service.listStockForCurrent());
     expect(result.items[0]).toMatchObject({ plaqueType: 'NFC', qty: 2, avgCostCents: null });
   });
@@ -69,7 +89,7 @@ describe('StockService', () => {
     const adminDb = {
       plaqueMovement: { findMany: jest.fn().mockResolvedValue(rows) },
     };
-    const service = new StockService(adminDb as never, {} as never, {} as never);
+    const service = makeService(adminDb);
     const page = await service.listMovements(resellerId, { limit: 1 });
     expect(page.items).toHaveLength(1);
     expect(page.nextCursor).toBeTruthy();
@@ -81,14 +101,14 @@ describe('StockService', () => {
         findMany: jest.fn().mockResolvedValue([{ id: 'm', createdAt: new Date() }]),
       },
     };
-    const service = new StockService({} as never, db as never, {} as never);
+    const service = makeService({}, db);
     const page = await service.listMovementsForCurrent({ limit: 20 });
     expect(page.items).toHaveLength(1);
     expect(page.nextCursor).toBeNull();
   });
 
   it('adminMove validates body and ADJUST reason', async () => {
-    const service = new StockService({} as never, {} as never, {} as never);
+    const service = makeService();
     await expect(service.adminMove({})).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       service.adminMove({
@@ -104,7 +124,7 @@ describe('StockService', () => {
     const adminDb = {
       reseller: { findUnique: jest.fn().mockResolvedValue(null) },
     };
-    const service = new StockService(adminDb as never, {} as never, {} as never);
+    const service = makeService(adminDb);
     await expect(
       service.adminMove({
         resellerId,
@@ -130,7 +150,7 @@ describe('StockService', () => {
         ),
       ),
     };
-    const service = new StockService(adminDb as never, {} as never, {} as never);
+    const service = makeService(adminDb);
     await expect(
       service.adminMove(
         { resellerId, type: 'IN', plaqueType: 'QR', qty: 2, unitCostCents: 50 },
@@ -141,19 +161,15 @@ describe('StockService', () => {
 
   it('resellerMove IN under tenant', async () => {
     const created = { id: 'm-r' };
-    const db = {
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn(
-          txStub({
-            plaqueMovement: {
-              findFirst: jest.fn().mockResolvedValue(null),
-              create: jest.fn().mockResolvedValue(created),
-            },
-          }),
-        ),
-      ),
-    };
-    const service = new StockService({} as never, db as never, {} as never);
+    const appDb = appDbWithTx(
+      txStub({
+        plaqueMovement: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue(created),
+        },
+      }),
+    );
+    const service = makeService({}, {}, appDb);
     await expect(
       runWithTenantAsync(actor, () =>
         service.resellerMove({ type: 'IN', plaqueType: 'NFC', qty: 1 }),
@@ -170,7 +186,7 @@ describe('StockService', () => {
         }),
       },
     };
-    const service = new StockService({} as never, db as never, {} as never);
+    const service = makeService({}, db);
     await expect(
       runWithTenantAsync(actor, () =>
         service.resellerMove({
@@ -193,18 +209,16 @@ describe('StockService', () => {
           plan: { code: 'ENGAJADO_PRO' },
         }),
       },
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn(
-          txStub({
-            plaqueMovement: {
-              findFirst: jest.fn().mockResolvedValue(null),
-              create: jest.fn().mockResolvedValue(created),
-            },
-          }),
-        ),
-      ),
     };
-    const service = new StockService({} as never, db as never, {} as never);
+    const appDb = appDbWithTx(
+      txStub({
+        plaqueMovement: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue(created),
+        },
+      }),
+    );
+    const service = makeService({}, db, appDb);
     await expect(
       runWithTenantAsync(actor, () =>
         service.gift({ siteId, plaqueType: 'QR', qty: 1, idempotencyKey: 'g1' }),
@@ -214,7 +228,7 @@ describe('StockService', () => {
 
   it('gift site not found', async () => {
     const db = { site: { findUnique: jest.fn().mockResolvedValue(null) } };
-    const service = new StockService({} as never, db as never, {} as never);
+    const service = makeService({}, db);
     await expect(
       runWithTenantAsync(actor, () =>
         service.gift({ siteId, plaqueType: 'QR', qty: 1 }),
@@ -223,7 +237,7 @@ describe('StockService', () => {
   });
 
   it('transfer validates and rejects invalid destination', async () => {
-    const service = new StockService({} as never, {} as never, {} as never);
+    const service = makeService();
     await expect(service.transfer({})).rejects.toBeInstanceOf(BadRequestException);
 
     const adminDb = {
@@ -232,7 +246,7 @@ describe('StockService', () => {
         findUnique: jest.fn().mockResolvedValue({ id: otherId, isPlatform: true }),
       },
     };
-    const service2 = new StockService(adminDb as never, {} as never, {} as never);
+    const service2 = makeService(adminDb);
     await expect(
       service2.transfer({ toResellerId: otherId, plaqueType: 'QR', qty: 1 }),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -247,7 +261,7 @@ describe('StockService', () => {
       },
       plaqueMovement: { findFirst: jest.fn().mockResolvedValue(existing) },
     };
-    const service = new StockService(adminDb as never, {} as never, {} as never);
+    const service = makeService(adminDb);
     await expect(
       service.transfer(
         { toResellerId: otherId, plaqueType: 'QR', qty: 1 },
@@ -293,7 +307,7 @@ describe('StockService', () => {
     };
     // qtyInTx called twice (OUT then IN); avgCost for OUT when unitCost provided skips avg
     // For OUT with unitCostCents set, only qty query runs.
-    const service = new StockService(adminDb as never, {} as never, ledger as never);
+    const service = makeService(adminDb, {}, {}, ledger);
     const result = await service.transfer({
       toResellerId: otherId,
       plaqueType: 'QR',
@@ -312,7 +326,7 @@ describe('StockService', () => {
   });
 
   it('moveInTx throws STOCK_INSUFFICIENT on OUT', async () => {
-    const service = new StockService({} as never, {} as never, {} as never);
+    const service = makeService();
     const tx = txStub({
       $queryRaw: jest.fn().mockResolvedValue([{ qty: 0 }]),
     });
@@ -328,7 +342,7 @@ describe('StockService', () => {
 
   it('moveInTx returns existing when idempotent reason matches', async () => {
     const existing = { id: 'dup' };
-    const service = new StockService({} as never, {} as never, {} as never);
+    const service = makeService();
     const tx = txStub({
       plaqueMovement: {
         findFirst: jest.fn().mockResolvedValue(existing),
@@ -350,23 +364,19 @@ describe('StockService', () => {
 
   it('moveOut wraps tenant OUT', async () => {
     const created = { id: 'sale-out' };
-    const db = {
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn(
-          txStub({
-            plaqueMovement: {
-              findFirst: jest.fn().mockResolvedValue(null),
-              create: jest.fn().mockResolvedValue(created),
-            },
-            $queryRaw: jest
-              .fn()
-              .mockResolvedValueOnce([{ qty: 9 }])
-              .mockResolvedValueOnce([{ avg: 40 }]),
-          }),
-        ),
-      ),
-    };
-    const service = new StockService({} as never, db as never, {} as never);
+    const appDb = appDbWithTx(
+      txStub({
+        plaqueMovement: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue(created),
+        },
+        $queryRaw: jest
+          .fn()
+          .mockResolvedValueOnce([{ qty: 9 }])
+          .mockResolvedValueOnce([{ avg: 40 }]),
+      }),
+    );
+    const service = makeService({}, {}, appDb);
     await expect(
       runWithTenantAsync(actor, () =>
         service.moveOut({ plaqueType: 'QR', qty: 1, saleItemId: 'si1' }),

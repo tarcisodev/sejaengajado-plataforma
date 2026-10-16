@@ -118,7 +118,9 @@ export class ResellerCustomersComponent {
     this.api
       .createResellerCustomer({
         name: String(data.get('name') ?? ''),
-        email: String(data.get('email') ?? '').trim().toLowerCase(),
+        email: String(data.get('email') ?? '')
+          .trim()
+          .toLowerCase(),
         whatsapp: String(data.get('whatsapp') ?? ''),
         doc: String(data.get('doc') ?? ''),
         city: String(data.get('city') ?? ''),

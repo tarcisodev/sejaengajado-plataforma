@@ -32,25 +32,19 @@ describe('auth guards (UX-BOOT)', () => {
 
   it('authGuard waits and allows authenticated', async () => {
     setup({ sessionStatus: 'authenticated', me: { role: 'RESELLER' } });
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard({} as never, {} as never),
-    );
+    const result = await TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
     expect(result).toBe(true);
   });
 
   it('authGuard sends anonymous to /entrar', async () => {
     const { router } = setup({ sessionStatus: 'anonymous', me: null });
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard({} as never, {} as never),
-    );
+    const result = await TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
     expect(result).toEqual(router.createUrlTree(['/entrar']));
   });
 
   it('authGuard on SSR redirects to /entrar (no private prerender)', async () => {
     const { router } = setup({ sessionStatus: 'loading', server: true });
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard({} as never, {} as never),
-    );
+    const result = await TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
     expect(result).toEqual(router.createUrlTree(['/entrar']));
   });
 
@@ -75,9 +69,7 @@ describe('auth guards (UX-BOOT)', () => {
       me: { role: 'ADMIN' },
       aal: 'aal1',
     });
-    const result = await TestBed.runInInjectionContext(() =>
-      aal2Guard({} as never, {} as never),
-    );
+    const result = await TestBed.runInInjectionContext(() => aal2Guard({} as never, {} as never));
     expect(result).toEqual(router.createUrlTree(['/mfa']));
   });
 });
