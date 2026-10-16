@@ -133,7 +133,8 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
             createResellerCustomer: createCustomer,
             publishResellerSite: publishSite,
             unpublishResellerSite: () => of({}),
-            patchResellerSite: () => of({}),
+            patchResellerSite: () => of(draftSite),
+            deleteResellerSite: () => of({ ...draftSite, status: 'ARCHIVED' }),
             listTemplates: () => of([]),
             recordResellerPlaqueMovement: recordPlaque,
           },
@@ -182,7 +183,7 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
     ).toBeTrue();
   });
 
-  it('creates a draft after an available slug and shows live preview (FF2)', async () => {
+  it('creates a draft after an available slug and opens the shared editor (0.e/M2)', async () => {
     const { fixture } = setup('ACTIVE');
     await fixture.whenStable();
     fixture.detectChanges();
@@ -199,9 +200,10 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.step()).toBe('previa');
-    expect(fixture.nativeElement.querySelector('[data-wizard-preview]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-wizard-live-preview]')).toBeTruthy();
+    expect(fixture.componentInstance.wizardOpen()).toBeFalse();
+    expect(fixture.componentInstance.editing()?.slug).toBe('loja-livre');
+    expect(fixture.nativeElement.querySelector('[data-site-editor]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-action="publish"]')).toBeTruthy();
   });
 
   it('creates a new customer from the wizard when none is selected (FF2)', async () => {

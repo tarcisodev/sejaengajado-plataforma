@@ -18,6 +18,10 @@ import type {
 import { AuthService } from '../../core/auth/auth.service';
 import type { Site, SiteContent } from '../../core/models/domain';
 import { siteStatusBadgeVariant, siteStatusLabel } from '../../core/site/site-status-label';
+import {
+  SiteEditorComponent,
+  SiteEditorSaveEvent,
+} from '../site-editor/site-editor.component';
 import { SitePageComponent } from '../tenant-site/site-page.component';
 import { formatBrl } from '../landing/landing-seo';
 import { plaqueNfcPayload, plaqueReviewUrl, plaqueSiteUrl } from './plaque-links';
@@ -35,6 +39,7 @@ type PlaqueType = 'QR' | 'NFC';
     HlmCardImports,
     HlmInput,
     HlmTableImports,
+    SiteEditorComponent,
     SitePageComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -52,6 +57,8 @@ export class ResellerSitesComponent {
   readonly statusVariant = siteStatusBadgeVariant;
   readonly step = signal<WizardStep>('cliente');
   readonly wizardOpen = signal(false);
+  readonly editing = signal<Site | null>(null);
+  readonly editorBusy = signal(false);
   readonly customerId = signal('');
   readonly newCustomerName = signal('');
   readonly newCustomerWhatsapp = signal('');
@@ -213,6 +220,8 @@ export class ResellerSitesComponent {
     const reviewUrl = this.googleReviewUrl().trim();
     // Payload alinhado ao siteContentSchema da Nest (não ao SiteContent do mock).
     const content: Record<string, unknown> = {
+      businessName,
+      profile: { nome: businessName, cidade: '', uf: '' },
       theme: { niche: 'generico', brandColor: '#1e3a5f' },
       pix: {
         key: this.pixKey().trim() || '',
@@ -232,7 +241,8 @@ export class ResellerSitesComponent {
         next: (site) => {
           this.busy.set(false);
           this.draft.set(site);
-          this.step.set('previa');
+          this.wizardOpen.set(false);
+          this.openEditor(site);
           this.reload();
         },
         error: (error: unknown) => {
@@ -240,6 +250,99 @@ export class ResellerSitesComponent {
           this.toastApiError(error, 'Não foi possível criar o site.');
         },
       });
+  }
+
+  openEditor(row: ResellerSiteDto): void {
+    this.editing.set(toPreviewSite(row));
+  }
+
+  closeEditor(): void {
+    this.editing.set(null);
+  }
+
+  onEditorSave(event: SiteEditorSaveEvent): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api
+      .patchResellerSite(site.id, {
+        content: event.content as unknown as Record<string, unknown>,
+        templateId: event.templateId,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.editing.set(toPreviewSite(updated));
+          this.editorBusy.set(false);
+          this.reload();
+          toast.success('Conteúdo salvo.');
+        },
+        error: (error: unknown) => {
+          this.editorBusy.set(false);
+          this.toastApiError(error, 'Não foi possível salvar.');
+        },
+      });
+  }
+
+  onEditorPublish(): void {
+    const site = this.editing();
+    if (!site || !this.operable()) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.publishResellerSite(site.id).subscribe({
+      next: (updated) => {
+        this.editing.set(toPreviewSite(updated));
+        this.editorBusy.set(false);
+        this.reload();
+        toast.success('Site publicado.');
+      },
+      error: (error: unknown) => {
+        this.editorBusy.set(false);
+        this.toastApiError(error, 'Não foi possível publicar.');
+      },
+    });
+  }
+
+  onEditorUnpublish(): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.unpublishResellerSite(site.id).subscribe({
+      next: (updated) => {
+        this.editing.set(toPreviewSite(updated));
+        this.editorBusy.set(false);
+        this.reload();
+        toast.success('Site despublicado.');
+      },
+      error: () => {
+        this.editorBusy.set(false);
+        toast.error('Não foi possível despublicar.');
+      },
+    });
+  }
+
+  onEditorArchive(): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.deleteResellerSite(site.id).subscribe({
+      next: () => {
+        this.editorBusy.set(false);
+        this.closeEditor();
+        this.reload();
+        toast.success('Site arquivado.');
+      },
+      error: () => {
+        this.editorBusy.set(false);
+        toast.error('Não foi possível arquivar.');
+      },
+    });
   }
 
   publishDraft(): void {

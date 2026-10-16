@@ -46,12 +46,14 @@ describe('auth guards (UX-BOOT)', () => {
     expect(result).toEqual(router.createUrlTree(['/entrar']));
   });
 
-  it('authGuard on SSR redirects to /entrar (no private prerender)', async () => {
+  it('authGuard on SSR redirects to /entrar with returnUrl', async () => {
     const { router } = setup({ sessionStatus: 'loading', server: true });
     const result = await TestBed.runInInjectionContext(() =>
-      authGuard({} as never, {} as never),
+      authGuard({} as never, { url: '/admin/sites' } as never),
     );
-    expect(result).toEqual(router.createUrlTree(['/entrar']));
+    expect(result).toEqual(
+      router.createUrlTree(['/entrar'], { queryParams: { returnUrl: '/admin/sites' } }),
+    );
   });
 
   it('roleGuard rejects wrong role after ready', async () => {

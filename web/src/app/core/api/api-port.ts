@@ -134,7 +134,18 @@ export interface ApiPort {
   blockReseller(resellerId: string, command: BlockResellerCommand): Observable<Reseller>;
   unblockReseller(resellerId: string, actorId: string, unblockedAt: string): Observable<Reseller>;
   offerMigration(resellerId: string, actorId: string, today: Date): Observable<AuditLog>;
-  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site>;
+  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED'): Observable<Site>;
+  /** Admin: GET /admin/sites/:id (includes content). */
+  getAdminSite(siteId: string): Observable<Site>;
+  /** Admin: PATCH /admin/sites/:id/content */
+  updateAdminSiteContent(
+    siteId: string,
+    content: SiteContent,
+    templateId?: string,
+  ): Observable<Site>;
+  publishAdminSite(siteId: string): Observable<Site>;
+  unpublishAdminSite(siteId: string): Observable<Site>;
+  archiveAdminSite(siteId: string): Observable<Site>;
   savePlan(plan: Plan): Observable<Plan>;
   saveCoupon(coupon: Coupon): Observable<Coupon>;
   deleteCoupon(couponId: string): Observable<void>;
@@ -205,6 +216,8 @@ export interface ApiPort {
   ): Observable<ResellerSiteDto>;
   publishResellerSite(siteId: string): Observable<ResellerSiteDto>;
   unpublishResellerSite(siteId: string): Observable<ResellerSiteDto>;
+  /** Soft-archive (DELETE /reseller/sites/:id). */
+  deleteResellerSite(siteId: string): Observable<ResellerSiteDto | { ok: true }>;
   checkResellerSlug(slug: string): Observable<SlugCheckDto>;
   listResellerSiteOptions(): Observable<SiteOptionsDto>;
   listResellerSales(cursor?: string | null): Observable<CursorPage<ResellerSaleDto>>;

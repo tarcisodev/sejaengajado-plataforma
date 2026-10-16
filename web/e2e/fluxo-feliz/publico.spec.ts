@@ -38,8 +38,13 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
       ? 'https://slug-inexistente-fluxo-feliz.sejaengajado.com.br/'
       : `${apex}/?tenant=slug-inexistente-fluxo-feliz`;
     const res = await request.get(url, { maxRedirects: 0 });
-    expect(res.status(), url).toBe(404);
     const body = await res.text();
+    // SSR/produção: 404 HTTP. ng serve (CSR): 200 com página de indisponível.
+    if (prodSmoke) {
+      expect(res.status(), url).toBe(404);
+    } else {
+      expect([200, 404]).toContain(res.status());
+    }
     expect(body).not.toMatch(/404 page not found/i);
     expect(body).toMatch(/não (encontr|está publicado)|Negócio não encontrado/i);
   });
@@ -50,9 +55,15 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     expect(res.ok()).toBeTruthy();
   });
 
-  test('/entrar is reachable', async ({ request }) => {
-    const appBase = process.env['E2E_APP_BASE'] ?? 'https://app.sejaengajado.com.br';
-    const res = await request.get(`${appBase.replace(/\/$/, '')}/entrar`);
-    expect([200, 301, 302]).toContain(res.status());
+  test('/entrar is reachable', async ({ page }) => {
+    // Chromium resolve *.localhost; o request API do Node no Windows às vezes não.
+    const appBase = (process.env['E2E_APP_BASE'] ?? 'https://app.sejaengajado.com.br').replace(
+      /\/$/,
+      '',
+    );
+    const res = await page.goto(`${appBase}/entrar`, { waitUntil: 'domcontentloaded' });
+    expect(res?.status() ?? 0).toBeGreaterThanOrEqual(200);
+    expect(res?.status() ?? 0).toBeLessThan(400);
+    await expect(page.locator('body')).toContainText(/Entrar|e-mail|Seja Engajado/i);
   });
 });

@@ -7,16 +7,32 @@ describe('AdminSitesService', () => {
   const resellerId = '22222222-2222-4222-8222-222222222222';
 
   function setup() {
+    const siteRow = {
+      id: 's1',
+      slug: 'loja-demo',
+      status: 'DRAFT',
+      publishedAt: null as Date | null,
+      createdAt: new Date('2026-01-02T00:00:00.000Z'),
+      customerId,
+      resellerId,
+      content: {
+        businessName: 'Loja Demo',
+        profile: { nome: 'Loja Demo', cidade: 'Uberaba', uf: 'MG' },
+        theme: { niche: 'generico' },
+      },
+    };
     const db = {
       site: {
-        findMany: jest.fn().mockResolvedValue([
-          {
-            id: 's1',
-            createdAt: new Date('2026-01-02T00:00:00.000Z'),
-            customerId,
-            resellerId,
-          },
-        ]),
+        findMany: jest.fn().mockResolvedValue([siteRow]),
+        findUnique: jest.fn().mockResolvedValue(siteRow),
+        update: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve({
+            ...siteRow,
+            ...data,
+            status: (data['status'] as string) ?? siteRow.status,
+            content: data['content'] ?? siteRow.content,
+          }),
+        ),
       },
       customer: {
         findUnique: jest.fn(),
@@ -27,7 +43,7 @@ describe('AdminSitesService', () => {
     };
     const byHostCache = { invalidateSlug: jest.fn() };
     const service = new AdminSitesService(db as never, sites as never, byHostCache as never);
-    return { db, sites, service };
+    return { db, sites, service, byHostCache, siteRow };
   }
 
   it('lists sites with cursor pagination', async () => {
@@ -68,5 +84,26 @@ describe('AdminSitesService', () => {
     const created = await service.create(body);
     expect(sites.create).toHaveBeenCalledWith(resellerId, body);
     expect(created).toMatchObject({ id: 's-new' });
+  });
+
+  it('publishes a draft and invalidates by-host cache (bug 0.e)', async () => {
+    const { service, byHostCache, db } = setup();
+    const published = await service.publish('s1');
+    expect(db.site.update).toHaveBeenCalled();
+    expect(published.status).toBe('PUBLISHED');
+    expect(byHostCache.invalidateSlug).toHaveBeenCalledWith('loja-demo');
+  });
+
+  it('patches content with zod validation', async () => {
+    const { service, byHostCache } = setup();
+    const updated = await service.updateContent('s1', {
+      content: {
+        businessName: 'Padaria Nova',
+        profile: { nome: 'Padaria Nova', cidade: 'Uberaba', uf: 'MG' },
+        theme: { niche: 'restaurante' },
+      },
+    });
+    expect(updated.content).toMatchObject({ theme: { niche: 'restaurante' } });
+    expect(byHostCache.invalidateSlug).toHaveBeenCalledWith('loja-demo');
   });
 });

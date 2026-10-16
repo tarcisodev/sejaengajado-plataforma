@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { firstValueFrom, of } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -12,7 +13,11 @@ describe('AdminSitesComponent', () => {
   beforeEach(async () => {
     TestBed.configureTestingModule({
       imports: [AdminSitesComponent],
-      providers: [MockApiService, { provide: API_PORT, useExisting: MockApiService }],
+      providers: [
+        provideRouter([{ path: '**', children: [] }]),
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
+      ],
     });
     fixture = TestBed.createComponent(AdminSitesComponent);
     fixture.detectChanges();
@@ -42,15 +47,15 @@ describe('AdminSitesComponent', () => {
     expect(sites.find((site) => site.slug === 'oficina-suspensa')?.status).toBe('PUBLISHED');
   });
 
-  it('asks confirmation before suspending', () => {
+  it('renders confirm-action trigger for suspending a published site', () => {
     const site = fixture.componentInstance.rows().find((row) => row.status === 'PUBLISHED');
     expect(site).toBeTruthy();
-    fixture.componentInstance.askSuspend(site!);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-suspend-dialog]')).toBeTruthy();
-    fixture.componentInstance.cancelSuspend();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-suspend-dialog]')).toBeNull();
+    const trigger = fixture.nativeElement.querySelector(
+      `[data-site-id="${site!.id}"] [data-suspend-site]`,
+    );
+    expect(trigger).toBeTruthy();
+    expect(trigger.getAttribute('aria-label')).toBe('Suspender site');
   });
 
   it('opens creation on the admin customer and the custom template', () => {
@@ -58,6 +63,34 @@ describe('AdminSitesComponent', () => {
 
     expect(fixture.componentInstance.customerId()).toBe('cust_admin');
     expect(fixture.componentInstance.templateId()).toBe('tpl_personalizado');
+  });
+
+  it('opens the shared editor from the list (bug 0.e)', () => {
+    const site = fixture.componentInstance.rows().find((row) => row.status === 'DRAFT');
+    expect(site).toBeTruthy();
+    fixture.componentInstance.openEditor(site!);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editing()?.id).toBe(site!.id);
+    expect(fixture.nativeElement.querySelector('[data-site-editor]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-action="publish"]')).toBeTruthy();
+  });
+
+  it('navigates to the editor after creating a site', async () => {
+    const api = TestBed.inject(MockApiService);
+    fixture.componentInstance.openCreate();
+    fixture.componentInstance.businessName.set('Padaria Nova');
+    fixture.componentInstance.slug.set('padaria-nova');
+    fixture.componentInstance.street.set('Rua A');
+    fixture.componentInstance.city.set('Uberaba');
+    fixture.componentInstance.stateCode.set('MG');
+    const event = { preventDefault: () => undefined } as Event;
+    fixture.componentInstance.save(event);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editing()?.slug).toBe('padaria-nova');
+    expect(fixture.nativeElement.querySelector('[data-site-editor]')).toBeTruthy();
+    const sites = await firstValueFrom(api.listSites());
+    expect(sites.some((row) => row.slug === 'padaria-nova')).toBeTrue();
   });
 
   it('fills the form when Google returns one place', () => {

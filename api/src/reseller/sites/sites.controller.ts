@@ -55,6 +55,12 @@ export class SitesController {
     return this.sites.update(id, body);
   }
 
+  /** Alias with the same body as PATCH /sites/:id (content + templateId). */
+  @Patch('sites/:id/content')
+  updateContent(@Param('id') id: string, @Body() body: unknown) {
+    return this.sites.update(id, body);
+  }
+
   @Delete('sites/:id')
   remove(@Param('id') id: string) {
     return this.sites.remove(id);

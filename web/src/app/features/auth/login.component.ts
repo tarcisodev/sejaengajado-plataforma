@@ -1,6 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject, isDevMode, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  isDevMode,
+  signal,
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMoon, lucideSun, lucideTriangleAlert } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
@@ -31,9 +38,10 @@ import { LegalAcceptComponent } from '../legal/legal-accept.component';
   host: { class: 'block w-full max-w-sm' },
   templateUrl: './login.component.html',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly theme = inject(ThemeService);
 
   readonly devMailpit = isDevMode();
@@ -43,6 +51,34 @@ export class LoginComponent {
   readonly error = signal('');
   readonly pending = signal(false);
   readonly legalAccepted = signal(false);
+
+  /**
+   * SSR auth guards bounce /admin → /entrar?returnUrl=…. After hydration, resume
+   * the session (and the intended path) so F5 on painéis works.
+   */
+  async ngOnInit(): Promise<void> {
+    await this.auth.ensureReady();
+    const me = this.auth.me();
+    if (this.auth.sessionStatus() !== 'authenticated' || !me) {
+      return;
+    }
+    if (me.role === 'ADMIN') {
+      const level = await this.auth.getAuthenticatorAssuranceLevel();
+      if (level !== 'aal2') {
+        await this.router.navigateByUrl('/mfa');
+        return;
+      }
+    }
+    await this.router.navigateByUrl(this.resumePath(me.role));
+  }
+
+  private resumePath(role: 'ADMIN' | 'RESELLER' | 'CUSTOMER'): string {
+    const raw = this.route.snapshot.queryParamMap.get('returnUrl')?.trim() ?? '';
+    if (raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/entrar')) {
+      return raw;
+    }
+    return this.auth.homePathForRole(role);
+  }
 
   inputValue(event: Event): string {
     return (event.target as HTMLInputElement).value;
@@ -87,7 +123,7 @@ export class LoginComponent {
     this.error.set('');
     try {
       const me = await this.auth.verifyOtp(this.email(), code);
-      await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
+      await this.router.navigateByUrl(this.resumePath(me.role));
     } catch (err) {
       this.error.set(verifyFailureMessage(err));
     } finally {

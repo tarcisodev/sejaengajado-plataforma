@@ -36,10 +36,39 @@ export class AdminSitesController {
     return this.sites.create(body);
   }
 
+  @Get('sites/:id')
+  get(@Param('id', ParseUUIDPipe) id: string) {
+    return this.sites.get(id);
+  }
+
   @Patch('sites/:id/status')
   @Audit({ action: 'admin.site.status', entity: 'Site', entityId: (_r, req) => req.params.id })
   setStatus(@Param('id', ParseUUIDPipe) id: string, @Body() body: unknown) {
     return this.sites.setStatus(id, body);
+  }
+
+  @Patch('sites/:id/content')
+  @Audit({ action: 'admin.site.content', entity: 'Site', entityId: (_r, req) => req.params.id })
+  updateContent(@Param('id', ParseUUIDPipe) id: string, @Body() body: unknown) {
+    return this.sites.updateContent(id, body);
+  }
+
+  @Post('sites/:id/publish')
+  @Audit({ action: 'admin.site.publish', entity: 'Site', entityId: (_r, req) => req.params.id })
+  publish(@Param('id', ParseUUIDPipe) id: string) {
+    return this.sites.publish(id);
+  }
+
+  @Post('sites/:id/unpublish')
+  @Audit({ action: 'admin.site.unpublish', entity: 'Site', entityId: (_r, req) => req.params.id })
+  unpublish(@Param('id', ParseUUIDPipe) id: string) {
+    return this.sites.unpublish(id);
+  }
+
+  @Post('sites/:id/archive')
+  @Audit({ action: 'admin.site.archive', entity: 'Site', entityId: (_r, req) => req.params.id })
+  archive(@Param('id', ParseUUIDPipe) id: string) {
+    return this.sites.archive(id);
   }
 
   @Get('templates')
