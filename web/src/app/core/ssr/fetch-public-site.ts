@@ -58,6 +58,8 @@ export async function fetchPublicSiteBySlug(
   return fetchPublicSiteByHost(canonicalTenantHost(slug), fetchImpl, cache);
 }
 
+const FETCH_ATTEMPTS = 3;
+
 export async function fetchPublicSiteByHost(
   host: string,
   fetchImpl: typeof fetch = fetch,
@@ -70,32 +72,49 @@ export async function fetchPublicSiteByHost(
   }
 
   const url = `${apiInternalBase()}/api/public/sites/by-host?host=${encodeURIComponent(normalized)}`;
-  try {
-    const response = await fetchImpl(url, {
-      headers: {
-        Accept: 'application/json',
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-      },
-      cache: 'no-store',
-    });
-    // 304 without body must not be treated as "site missing".
-    if (response.status === 304) {
-      return { kind: 'error', status: 502 };
-    }
-    let body: Record<string, unknown> | null = null;
-    if (response.status !== 404 && response.status !== 410) {
-      try {
-        body = (await response.json()) as Record<string, unknown>;
-      } catch {
-        body = null;
+  let lastError: PublicSiteFetchResult = { kind: 'error', status: 502 };
+
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetchImpl(url, {
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+        cache: 'no-store',
+      });
+      // 304 without body must not be treated as "site missing".
+      if (response.status === 304) {
+        lastError = { kind: 'error', status: 502 };
+        continue;
+      }
+      let body: Record<string, unknown> | null = null;
+      if (response.status !== 404 && response.status !== 410) {
+        try {
+          body = (await response.json()) as Record<string, unknown>;
+        } catch {
+          body = null;
+        }
+      }
+      // Retry empty 2xx / 5xx once or twice — brief API blips must not 404 the biosite.
+      if (
+        (response.status >= 500 || (response.status >= 200 && response.status < 300 && !body)) &&
+        attempt < FETCH_ATTEMPTS
+      ) {
+        lastError = classifyPublicSite(response.status, body);
+        continue;
+      }
+      cache.set(normalized, response.status, body);
+      return classifyPublicSite(response.status, body);
+    } catch {
+      lastError = { kind: 'error', status: 502 };
+      if (attempt < FETCH_ATTEMPTS) {
+        continue;
       }
     }
-    cache.set(normalized, response.status, body);
-    return classifyPublicSite(response.status, body);
-  } catch {
-    return { kind: 'error', status: 502 };
   }
+  return lastError;
 }
 
 export function businessNameFromBody(body: Record<string, unknown>): string {

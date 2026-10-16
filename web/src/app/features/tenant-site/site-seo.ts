@@ -58,7 +58,7 @@ export function openingHoursSpecification(
 }
 
 export function displayName(content: SiteContent): string {
-  return content.profile.nome || content.businessName;
+  return content.profile?.nome || content.businessName || 'Negócio';
 }
 
 export function siteCanonical(slug: string): string {
@@ -69,15 +69,18 @@ export function siteTitle(content: SiteContent): string {
   if (content.seo?.title) {
     return content.seo.title;
   }
-  return `${displayName(content)} em ${content.profile.cidade}`;
+  const city = content.profile?.cidade?.trim();
+  return city ? `${displayName(content)} em ${city}` : displayName(content);
 }
 
 export function siteDescription(content: SiteContent): string {
   if (content.seo?.description) {
     return content.seo.description;
   }
-  const slogan = content.profile.slogan ? `${content.profile.slogan}. ` : '';
-  return `${slogan}${displayName(content)} em ${content.profile.cidade}. Chame no WhatsApp.`;
+  const slogan = content.profile?.slogan ? `${content.profile.slogan}. ` : '';
+  const city = content.profile?.cidade?.trim();
+  const where = city ? ` em ${city}` : '';
+  return `${slogan}${displayName(content)}${where}. Chame no WhatsApp.`;
 }
 
 export function aboutText(content: SiteContent): string {
@@ -89,7 +92,9 @@ export function aboutText(content: SiteContent): string {
     .slice(0, 4)
     .join(', ');
   const list = offered ? ` Entre o que oferece: ${offered}.` : '';
-  return `Procurando ${displayName(content)} em ${content.profile.cidade}? O endereço do negócio está aqui, com WhatsApp e avaliação no Google.${list}`;
+  const city = content.profile?.cidade?.trim();
+  const where = city ? ` em ${city}` : '';
+  return `Procurando ${displayName(content)}${where}? O endereço do negócio está aqui, com WhatsApp e avaliação no Google.${list}`;
 }
 
 export function ogImageUrl(content: SiteContent): string {

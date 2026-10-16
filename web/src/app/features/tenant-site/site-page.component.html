@@ -7,7 +7,7 @@
   <header class="hero">
     <div class="ring" aria-hidden="true">
       <div class="in">
-        @if (site.content.profile.logoUrl) {
+        @if (site.content.profile?.logoUrl) {
           <img [src]="site.content.profile.logoUrl" [alt]="" />
         } @else {
           <span>{{ initials() }}</span>
@@ -15,7 +15,7 @@
       </div>
     </div>
     <h1>{{ nome() }}</h1>
-    @if (site.content.profile.slogan) {
+    @if (site.content.profile?.slogan) {
       <p class="tag">{{ site.content.profile.slogan }}</p>
     }
     @if (tags().length) {
@@ -25,7 +25,9 @@
         }
       </ul>
     }
-    <span class="loc">{{ site.content.profile.cidade }}/{{ site.content.profile.uf }}</span>
+    <span class="loc"
+      >{{ site.content.profile?.cidade || '' }}/{{ site.content.profile?.uf || '' }}</span
+    >
     @if (site.content.google) {
       <p class="google-rating" data-block="google-rating">
         <span data-google-rating>{{ googleRatingLabel() }}</span>

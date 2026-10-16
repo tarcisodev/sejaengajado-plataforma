@@ -91,6 +91,32 @@ describe('fetch-public-site (SSR tenant)', () => {
       .and.resolveTo(new Response(null, { status: 304 }));
     const result = await fetchPublicSiteByHost('loja.sejaengajado.com.br', fetchImpl, cache);
     expect(result.kind).toBe('error');
+    // Retries 304 / empty transport blips.
+    expect(fetchImpl.calls.count()).toBeGreaterThanOrEqual(2);
+  });
+
+  it('retries network failure then succeeds', async () => {
+    const cache = new ByHostMemoryCache();
+    let n = 0;
+    const fetchImpl = jasmine.createSpy('fetch-retry').and.callFake(() => {
+      n += 1;
+      if (n < 2) {
+        return Promise.reject(new Error('ECONNRESET'));
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            status: 'PUBLISHED',
+            slug: 'demo-forno',
+            content: { businessName: 'Forno da Praça' },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    });
+    const result = await fetchPublicSiteByHost('demo-forno.sejaengajado.com.br', fetchImpl, cache);
+    expect(result.kind).toBe('ok');
+    expect(n).toBe(2);
   });
 
   it('maps archived host to gone without body parse', async () => {

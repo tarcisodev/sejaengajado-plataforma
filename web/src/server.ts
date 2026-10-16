@@ -146,6 +146,8 @@ app.get('**', async (req, res, next) => {
 
     // Always query by-host with the canonical slug host — never raw Host
     // (trailing dots / forwarded quirks must not miss a PUBLISHED site).
+    // On any transport failure: 502 HTML and STOP — never continue into Angular
+    // with SSR_PUBLIC_SITE=null (that caused false 404 + TypeError on profile).
     try {
       const result = await fetchPublicSiteBySlug(decision.slug);
       if (result.kind === 'not-found') {
@@ -178,7 +180,7 @@ app.get('**', async (req, res, next) => {
           );
         return;
       }
-      if (result.kind === 'error') {
+      if (result.kind === 'error' || result.kind !== 'ok' || !result.body) {
         res
           .status(502)
           .set('Cache-Control', 'private, no-store')
@@ -187,10 +189,16 @@ app.get('**', async (req, res, next) => {
         return;
       }
       // Hand the already-fetched site to Angular — second HttpClient GET was
-      // racing Nest ETag/304 (Cache-Control: public) and rendering not-found at 200.
+      // racing Nest ETag/304 and rendering not-found / crashing on undefined profile.
       ssrPublicSite = result.body;
     } catch (err) {
       Sentry.captureException(err);
+      res
+        .status(502)
+        .set('Cache-Control', 'private, no-store')
+        .type('html')
+        .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
+      return;
     }
   }
 

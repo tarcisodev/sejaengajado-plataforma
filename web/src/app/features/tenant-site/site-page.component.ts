@@ -84,6 +84,9 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (!this.site?.content) {
+      return;
+    }
     this.syncTheme();
     this.refreshOpenNow();
     this.refreshClock();
@@ -178,7 +181,7 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   tags(): string[] {
-    return (this.site.content.profile.tags ?? []).slice(0, 4);
+    return (this.site.content.profile?.tags ?? []).slice(0, 4);
   }
 
   about(): string {
@@ -237,11 +240,18 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   private refreshClock(): void {
+    if (!this.site?.content) {
+      this.clock.set(null);
+      return;
+    }
     const end = this.site.content.promo?.terminaEm;
     this.clock.set(end ? countdownParts(end) : null);
   }
 
   private applyHead(schemaType: string): void {
+    if (!this.site?.content) {
+      return;
+    }
     const content = this.site.content;
     const title = siteTitle(content);
     const description = siteDescription(content);

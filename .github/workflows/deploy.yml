@@ -185,21 +185,29 @@ jobs:
             if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/healthz" | grep -qx 'ok'; then
               web_hz=1
             fi
-            # Smoke somente-leitura (publico.spec): 3 demos 200+nome; slug inexistente 404 limpo.
+            # Smoke somente-leitura: cada demo N vezes (intermitência não passa com 1 GET).
             tenant_ok=1
+            TENANT_ATTEMPTS="${TENANT_SMOKE_ATTEMPTS:-5}"
             for pair in "demo-forno:Forno" "demo-barbearia:Barbearia" "demo-estudio:Luz"; do
               slug="${pair%%:*}"
               needle="${pair##*:}"
-              body="$(mktemp)"
-              code=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
-                "https://${slug}.sejaengajado.com.br/" || echo "000")
-              if [[ "$code" != "200" ]] || ! grep -Fq "$needle" "$body"; then
+              ok_n=0
+              for ((t=1; t<=TENANT_ATTEMPTS; t++)); do
+                body="$(mktemp)"
+                code=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
+                  "https://${slug}.sejaengajado.com.br/" || echo "000")
+                if [[ "$code" == "200" ]] && grep -Fq "$needle" "$body" \
+                  && ! grep -Eiq 'Negócio não encontrado|Não encontramos esse negócio' "$body"; then
+                  ok_n=$((ok_n + 1))
+                fi
+                rm -f "$body"
+              done
+              if [[ "$ok_n" -lt "$TENANT_ATTEMPTS" ]]; then
+                echo "tenant smoke FAIL slug=$slug ok=$ok_n/$TENANT_ATTEMPTS"
                 tenant_ok=0
+              else
+                echo "tenant smoke OK slug=$slug ok=$ok_n/$TENANT_ATTEMPTS"
               fi
-              if grep -Eiq 'Negócio não encontrado|Não encontramos esse negócio' "$body"; then
-                tenant_ok=0
-              fi
-              rm -f "$body"
             done
             miss_body="$(mktemp)"
             miss_code=$(curl -sS --max-time 10 -o "$miss_body" -w "%{http_code}" \

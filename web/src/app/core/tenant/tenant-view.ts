@@ -8,15 +8,19 @@ export type TenantView =
   | { kind: 'archived'; businessName: string }
   | { kind: 'not-found'; slug: string };
 
+function businessLabel(site: Site, slug: string): string {
+  return site.content?.businessName || site.content?.profile?.nome || slug;
+}
+
 export function viewForSite(site: Site | null, slug: string): TenantView {
-  if (!site || site.status === 'DRAFT') {
+  if (!site || !site.content || site.status === 'DRAFT') {
     return { kind: 'not-found', slug };
   }
   if (site.status === 'SUSPENDED') {
-    return { kind: 'suspended', businessName: site.content.businessName };
+    return { kind: 'suspended', businessName: businessLabel(site, slug) };
   }
   if (site.status === 'ARCHIVED') {
-    return { kind: 'archived', businessName: site.content.businessName };
+    return { kind: 'archived', businessName: businessLabel(site, slug) };
   }
   return { kind: 'site', site };
 }
@@ -53,7 +57,7 @@ export function titleFor(view: TenantView): string {
     case 'app':
       return 'Painel · Seja Engajado';
     case 'site':
-      return `${view.site.content.businessName} · Seja Engajado`;
+      return `${view.site.content?.businessName || view.site.content?.profile?.nome || view.site.slug} · Seja Engajado`;
     case 'suspended':
       return 'Temporariamente indisponível · Seja Engajado';
     case 'archived':
