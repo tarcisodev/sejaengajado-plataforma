@@ -135,7 +135,10 @@ export interface ApiPort {
   blockReseller(resellerId: string, command: BlockResellerCommand): Observable<Reseller>;
   unblockReseller(resellerId: string, actorId: string, unblockedAt: string): Observable<Reseller>;
   offerMigration(resellerId: string, actorId: string, today: Date): Observable<AuditLog>;
-  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED'): Observable<Site>;
+  setSiteStatus(
+    siteId: string,
+    status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED',
+  ): Observable<Site>;
   /** Admin: GET /admin/sites/:id (includes content). */
   getAdminSite(siteId: string): Observable<Site>;
   /** Admin: PATCH /admin/sites/:id/content */

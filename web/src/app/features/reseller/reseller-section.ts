@@ -1,12 +1,5 @@
 export type ResellerSection =
-  | 'inicio'
-  | 'clientes'
-  | 'sites'
-  | 'vendas'
-  | 'estoque'
-  | 'extrato'
-  | 'faturas'
-  | 'perfil';
+  'inicio' | 'clientes' | 'sites' | 'vendas' | 'estoque' | 'extrato' | 'faturas' | 'perfil';
 
 const SECTIONS: ResellerSection[] = [
   'clientes',

@@ -18,10 +18,7 @@ import type {
 import { AuthService } from '../../core/auth/auth.service';
 import type { Site, SiteContent } from '../../core/models/domain';
 import { siteStatusBadgeVariant, siteStatusLabel } from '../../core/site/site-status-label';
-import {
-  SiteEditorComponent,
-  SiteEditorSaveEvent,
-} from '../site-editor/site-editor.component';
+import { SiteEditorComponent, SiteEditorSaveEvent } from '../site-editor/site-editor.component';
 import { SitePageComponent } from '../tenant-site/site-page.component';
 import { formatBrl } from '../landing/landing-seo';
 import { plaqueNfcPayload, plaqueReviewUrl, plaqueSiteUrl } from './plaque-links';

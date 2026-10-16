@@ -185,20 +185,22 @@ export async function runShowcaseSeed(db: ShowcasePrisma): Promise<ShowcaseSeedR
   for (const model of models) {
     const existing = await db.site.findFirst({ where: { slug: model.slug } });
     if (existing) {
-      await db.site.update({
-        where: { id: existing.id },
-        data: {
-          customerId: customer.id,
-          resellerId: platform.id,
-          templateId: model.templateId,
-          planId: plan.id,
-          status: 'PUBLISHED',
-          editable: false,
-          isDemo: true,
-          content: model.content as Prisma.InputJsonValue,
-          publishedAt: existing.publishedAt ?? new Date(),
-        },
-      });
+      if (existing.isDemo) {
+        await db.site.update({
+          where: { id: existing.id },
+          data: {
+            customerId: customer.id,
+            resellerId: platform.id,
+            templateId: model.templateId,
+            planId: plan.id,
+            status: 'PUBLISHED',
+            editable: false,
+            isDemo: true,
+            content: model.content as Prisma.InputJsonValue,
+            publishedAt: existing.publishedAt ?? new Date(),
+          },
+        });
+      }
       skipped.sites.push(model.slug);
       const plaqueExisting = await db.plaque.findFirst({
         where: { siteId: existing.id, type: 'QR' },

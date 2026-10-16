@@ -3,19 +3,19 @@ const mailpitBase = (process.env['E2E_MAILPIT_URL'] ?? 'http://127.0.0.1:8025').
   '',
 );
 
-type MailpitMessageSummary = {
+interface MailpitMessageSummary {
   ID: string;
   To?: { Address?: string }[];
   Subject?: string;
   Created?: string;
-};
+}
 
-type MailpitMessage = {
+interface MailpitMessage {
   ID: string;
   Text?: string;
   HTML?: string;
   Subject?: string;
-};
+}
 
 /** Latest 6-digit OTP for `email` from Mailpit (GoTrue local). */
 export async function fetchLatestOtp(email: string, sinceMs = Date.now() - 120_000): Promise<string> {

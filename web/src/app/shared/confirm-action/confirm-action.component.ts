@@ -38,7 +38,7 @@ import { HlmAlertDialogImports } from '../ui/alert-dialog/src';
             <p class="mt-2 text-sm text-muted-foreground">{{ undoHint() }}</p>
           }
           <div hlmAlertDialogFooter>
-            <button hlmAlertDialogCancel class="h-11" type="button" (click)="cancel.emit()">
+            <button hlmAlertDialogCancel class="h-11" type="button" (click)="canceled.emit()">
               Cancelar
             </button>
             <button
@@ -74,5 +74,5 @@ export class ConfirmActionComponent {
   readonly suspendAttr = input(false);
 
   readonly confirm = output<void>();
-  readonly cancel = output<void>();
+  readonly canceled = output<void>();
 }

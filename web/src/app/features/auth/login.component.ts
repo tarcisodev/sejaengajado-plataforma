@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, isDevMode, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  isDevMode,
+  signal,
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -31,19 +38,34 @@ import { LegalAcceptComponent } from '../legal/legal-accept.component';
   host: { class: 'block w-full max-w-sm' },
   templateUrl: './login.component.html',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly theme = inject(ThemeService);
 
   readonly devMailpit = isDevMode();
-  readonly mode = signal<'login' | 'forgot'>('login');
+  readonly mode = signal<'login' | 'forgot' | 'reset'>('login');
   readonly email = signal('');
   readonly password = signal('');
+  readonly newPassword = signal('');
   readonly error = signal('');
   readonly notice = signal('');
   readonly pending = signal(false);
   readonly legalAccepted = signal(false);
+
+  async ngOnInit(): Promise<void> {
+    if (
+      typeof window !== 'undefined' &&
+      (/type=recovery/i.test(window.location.hash) ||
+        /type=recovery|mode=reset/i.test(window.location.search))
+    ) {
+      this.mode.set('reset');
+    }
+    await this.auth.ensureReady();
+    if (this.auth.passwordRecovery()) {
+      this.mode.set('reset');
+    }
+  }
 
   inputValue(event: Event): string {
     return (event.target as HTMLInputElement).value;
@@ -97,6 +119,39 @@ export class LoginComponent {
       this.mode.set('login');
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Não foi possível enviar o link.');
+    } finally {
+      this.pending.set(false);
+    }
+  }
+
+  async completeReset(event: Event): Promise<void> {
+    event.preventDefault();
+    const next = this.newPassword();
+    if (!next || next.length < 8) {
+      this.error.set('A nova senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
+    this.pending.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      await this.auth.ensureReady();
+      await this.auth.updatePassword(next);
+      this.newPassword.set('');
+      const me = this.auth.me() ?? (await this.auth.refreshMe().catch(() => null));
+      if (me) {
+        const aal = await this.auth.getAuthenticatorAssuranceLevel();
+        if (aal === 'aal1') {
+          await this.router.navigateByUrl('/mfa');
+          return;
+        }
+        await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
+        return;
+      }
+      this.notice.set('Senha atualizada. Entre com e-mail e a nova senha.');
+      this.mode.set('login');
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Não foi possível salvar a nova senha.');
     } finally {
       this.pending.set(false);
     }

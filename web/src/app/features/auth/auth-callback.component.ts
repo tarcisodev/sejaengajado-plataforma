@@ -21,6 +21,15 @@ export class AuthCallbackComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     try {
       await this.auth.ensureReady();
+      if (
+        this.auth.passwordRecovery() ||
+        (typeof window !== 'undefined' &&
+          (/type=recovery/i.test(window.location.hash) ||
+            /type=recovery/i.test(window.location.search)))
+      ) {
+        await this.router.navigateByUrl('/entrar?mode=reset');
+        return;
+      }
       const me = this.auth.me() ?? (await this.auth.refreshMe());
       await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
     } catch {

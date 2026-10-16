@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
@@ -33,14 +34,17 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<{
   });
 
   const jobMailer = options.jobMailer ?? new FakeJobMailer();
+  const supabaseAdmin: SupabaseAdminClient = options.supabaseAdmin ?? {
+    inviteUserByEmail: async (email: string) => ({ id: randomUUID(), email }),
+    generateRecoveryLink: async () => ({ actionLink: 'https://example.com/recovery' }),
+    unenrollMfaFactors: async () => ({ removed: 0 }),
+  };
 
   const builder = Test.createTestingModule({
     imports: [AppModule.register(env)],
   });
 
-  if (options.supabaseAdmin) {
-    builder.overrideProvider(SUPABASE_ADMIN).useValue(options.supabaseAdmin);
-  }
+  builder.overrideProvider(SUPABASE_ADMIN).useValue(supabaseAdmin);
   builder.overrideProvider(JOB_MAILER).useValue(jobMailer);
 
   const moduleRef = await builder.compile();

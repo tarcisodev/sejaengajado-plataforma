@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 
 import { encodeTimeIdCursor, decodeTimeIdCursor, paginate } from '../common/cursor';
-import { ADMIN_PRISMA, type AdminPrisma } from '../tenant/prisma.module';
+import { ADMIN_PRISMA, APP_PRISMA, type AdminPrisma, type AppPrisma } from '../tenant/prisma.module';
 
 const SECRET_KEYS = new Set([
   'password',
@@ -31,10 +31,14 @@ export interface AuditRecordInput {
 
 @Injectable()
 export class AuditService {
-  constructor(@Inject(ADMIN_PRISMA) private readonly adminPrisma: AdminPrisma) {}
+  constructor(
+    @Inject(ADMIN_PRISMA) private readonly adminPrisma: AdminPrisma,
+    @Optional() @Inject(APP_PRISMA) private readonly appPrisma?: AppPrisma,
+  ) {}
 
   async record(input: AuditRecordInput) {
-    return this.adminPrisma.auditLog.create({
+    const client = this.appPrisma ?? this.adminPrisma;
+    return client.auditLog.create({
       data: {
         actorId: input.actorId,
         role: input.role,
