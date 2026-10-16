@@ -6,8 +6,6 @@ describe('endOfDaySaoPauloIso', () => {
   });
 
   it('passes through datetime strings via Date', () => {
-    expect(endOfDaySaoPauloIso('2026-06-09T23:59:59-03:00')).toBe(
-      '2026-06-10T02:59:59.000Z',
-    );
+    expect(endOfDaySaoPauloIso('2026-06-09T23:59:59-03:00')).toBe('2026-06-10T02:59:59.000Z');
   });
 });

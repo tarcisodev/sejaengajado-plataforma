@@ -28,10 +28,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
-function normalizeProfile(
-  raw: unknown,
-  fallbackName: string,
-): SiteProfile {
+function normalizeProfile(raw: unknown, fallbackName: string): SiteProfile {
   const profile = asRecord(raw) ?? {};
   return {
     nome: String(profile['nome'] ?? fallbackName),

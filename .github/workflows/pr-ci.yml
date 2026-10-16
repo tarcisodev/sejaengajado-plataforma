@@ -108,11 +108,16 @@ jobs:
           npm ci
           npx prisma generate
           npm test
+      - name: Chrome for Karma
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
       - name: Web unit
         working-directory: web
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           npm ci
-          npm test -- --watch=false --browsers=ChromeHeadless
+          npm test -- --watch=false --browsers=ChromeHeadlessCI
 
   test-int:
     runs-on: [self-hosted, linux, vps]
