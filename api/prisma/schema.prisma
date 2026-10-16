@@ -251,6 +251,8 @@ model Site {
   planId               String     @map("plan_id") @db.Uuid
   status               SiteStatus @default(DRAFT)
   editable             Boolean    @default(false)
+  /** Sites-modelo / demo — fora de cobrança e métricas. */
+  isDemo               Boolean    @default(false) @map("is_demo")
   content              Json       @default("{}")
   publishedAt          DateTime?  @map("published_at") @db.Timestamptz(3)
   hostingRenewsAt      DateTime?  @map("hosting_renews_at") @db.Timestamptz(3)

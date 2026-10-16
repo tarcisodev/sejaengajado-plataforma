@@ -3,7 +3,7 @@
  * Prices are DEMO placeholders (P6) — UI must show "valor de exemplo".
  * No real customer/payment data.
  */
-import { PrismaClient, ProductCode, UserRole } from '@prisma/client';
+import { Prisma, PrismaClient, ProductCode, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -166,6 +166,207 @@ async function main(): Promise<void> {
     update: { name: 'Engajado Pro (DEMO)', priceCents: 49_900, features: { demo: true } },
   });
 
+  const platformId = '00000000-0000-4000-8000-000000000010';
+  const demoCustomerId = '00000000-0000-4000-8000-00000000d0c1';
+  const assetBase =
+    (process.env.SEED_DEMO_ASSET_BASE ?? 'https://app.sejaengajado.com.br').replace(/\/$/, '');
+
+  const templates = {
+    restaurante: await prisma.template.upsert({
+      where: { key: 'restaurante' },
+      create: {
+        key: 'restaurante',
+        name: 'Restaurante / Lanchonete',
+        niche: 'restaurante',
+        schemaType: 'Restaurant',
+        schema: { type: 'object' },
+        active: true,
+      },
+      update: { name: 'Restaurante / Lanchonete', niche: 'restaurante', active: true },
+    }),
+    barbearia: await prisma.template.upsert({
+      where: { key: 'barbearia' },
+      create: {
+        key: 'barbearia',
+        name: 'Salão / Barbearia',
+        niche: 'barbearia',
+        schemaType: 'HairSalon',
+        schema: { type: 'object' },
+        active: true,
+      },
+      update: { name: 'Salão / Barbearia', niche: 'barbearia', active: true },
+    }),
+    loja: await prisma.template.upsert({
+      where: { key: 'loja-local' },
+      create: {
+        key: 'loja-local',
+        name: 'Loja / Serviço local',
+        niche: 'generico',
+        schemaType: 'LocalBusiness',
+        schema: { type: 'object' },
+        active: true,
+      },
+      update: { name: 'Loja / Serviço local', niche: 'generico', active: true },
+    }),
+  };
+
+  const pronto = await prisma.plan.findUniqueOrThrow({ where: { code: 'PRONTO' } });
+
+  await prisma.customer.upsert({
+    where: { id: demoCustomerId },
+    create: {
+      id: demoCustomerId,
+      resellerId: platformId,
+      name: 'Demonstração Seja Engajado',
+      doc: '',
+      whatsapp: '5534999990000',
+      city: 'Uberaba',
+      email: 'demo.sites@sejaengajado.com.br',
+    },
+    update: {
+      name: 'Demonstração Seja Engajado',
+      resellerId: platformId,
+      city: 'Uberaba',
+    },
+  });
+
+  const models = [
+    {
+      slug: 'demo-forno',
+      templateId: templates.restaurante.id,
+      sample: 'forno.svg',
+      content: {
+        theme: { niche: 'restaurante', brandColor: '#c2410c' },
+        businessName: 'Forno da Praça',
+        profile: {
+          nome: 'Forno da Praça',
+          slogan: 'Pães e lanches frescos todo dia',
+          logoUrl: `${assetBase}/samples/forno.svg`,
+          cidade: 'Uberaba',
+          uf: 'MG',
+          tags: ['padaria', 'lanche', 'café'],
+        },
+        pix: { key: 'forno@demo.sejaengajado.com.br', receiverName: 'Forno da Praça' },
+        googleReviewUrl: 'https://g.page/r/demo-forno',
+        catalog: { layout: 'grid' },
+        strip: { enabled: true, motif: 'pizza', speed: 'normal', direction: 'left' },
+        faq: [
+          {
+            question: 'Fazem entrega?',
+            answer: 'Sim, no centro de Uberaba das 10h às 20h.',
+          },
+        ],
+        timezone: 'America/Sao_Paulo',
+      },
+    },
+    {
+      slug: 'demo-barbearia',
+      templateId: templates.barbearia.id,
+      sample: 'barbearia.svg',
+      content: {
+        theme: { niche: 'barbearia', brandColor: '#1e3a5f' },
+        businessName: 'Barbearia do Centro',
+        profile: {
+          nome: 'Barbearia do Centro',
+          slogan: 'Corte, barba e cuidado masculino',
+          logoUrl: `${assetBase}/samples/barbearia.svg`,
+          cidade: 'Uberaba',
+          uf: 'MG',
+          tags: ['corte', 'barba', 'barbearia'],
+        },
+        pix: { key: 'barbearia@demo.sejaengajado.com.br', receiverName: 'Barbearia do Centro' },
+        googleReviewUrl: 'https://g.page/r/demo-barbearia',
+        catalog: { layout: 'list' },
+        strip: { enabled: true, motif: 'tesoura', speed: 'slow', direction: 'left' },
+        faq: [
+          {
+            question: 'Aceitam encaixe?',
+            answer: 'Sim, conforme agenda do dia. Prefira agendar pelo WhatsApp.',
+          },
+        ],
+        timezone: 'America/Sao_Paulo',
+      },
+    },
+    {
+      slug: 'demo-estudio',
+      templateId: templates.loja.id,
+      sample: 'estudio.svg',
+      content: {
+        theme: { niche: 'generico', brandColor: '#0f766e' },
+        businessName: 'Estúdio Luz Local',
+        profile: {
+          nome: 'Estúdio Luz Local',
+          slogan: 'Fotos e serviços para o seu negócio',
+          logoUrl: `${assetBase}/samples/estudio.svg`,
+          cidade: 'Uberaba',
+          uf: 'MG',
+          tags: ['foto', 'estúdio', 'serviço'],
+        },
+        pix: { key: 'estudio@demo.sejaengajado.com.br', receiverName: 'Estúdio Luz Local' },
+        googleReviewUrl: 'https://g.page/r/demo-estudio',
+        catalog: { layout: 'grid' },
+        strip: { enabled: false, motif: 'none', speed: 'normal', direction: 'left' },
+        faq: [
+          {
+            question: 'Atendem empresas?',
+            answer: 'Sim — ensaio de produto, equipe e fachada.',
+          },
+        ],
+        timezone: 'America/Sao_Paulo',
+      },
+    },
+  ] as const;
+
+  const seededSlugs: string[] = [];
+  for (const model of models) {
+    const existing = await prisma.site.findFirst({ where: { slug: model.slug } });
+    const site = existing
+      ? await prisma.site.update({
+          where: { id: existing.id },
+          data: {
+            customerId: demoCustomerId,
+            resellerId: platformId,
+            templateId: model.templateId,
+            planId: pronto.id,
+            status: 'PUBLISHED',
+            editable: false,
+            isDemo: true,
+            content: model.content as Prisma.InputJsonValue,
+            publishedAt: existing.publishedAt ?? new Date(),
+            hostingRenewsAt: null,
+          },
+        })
+      : await prisma.site.create({
+          data: {
+            customerId: demoCustomerId,
+            resellerId: platformId,
+            slug: model.slug,
+            templateId: model.templateId,
+            planId: pronto.id,
+            status: 'PUBLISHED',
+            editable: false,
+            isDemo: true,
+            content: model.content as Prisma.InputJsonValue,
+            publishedAt: new Date(),
+          },
+        });
+
+    const plaqueExisting = await prisma.plaque.findFirst({
+      where: { siteId: site.id, type: 'QR' },
+    });
+    if (!plaqueExisting) {
+      await prisma.plaque.create({
+        data: {
+          resellerId: platformId,
+          siteId: site.id,
+          type: 'QR',
+          status: 'DELIVERED',
+        },
+      });
+    }
+    seededSlugs.push(site.slug);
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -173,7 +374,11 @@ async function main(): Promise<void> {
         demo: true,
         adminEmail,
         demoResellerEmail: demoEmail,
-        note: 'Preços DEMO (placeholders P6). UI deve exibir selo valor de exemplo.',
+        demoSites: seededSlugs.map((slug) => ({
+          slug,
+          url: `https://${slug}.sejaengajado.com.br`,
+        })),
+        note: 'Preços DEMO (placeholders P6). Sites isDemo=true fora de cobrança/métricas.',
       },
       null,
       2,

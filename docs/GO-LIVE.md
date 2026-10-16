@@ -90,7 +90,26 @@ Ordem sugerida:
 
 > Migrations expand/contract **não** têm down em produção — rollback de código não reverte schema.
 
-## 9. Piloto
+## 9. Sites-modelo (demo)
+
+Após deploy + migrate na VPS (Atlas), criar/atualizar os 3 biosites de demonstração:
+
+```bash
+# No serviço api (ou container com ADMIN_DATABASE_URL / DATABASE_URL de produção):
+cd /path/to/api && npm run seed:demo
+```
+
+Idempotente (upsert por slug, não apaga dados). Slugs:
+
+| Slug | URL |
+| --- | --- |
+| `demo-forno` | https://demo-forno.sejaengajado.com.br |
+| `demo-barbearia` | https://demo-barbearia.sejaengajado.com.br |
+| `demo-estudio` | https://demo-estudio.sejaengajado.com.br |
+
+Sites com `is_demo=true` (fora de cobrança e métricas). Cliente CRM: “Demonstração Seja Engajado” na revenda Plataforma.
+
+## 10. Piloto
 
 - [ ] 1 revendedor + 5 clientes reais em Uberaba.
 - [ ] Checklist inteiro marcado com evidência → anunciar.
