@@ -34,11 +34,64 @@ export interface NicheTheme {
   };
 }
 
-/** FF3: one excellent default; other keys resolve to this until LU1+. */
-export const NICHE_THEMES: Record<'generico', NicheTheme> = {
-  generico: {
-    key: 'generico',
-    colors: {
+const SHARED = {
+  radius: { sm: '0.5rem', md: '1rem', lg: '1.25rem', pill: '999px' },
+  shadows: {
+    sm: '0 4px 12px rgba(16, 32, 24, 0.08)',
+    md: '0 8px 20px rgba(16, 32, 24, 0.1)',
+    lg: '0 16px 36px rgba(16, 32, 24, 0.14)',
+  },
+  spacing: { sectionY: '1.5rem', gap: '0.75rem', container: '30rem' },
+  motion: { duration: '220ms', easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+} as const;
+
+const FONT_SHOP = {
+  heading: 'Fraunces, Palatino, Georgia, serif',
+  body: 'Literata, Georgia, serif',
+} as const;
+
+const FONT_MENU = {
+  heading: 'Newsreader, Palatino, Georgia, serif',
+  body: 'Literata, Georgia, serif',
+} as const;
+
+function nicheTheme(
+  key: NicheThemeKey,
+  colors: NicheTheme['colors'],
+  fonts: NicheTheme['fonts'],
+  opts?: { italic?: 'normal' | 'italic'; fontScale?: number; p3?: string },
+): NicheTheme {
+  const italic = opts?.italic ?? 'normal';
+  const fontScale = opts?.fontScale ?? 1;
+  const p3 = opts?.p3 ?? (colors.border.startsWith('#') ? colors.border : '#d5e2dc');
+  return {
+    key,
+    colors,
+    gradients: {
+      hero: `linear-gradient(120deg, ${colors.primary}, ${colors.accent})`,
+      cta: `linear-gradient(120deg, ${colors.primary}, ${colors.accent})`,
+    },
+    fonts,
+    ...SHARED,
+    legacy: {
+      p1: colors.primary,
+      p2: colors.accent,
+      p3,
+      on3: colors.text,
+      hi: colors.primaryContrast,
+      fontHeading: fonts.heading,
+      fontBody: fonts.body,
+      fontScale,
+      italic,
+    },
+  };
+}
+
+/** LU1+: six niche palettes with AA text/primary pairs. */
+export const NICHE_THEMES: Record<NicheThemeKey, NicheTheme> = {
+  generico: nicheTheme(
+    'generico',
+    {
       bg: '#f4f7f6',
       surface: '#ffffff',
       text: '#102018',
@@ -48,34 +101,84 @@ export const NICHE_THEMES: Record<'generico', NicheTheme> = {
       accent: '#3d5a4c',
       border: 'rgba(16, 32, 24, 0.14)',
     },
-    gradients: {
-      hero: 'linear-gradient(120deg, #1e3a5f, #3d5a4c)',
-      cta: 'linear-gradient(120deg, #1e3a5f, #3d5a4c)',
+    FONT_SHOP,
+    { p3: '#d5e2dc' },
+  ),
+  barbearia: nicheTheme(
+    'barbearia',
+    {
+      bg: '#f6f1e7',
+      surface: '#fffdf8',
+      text: '#161410',
+      muted: '#5c5348',
+      primary: '#161410',
+      primaryContrast: '#f6f1e7',
+      accent: '#8c3a2f',
+      border: 'rgba(22, 20, 16, 0.16)',
     },
-    fonts: {
-      heading: 'Fraunces, Palatino, Georgia, serif',
-      body: 'Literata, Georgia, serif',
+    FONT_SHOP,
+    { p3: '#e6d3a3' },
+  ),
+  restaurante: nicheTheme(
+    'restaurante',
+    {
+      bg: '#fff8ef',
+      surface: '#ffffff',
+      text: '#2a120c',
+      muted: '#6b4638',
+      primary: '#8c3a2f',
+      primaryContrast: '#fff8ef',
+      accent: '#c47a2c',
+      border: 'rgba(42, 18, 12, 0.14)',
     },
-    radius: { sm: '0.5rem', md: '1rem', lg: '1.25rem', pill: '999px' },
-    shadows: {
-      sm: '0 4px 12px rgba(16, 32, 24, 0.08)',
-      md: '0 8px 20px rgba(16, 32, 24, 0.1)',
-      lg: '0 16px 36px rgba(16, 32, 24, 0.14)',
+    FONT_MENU,
+    { italic: 'italic', fontScale: 1.02, p3: '#f3e6c8' },
+  ),
+  moda: nicheTheme(
+    'moda',
+    {
+      bg: '#f7f2f6',
+      surface: '#ffffff',
+      text: '#1c1220',
+      muted: '#5c4a58',
+      primary: '#4a1942',
+      primaryContrast: '#f7f2f6',
+      accent: '#9b4d7a',
+      border: 'rgba(28, 18, 32, 0.14)',
     },
-    spacing: { sectionY: '1.5rem', gap: '0.75rem', container: '30rem' },
-    motion: { duration: '220ms', easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-    legacy: {
-      p1: '#1e3a5f',
-      p2: '#3d5a4c',
-      p3: '#d5e2dc',
-      on3: '#102018',
-      hi: '#f4f7f6',
-      fontHeading: 'Fraunces, Palatino, Georgia, serif',
-      fontBody: 'Literata, Georgia, serif',
-      fontScale: 1,
-      italic: 'normal',
+    FONT_SHOP,
+    { p3: '#e8d5e4' },
+  ),
+  beleza: nicheTheme(
+    'beleza',
+    {
+      bg: '#fbf5f6',
+      surface: '#ffffff',
+      text: '#2a1518',
+      muted: '#6b4e52',
+      primary: '#8b3a4a',
+      primaryContrast: '#fbf5f6',
+      accent: '#c47884',
+      border: 'rgba(42, 21, 24, 0.14)',
     },
-  },
+    FONT_SHOP,
+    { p3: '#f0d8dc' },
+  ),
+  saude: nicheTheme(
+    'saude',
+    {
+      bg: '#f2f8f7',
+      surface: '#ffffff',
+      text: '#10241f',
+      muted: '#3f5c55',
+      primary: '#0f5c4c',
+      primaryContrast: '#f2f8f7',
+      accent: '#2a8f7a',
+      border: 'rgba(16, 36, 31, 0.14)',
+    },
+    FONT_SHOP,
+    { p3: '#cfe6e0' },
+  ),
 };
 
 export function isNicheThemeKey(value: string): value is NicheThemeKey {
@@ -112,7 +215,7 @@ export function resolveTheme(content: {
   };
 }): NicheTheme {
   const key = resolveNicheKey(content.theme?.niche);
-  const base = NICHE_THEMES.generico;
+  const base = NICHE_THEMES[key];
   const legacyIn = content.theme;
   const italic: 'normal' | 'italic' = legacyIn?.italic === 'italic' ? 'italic' : 'normal';
   const fromLegacy: NicheTheme =

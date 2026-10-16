@@ -1,5 +1,6 @@
 import {
   NICHE_THEMES,
+  NicheThemeKey,
   contrastRatio,
   ensureContrast,
   pickTextColor,
@@ -7,7 +8,9 @@ import {
   themeToCssVars,
 } from './niche-themes';
 
-describe('niche-themes (FF3)', () => {
+const NICHE_KEYS = Object.keys(NICHE_THEMES) as NicheThemeKey[];
+
+describe('niche-themes (LU1+)', () => {
   it('reports black/white contrast as 21', () => {
     expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);
   });
@@ -24,24 +27,53 @@ describe('niche-themes (FF3)', () => {
     expect(contrastRatio(fixed, text)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('exposes generico CSS variables including --t-* and legacy --p*', () => {
-    const vars = themeToCssVars(NICHE_THEMES.generico);
-    expect(vars['--t-primary']).toBe('#1e3a5f');
-    expect(vars['--t-on-primary']).toBe('#f4f7f6');
-    expect(vars['--p1']).toBe('#1e3a5f');
-    expect(vars['--fh']).toContain('Fraunces');
+  it('registers all six niche keys', () => {
+    const expected: NicheThemeKey[] = [
+      'barbearia',
+      'beleza',
+      'generico',
+      'moda',
+      'restaurante',
+      'saude',
+    ];
+    expect([...NICHE_KEYS].sort()).toEqual(expected.sort());
   });
 
-  it('falls back unknown niches to generico tokens', () => {
+  it('keeps AA on text/bg and primary pairs for every niche', () => {
+    for (const key of NICHE_KEYS) {
+      const t = NICHE_THEMES[key];
+      expect(contrastRatio(t.colors.primary, t.colors.primaryContrast))
+        .withContext(`${key} primary`)
+        .toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.colors.bg, t.colors.text))
+        .withContext(`${key} bg/text`)
+        .toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.colors.surface, t.colors.text))
+        .withContext(`${key} surface/text`)
+        .toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('snapshots CSS variables per niche', () => {
+    for (const key of NICHE_KEYS) {
+      const vars = themeToCssVars(NICHE_THEMES[key]);
+      expect(vars['--t-primary']).toBe(NICHE_THEMES[key].colors.primary);
+      expect(vars['--t-on-primary']).toBe(NICHE_THEMES[key].colors.primaryContrast);
+      expect(vars['--p1']).toBe(NICHE_THEMES[key].legacy.p1);
+      expect(vars['--t-hero']).toContain('linear-gradient');
+    }
+  });
+
+  it('resolves niche tokens without legacy bridge', () => {
     const theme = resolveTheme({ theme: { niche: 'barbearia' } });
-    expect(theme.colors.primary).toBe(NICHE_THEMES.generico.colors.primary);
     expect(theme.key).toBe('barbearia');
+    expect(theme.colors.primary).toBe(NICHE_THEMES.barbearia.colors.primary);
+    expect(theme.colors.primary).not.toBe(NICHE_THEMES.generico.colors.primary);
   });
 
-  it('keeps AA on primary pairs of the default theme', () => {
-    const t = NICHE_THEMES.generico;
-    expect(contrastRatio(t.colors.primary, t.colors.primaryContrast)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(t.colors.bg, t.colors.text)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(t.colors.surface, t.colors.text)).toBeGreaterThanOrEqual(4.5);
+  it('falls back unknown niches to generico', () => {
+    const theme = resolveTheme({ theme: { niche: 'desconhecido' } });
+    expect(theme.key).toBe('generico');
+    expect(theme.colors.primary).toBe(NICHE_THEMES.generico.colors.primary);
   });
 });

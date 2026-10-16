@@ -5,6 +5,7 @@ const HEADING_MENU = 'Newsreader, Palatino, serif';
 const BODY = 'Literata, Georgia, serif';
 
 const THEME_BARBER: SiteTheme = {
+  niche: 'barbearia',
   p1: '#161410',
   p2: '#8c3a2f',
   p3: '#e6d3a3',
@@ -17,6 +18,7 @@ const THEME_BARBER: SiteTheme = {
 };
 
 const THEME_KITCHEN: SiteTheme = {
+  niche: 'restaurante',
   p1: '#8c3a2f',
   p2: '#c47a2c',
   p3: '#f3e6c8',
@@ -29,6 +31,7 @@ const THEME_KITCHEN: SiteTheme = {
 };
 
 const THEME_CUSTOM: SiteTheme = {
+  niche: 'moda',
   p1: '#2c2825',
   p2: '#6b6258',
   p3: '#efe6d8',
@@ -41,6 +44,7 @@ const THEME_CUSTOM: SiteTheme = {
 };
 
 const THEME_SERVICE: SiteTheme = {
+  niche: 'generico',
   p1: '#1e3a5f',
   p2: '#3d5a4c',
   p3: '#d5e2dc',

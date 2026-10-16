@@ -85,6 +85,9 @@ export interface SiteProfile {
 }
 
 export interface SiteTheme {
+  /** Niche key for LU1+ tokens; legacy p1–hi still win when present. */
+  niche?: 'barbearia' | 'restaurante' | 'moda' | 'beleza' | 'saude' | 'generico';
+  brandColor?: string;
   p1: string;
   p2: string;
   p3: string;
