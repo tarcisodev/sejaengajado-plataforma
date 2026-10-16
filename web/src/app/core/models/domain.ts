@@ -128,6 +128,9 @@ export interface SitePromo {
 
 export interface SiteGoogle {
   placeId: string;
+  /** Null/undefined → UI shows "—" (placeholder, never invent a score). */
+  rating?: number | null;
+  reviewCount?: number | null;
 }
 
 export interface SiteAddress {

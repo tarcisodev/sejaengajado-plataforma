@@ -1,3 +1,4 @@
+import { NgStyle } from '@angular/common';
 import {
   Component,
   Input,
@@ -17,6 +18,7 @@ import { Subscription } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { Site } from '../../core/models/domain';
+import { resolveTheme, themeToCssVars } from '../../core/theme/niche-themes';
 import {
   ClockParts,
   aboutText,
@@ -37,6 +39,7 @@ import {
 
 @Component({
   selector: 'app-site-page',
+  imports: [NgStyle],
   templateUrl: './site-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-page.component.scss',
@@ -59,6 +62,7 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   readonly schemaType = signal('LocalBusiness');
   readonly clock = signal<ClockParts | null>(null);
   readonly copied = signal(false);
+  readonly themeVars = signal<Record<string, string>>({});
   mapSrc: SafeResourceUrl | null = null;
 
   constructor() {
@@ -69,11 +73,13 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['site']) {
+      this.syncTheme();
       this.syncMap();
     }
   }
 
   ngOnInit(): void {
+    this.syncTheme();
     this.syncMap();
     this.refreshClock();
     if (!this.embed) {
@@ -86,6 +92,29 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
         this.applyHead(this.schemaType());
       }
     });
+  }
+
+  private syncTheme(): void {
+    if (!this.site) {
+      return;
+    }
+    this.themeVars.set(themeToCssVars(resolveTheme(this.site.content)));
+  }
+
+  googleRatingLabel(): string {
+    const rating = this.site.content.google?.rating;
+    return typeof rating === 'number' && Number.isFinite(rating) ? rating.toFixed(1) : '—';
+  }
+
+  googleReviewCountLabel(): string {
+    const count = this.site.content.google?.reviewCount;
+    return typeof count === 'number' && Number.isFinite(count) ? String(count) : '—';
+  }
+
+  pixIsExample(): boolean {
+    const chave = this.site.content.pix?.chave?.toLowerCase() ?? '';
+    const nome = this.site.content.pix?.nome?.toLowerCase() ?? '';
+    return chave.includes('exemplo') || nome.includes('exemplo') || !chave;
   }
 
   ngOnDestroy(): void {

@@ -1,24 +1,25 @@
 :host {
   display: block;
   min-height: 100vh;
-  background: #f6f2ec;
+  background: var(--t-bg, #f4f7f6);
+  color: var(--t-text, #102018);
 }
 
 .card {
-  width: min(30rem, 100%);
+  width: min(var(--t-container, 30rem), 100%);
   margin: 0 auto;
   overflow: hidden;
-  background: color-mix(in srgb, var(--p1) 5%, #faf7fb);
-  color: var(--ink);
-  font-family: var(--fb, var(--font-body));
+  background: var(--t-surface, #fff);
+  color: var(--t-text, var(--ink, #102018));
+  font-family: var(--t-font-body, var(--fb, var(--font-body)));
 }
 
 .hero {
   position: relative;
   padding: 1.4rem 1.25rem 4.6rem;
   text-align: center;
-  color: var(--hi);
-  background: linear-gradient(120deg, var(--p1), var(--p2));
+  color: var(--t-on-primary, var(--hi));
+  background: var(--t-hero, linear-gradient(120deg, var(--p1), var(--p2)));
 }
 
 .wave {
@@ -195,34 +196,86 @@ h2 {
 }
 
 .catalog {
-  display: flex;
-  gap: 0.75rem;
-  margin-right: -1.25rem;
-  margin-left: -1.25rem;
-  padding: 0 1.25rem 0.4rem;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--t-gap, 0.75rem);
+  margin: 0;
+  padding: 0 0 0.4rem;
+  overflow: visible;
+}
+
+@media (min-width: 48rem) {
+  .catalog {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 80rem) {
+  .catalog {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .catalog li {
-  flex: 0 0 64%;
-  scroll-snap-align: start;
+  min-width: 0;
 }
 
 .catalog a {
   display: block;
   overflow: hidden;
-  border: 1px solid rgba(22, 20, 16, 0.12);
-  border-radius: 1.25rem;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(22, 20, 16, 0.08);
+  border: 1px solid var(--t-border, rgba(22, 20, 16, 0.12));
+  border-radius: var(--t-radius-lg, 1.25rem);
+  background: var(--t-surface, #fff);
+  box-shadow: var(--t-shadow-md, 0 8px 20px rgba(22, 20, 16, 0.08));
 }
 
-.catalog img {
+.catalog img,
+.catalog-ph {
   width: 100%;
-  height: 8.5rem;
+  aspect-ratio: 4 / 3;
+  height: auto;
   object-fit: cover;
   border-radius: 0;
+  background: color-mix(in srgb, var(--t-primary, var(--p1)) 12%, #fff);
+}
+
+.example-label {
+  display: inline-block;
+  margin-left: 0.25rem;
+  color: var(--t-muted, #4a5c54);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.google-rating {
+  margin: 0.85rem 0 0;
+  color: var(--t-on-primary, var(--hi));
+  font-size: 0.95rem;
+}
+
+.google-rating .muted {
+  opacity: 0.7;
+}
+
+.pix {
+  margin-top: 0.5rem;
+}
+
+.pix button {
+  min-height: 2.75rem;
+  margin-top: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: 0;
+  border-radius: var(--t-radius-md, 1rem);
+  color: var(--t-on-primary, var(--hi));
+  background: var(--t-cta, linear-gradient(120deg, var(--p1), var(--p2)));
+  font: inherit;
+  cursor: pointer;
+}
+
+.pix-hint {
+  color: var(--t-muted, #4a5c54);
+  font-size: 0.9rem;
 }
 
 .catalog b,

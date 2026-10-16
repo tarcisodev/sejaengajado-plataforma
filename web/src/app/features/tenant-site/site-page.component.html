@@ -2,15 +2,7 @@
   class="card"
   [attr.data-site-status]="site.status"
   [attr.data-schema]="schemaType()"
-  [style.--p1]="site.content.theme.p1"
-  [style.--p2]="site.content.theme.p2"
-  [style.--p3]="site.content.theme.p3"
-  [style.--on3]="site.content.theme.on3"
-  [style.--hi]="site.content.theme.hi"
-  [style.--fh]="site.content.theme.fontHeading"
-  [style.--fb]="site.content.theme.fontBody"
-  [style.--fs]="site.content.theme.fontScale"
-  [style.--fi]="site.content.theme.italic"
+  [ngStyle]="themeVars()"
 >
   <header class="hero">
     <div class="ring" aria-hidden="true">
@@ -34,6 +26,14 @@
       </ul>
     }
     <span class="loc">{{ site.content.profile.cidade }}/{{ site.content.profile.uf }}</span>
+    @if (site.content.google) {
+      <p class="google-rating" data-block="google-rating">
+        <span data-google-rating>{{ googleRatingLabel() }}</span>
+        <span class="muted">·</span>
+        <span data-google-reviews>{{ googleReviewCountLabel() }}</span>
+        <span class="example-label">avaliações (exemplo)</span>
+      </p>
+    }
     <svg class="wave" viewBox="0 0 480 36" preserveAspectRatio="none" aria-hidden="true">
       <path d="M0 18c80 22 160-22 240 0s160 22 240 0v18H0z" />
     </svg>
@@ -55,9 +55,20 @@
   }
 
   @if (site.content.google) {
-    <p class="review">
-      <a href="/avaliar" [attr.data-place-id]="site.content.google.placeId">Avaliar no Google</a>
-    </p>
+    <section class="review" data-block="google">
+      <h2>Avaliações no Google</h2>
+      <p>
+        Nota
+        <strong data-google-rating>{{ googleRatingLabel() }}</strong>
+        ·
+        <span data-google-reviews>{{ googleReviewCountLabel() }}</span>
+        avaliações
+        <span class="example-label">(exemplo)</span>
+      </p>
+      <p>
+        <a href="/avaliar" [attr.data-place-id]="site.content.google.placeId">Avaliar no Google</a>
+      </p>
+    </section>
   }
 
   @if (site.content.hours?.length) {
@@ -85,16 +96,18 @@
   @if (site.content.products?.length) {
     <section data-block="catalog">
       <h2>Catálogo</h2>
-      <ul class="catalog">
+      <ul class="catalog" data-catalog-layout="grid">
         @for (item of site.content.products; track item.nome) {
           <li>
             <a [href]="interestHref(item.nome)">
               @if (item.fotoUrl) {
-                <img [src]="item.fotoUrl" alt="" />
+                <img [src]="item.fotoUrl" alt="" loading="lazy" />
+              } @else {
+                <div class="catalog-ph" aria-hidden="true"></div>
               }
               <span>
                 <b>{{ item.nome }}</b>
-                <small>{{ item.precoTexto }}</small>
+                <small>{{ item.precoTexto || 'consulte' }}</small>
               </span>
             </a>
           </li>
@@ -139,18 +152,22 @@
   }
 
   @if (site.content.pix) {
-    <details class="pix" data-block="pix">
-      <summary>Pix</summary>
+    <section class="pix" data-block="pix">
+      <h2>Pix</h2>
+      @if (pixIsExample()) {
+        <p class="example-label" data-pix-example>Dados de exemplo — não use para pagamento real</p>
+      }
       <p data-pix-key>{{ site.content.pix.chave }}</p>
       <p>{{ site.content.pix.nome }}</p>
+      <p class="pix-hint">Confira o nome do recebedor antes de pagar.</p>
       @if (site.content.pix.qrUrl) {
         <img class="qr" [src]="site.content.pix.qrUrl" alt="QR do Pix" />
       }
       <button type="button" (click)="copyPix()">Copiar chave</button>
       @if (copied()) {
-        <p>Chave copiada</p>
+        <p aria-live="polite">Chave copiada</p>
       }
-    </details>
+    </section>
   }
 
   <footer>
