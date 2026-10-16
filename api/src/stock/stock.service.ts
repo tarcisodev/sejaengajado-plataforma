@@ -50,7 +50,7 @@ export const resellerMovementSchema = z.discriminatedUnion('type', [
     type: z.literal('OUT'),
     plaqueType: z.enum(['QR', 'NFC']),
     qty: z.number().int().positive(),
-    reason: z.literal('GIFT'),
+    reason: z.enum(['GIFT', 'ASSIGN']),
     siteId: z.string().uuid(),
   }),
 ]);
@@ -234,6 +234,14 @@ export class StockService {
     const resellerId = requireTenantResellerId();
 
     if (parsed.data.type === 'OUT') {
+      if (parsed.data.reason === 'ASSIGN') {
+        return this.assignToSite({
+          siteId: parsed.data.siteId,
+          plaqueType: parsed.data.plaqueType,
+          qty: parsed.data.qty,
+          idempotencyKey,
+        });
+      }
       return this.gift({
         siteId: parsed.data.siteId,
         plaqueType: parsed.data.plaqueType,
@@ -284,6 +292,34 @@ export class StockService {
         plaqueType: input.plaqueType,
         qty: input.qty,
         reason: this.mergeReason('GIFT', input.idempotencyKey),
+        siteId: input.siteId,
+        idempotencyKey: input.idempotencyKey,
+      }),
+    );
+  }
+
+  /** Assign stock plaque to any site of the current reseller (FF4). */
+  async assignToSite(input: {
+    siteId: string;
+    plaqueType: 'QR' | 'NFC';
+    qty: number;
+    idempotencyKey?: string;
+  }) {
+    const resellerId = requireTenantResellerId();
+    const site = await this.db.site.findUnique({
+      where: { id: input.siteId },
+    });
+    if (!site || site.resellerId !== resellerId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Site não encontrado' });
+    }
+
+    return this.db.$transaction(async (tx) =>
+      this.moveInTx(tx as unknown as Tx, {
+        resellerId,
+        type: 'OUT',
+        plaqueType: input.plaqueType,
+        qty: input.qty,
+        reason: this.mergeReason('ASSIGN', input.idempotencyKey),
         siteId: input.siteId,
         idempotencyKey: input.idempotencyKey,
       }),

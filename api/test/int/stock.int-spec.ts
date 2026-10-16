@@ -192,6 +192,48 @@ describe('stock plaques', () => {
           expect(body.code).toBe('GIFT_PRO_ONLY');
         });
 
+      // FF4: ASSIGN works on Pronto after restock
+      await request(app.getHttpServer())
+        .post('/api/admin/plaques/movements')
+        .set('Authorization', `Bearer ${adminSession.token}`)
+        .send({
+          resellerId: seeded.resellerA.id,
+          type: 'IN',
+          plaqueType: 'NFC',
+          qty: 2,
+          unitCostCents: 800,
+        })
+        .expect(201);
+
+      const assign = await request(app.getHttpServer())
+        .post('/api/reseller/plaques/movements')
+        .set('Authorization', `Bearer ${sessionA.token}`)
+        .set('Idempotency-Key', 'assign-plaque-ff4')
+        .send({
+          type: 'OUT',
+          plaqueType: 'NFC',
+          qty: 1,
+          reason: 'ASSIGN',
+          siteId: seeded.sitePronto.id,
+        })
+        .expect(201);
+      expect(assign.body.type).toBe('OUT');
+      expect(assign.body.siteId).toBe(seeded.sitePronto.id);
+      expect(String(assign.body.reason)).toContain('ASSIGN');
+
+      await request(app.getHttpServer())
+        .post('/api/reseller/plaques/movements')
+        .set('Authorization', `Bearer ${sessionB.token}`)
+        .set('Idempotency-Key', 'assign-cross-tenant')
+        .send({
+          type: 'OUT',
+          plaqueType: 'NFC',
+          qty: 1,
+          reason: 'ASSIGN',
+          siteId: seeded.sitePronto.id,
+        })
+        .expect(404);
+
       // Re-seed A for transfer path on B
       await request(app.getHttpServer())
         .post('/api/admin/plaques/movements')
