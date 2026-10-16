@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, map, of, throwError } from 'rxjs';
 
 import {
   ApiPort,
@@ -14,6 +14,18 @@ import {
   PlaquePenaltyQuote,
   toCivilDate,
 } from '../core/api/plaque-penalty';
+import type {
+  CursorPage,
+  LedgerStatementDto,
+  ResellerCustomerDto,
+  ResellerDashboardDto,
+  ResellerPriceItemDto,
+  ResellerSaleDto,
+  ResellerSiteDto,
+  SiteOptionsDto,
+  SlugCheckDto,
+  WholesaleItemDto,
+} from '../core/api/reseller-api.types';
 import { migrationAvailable } from '../core/admin/migration';
 import { canEditSite } from '../core/customer/access';
 import {
@@ -39,7 +51,7 @@ import {
   Template,
   User,
 } from '../core/models/domain';
-import { createUberabaSeed, MockDatabase } from './uberaba-seed';
+import { createUberabaSeed, MockDatabase, RESELLER_TRIANGULO } from './uberaba-seed';
 
 const ACTIVE_SITE_STATUSES = new Set<Site['status']>(['PUBLISHED', 'READ_ONLY']);
 const CUSTOMER_OTP = '482913';
@@ -625,6 +637,264 @@ export class MockApiService implements ApiPort {
       return throwError(() => new Error('invoice not found'));
     }
     return of(structuredClone(found));
+  }
+
+  getResellerDashboard(): Observable<ResellerDashboardDto> {
+    const resellerId = RESELLER_TRIANGULO;
+    const sites = this.state.sites.filter((site) => site.resellerId === resellerId);
+    const activeSites = sites.filter(
+      (site) => site.status === 'PUBLISHED' || site.status === 'READ_ONLY',
+    ).length;
+    const monthSalesCents = this.state.payments
+      .filter((payment) => payment.resellerId === resellerId && payment.status === 'PAID')
+      .reduce((sum, payment) => sum + payment.valor, 0);
+    return of({
+      activeSites,
+      monthSalesCents,
+      predictedMarginCents: Math.round(monthSalesCents * 0.35),
+      realizedMarginCents: Math.round(monthSalesCents * 0.3),
+      balanceCents: monthSalesCents,
+      stock: this.state.plaqueStock
+        .filter((row) => row.resellerId === resellerId)
+        .map((row) => ({ plaqueType: row.tipo, qty: row.qtd })),
+      openInvoice: this.myInvoices[0]
+        ? {
+            id: this.myInvoices[0].id,
+            period: this.myInvoices[0].period,
+            totalCents: this.myInvoices[0].totalCents,
+            status: this.myInvoices[0].status,
+          }
+        : null,
+      monthFrom: '2026-10-01T03:00:00.000Z',
+      monthToExclusive: '2026-11-01T03:00:00.000Z',
+    });
+  }
+
+  listResellerCustomers(_cursor?: string | null): Observable<CursorPage<ResellerCustomerDto>> {
+    const items = this.state.customers
+      .filter((customer) => customer.resellerId === RESELLER_TRIANGULO)
+      .map(
+        (customer): ResellerCustomerDto => ({
+          id: customer.id,
+          resellerId: customer.resellerId ?? RESELLER_TRIANGULO,
+          name: customer.nome,
+          doc: customer.doc,
+          whatsapp: customer.whatsapp,
+          city: customer.cidade,
+        }),
+      );
+    return of({ items: structuredClone(items), nextCursor: null });
+  }
+
+  createResellerCustomer(body: {
+    name: string;
+    doc?: string;
+    whatsapp?: string;
+    city?: string;
+  }): Observable<ResellerCustomerDto> {
+    const customer: Customer = {
+      id: `cust_created_${this.state.customers.length + 1}`,
+      userId: null,
+      resellerId: RESELLER_TRIANGULO,
+      nome: body.name.trim(),
+      doc: (body.doc ?? '').trim(),
+      whatsapp: (body.whatsapp ?? '').trim(),
+      cidade: (body.city ?? '').trim(),
+    };
+    this.state.customers.push(customer);
+    return of({
+      id: customer.id,
+      resellerId: RESELLER_TRIANGULO,
+      name: customer.nome,
+      doc: customer.doc,
+      whatsapp: customer.whatsapp,
+      city: customer.cidade,
+    });
+  }
+
+  listResellerSites(_cursor?: string | null): Observable<CursorPage<ResellerSiteDto>> {
+    const items = this.state.sites
+      .filter((site) => site.resellerId === RESELLER_TRIANGULO)
+      .map((site) => this.toResellerSiteDto(site));
+    return of({ items: structuredClone(items), nextCursor: null });
+  }
+
+  createResellerSite(body: {
+    customerId: string;
+    slug: string;
+    templateId: string;
+    planId: string;
+  }): Observable<ResellerSiteDto> {
+    return this.createSite({
+      customerId: body.customerId,
+      slug: body.slug,
+      templateId: body.templateId,
+      planId: body.planId,
+      businessName: body.slug,
+      phone: '',
+      address: { logradouro: '', cidade: 'Uberaba', uf: 'MG' },
+    }).pipe(map((site) => this.toResellerSiteDto(site)));
+  }
+
+  publishResellerSite(siteId: string): Observable<ResellerSiteDto> {
+    return this.publishSite(siteId).pipe(map((site) => this.toResellerSiteDto(site)));
+  }
+
+  checkResellerSlug(slug: string): Observable<SlugCheckDto> {
+    const normalized = slug.trim().toLowerCase();
+    const taken =
+      this.state.reservedSlugs.some((item) => item.slug === normalized) ||
+      this.state.sites.some((item) => item.slug === normalized);
+    return of({
+      slug: normalized,
+      available: !taken && /^[a-z0-9](?:-?[a-z0-9]){2,30}$/.test(normalized),
+      code: taken ? 'SLUG_TAKEN' : undefined,
+    });
+  }
+
+  listResellerSiteOptions(): Observable<SiteOptionsDto> {
+    return of({
+      plans: this.state.plans.map((plan) => ({
+        id: plan.id,
+        code: plan.code,
+        name: plan.nome,
+        type: plan.tipo,
+        priceCents: plan.precoCentavos,
+      })),
+      templates: this.state.templates.map((template) => ({
+        id: template.id,
+        key: template.key,
+        name: template.nome,
+        niche: template.ramo,
+      })),
+    });
+  }
+
+  listResellerSales(_cursor?: string | null): Observable<CursorPage<ResellerSaleDto>> {
+    const items: ResellerSaleDto[] = this.state.payments
+      .filter((payment) => payment.resellerId === RESELLER_TRIANGULO)
+      .map((payment) => ({
+        id: payment.id,
+        resellerId: RESELLER_TRIANGULO,
+        createdAt: payment.paidAt ?? '2026-10-01T12:00:00.000Z',
+        predictedMarginCents: Math.round(payment.valor * 0.35),
+        items: [
+          {
+            productId: 'prod_mock',
+            qty: 1,
+            unitCostCents: Math.round(payment.valor * 0.65),
+            unitPriceCents: payment.valor,
+          },
+        ],
+      }));
+    return of({ items, nextCursor: null });
+  }
+
+  recordResellerSale(
+    items: { productId: string; qty: number; unitPriceCents: number }[],
+    _idempotencyKey: string,
+  ): Observable<ResellerSaleDto> {
+    const predictedMarginCents = items.reduce(
+      (sum, item) => sum + item.qty * Math.round(item.unitPriceCents * 0.35),
+      0,
+    );
+    return of({
+      id: `sale_${Date.now()}`,
+      resellerId: RESELLER_TRIANGULO,
+      createdAt: new Date().toISOString(),
+      predictedMarginCents,
+      items: items.map((item) => ({
+        productId: item.productId,
+        qty: item.qty,
+        unitCostCents: Math.round(item.unitPriceCents * 0.65),
+        unitPriceCents: item.unitPriceCents,
+      })),
+    });
+  }
+
+  getResellerLedger(_opts?: {
+    from?: string;
+    to?: string;
+    cursor?: string | null;
+  }): Observable<LedgerStatementDto> {
+    const sales = this.state.payments.filter(
+      (payment) => payment.resellerId === RESELLER_TRIANGULO && payment.status === 'PAID',
+    );
+    const items = sales.map((payment) => ({
+      id: `led_${payment.id}`,
+      resellerId: RESELLER_TRIANGULO,
+      type: 'IN' as const,
+      category: 'SALE',
+      amountCents: payment.valor,
+      refType: 'Payment',
+      refId: payment.id,
+      reversalOfId: null,
+      createdAt: payment.paidAt ?? '2026-10-01T12:00:00.000Z',
+    }));
+    const closingCents = items.reduce((sum, item) => sum + item.amountCents, 0);
+    return of({ items, nextCursor: null, openingCents: 0, closingCents });
+  }
+
+  getResellerLedgerBalance(): Observable<{ balanceCents: number }> {
+    return this.getResellerLedger().pipe(map((statement) => ({ balanceCents: statement.closingCents })));
+  }
+
+  listResellerWholesale(): Observable<{ items: WholesaleItemDto[] }> {
+    return of({
+      items: this.state.plans.map((plan) => ({
+        productId: plan.id,
+        code: plan.code,
+        name: plan.nome,
+        baseWholesaleCents: Math.round(plan.precoCentavos * 0.2),
+        priceCents: plan.precoCentavos,
+        source: 'mock',
+      })),
+    });
+  }
+
+  listResellerPrices(): Observable<{ items: ResellerPriceItemDto[] }> {
+    return this.listResellerWholesale().pipe(
+      map((body) => ({
+        items: body.items.map((item) => ({
+          productId: item.productId,
+          code: item.code,
+          name: item.name,
+          priceCents: item.priceCents,
+        })),
+      })),
+    );
+  }
+
+  private toResellerSiteDto(site: Site): ResellerSiteDto {
+    const customer = this.state.customers.find((item) => item.id === site.customerId);
+    const plan = this.state.plans.find((item) => item.id === site.planId);
+    const template = this.state.templates.find((item) => item.id === site.templateId);
+    return {
+      id: site.id,
+      resellerId: site.resellerId ?? RESELLER_TRIANGULO,
+      customerId: site.customerId,
+      slug: site.slug,
+      templateId: site.templateId,
+      planId: site.planId,
+      status: site.status,
+      editable: site.editable,
+      content: site.content,
+      publishedAt: site.publishedAt,
+      hostingRenewsAt: site.hostingRenewsAt,
+      plaqueFidelityEndsAt: site.plaqueFidelityEndsAt,
+      customer: customer ? { id: customer.id, name: customer.nome } : undefined,
+      plan: plan
+        ? {
+            id: plan.id,
+            code: plan.code,
+            name: plan.nome,
+            priceCents: plan.precoCentavos,
+          }
+        : undefined,
+      template: template
+        ? { id: template.id, key: template.key, name: template.nome }
+        : undefined,
+    };
   }
 
   private byReseller<T extends { resellerId: string | null }>(

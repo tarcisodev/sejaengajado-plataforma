@@ -28,6 +28,11 @@ export class SitesController {
     return this.sites.checkSlug(slug ?? '');
   }
 
+  @Get('site-options')
+  siteOptions() {
+    return this.sites.siteOptions();
+  }
+
   @Get('sites')
   async list(@Query('limit') limitRaw?: string, @Query('cursor') cursor?: string) {
     const limit = limitRaw ? Number(limitRaw) : 20;

@@ -38,16 +38,12 @@ describe('AdminShellComponent', () => {
     ].map((link) => (link as HTMLAnchorElement).getAttribute('href'));
     fixture.destroy();
 
+    // Com apiUrl setado (environment de teste), telas sem endpoint ficam ocultas.
     expect(hrefs).toEqual([
-      '/admin',
-      '/admin/clientes',
       '/admin/revendedores',
-      '/admin/sites',
       '/admin/planos',
       '/admin/configuracoes',
       '/admin/cupons',
-      '/admin/receita',
-      '/admin/faturas',
     ]);
   });
 });

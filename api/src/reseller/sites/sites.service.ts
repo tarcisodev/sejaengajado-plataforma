@@ -153,6 +153,22 @@ export class SitesService {
     }
   }
 
+  /** Planos e templates ativos para o formulário de criar site (não são tenant-scoped). */
+  async siteOptions() {
+    const [plans, templates] = await Promise.all([
+      this.db.plan.findMany({
+        orderBy: { code: 'asc' },
+        select: { id: true, code: true, name: true, type: true, priceCents: true },
+      }),
+      this.db.template.findMany({
+        where: { active: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, key: true, name: true, niche: true },
+      }),
+    ]);
+    return { plans, templates };
+  }
+
   async create(resellerId: string, body: unknown) {
     const reseller = await this.loadReseller(resellerId);
     assertResellerOperable(reseller.status);

@@ -2,6 +2,18 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { PlaquePenaltyQuote } from './plaque-penalty';
+import type {
+  CursorPage,
+  LedgerStatementDto,
+  ResellerCustomerDto,
+  ResellerDashboardDto,
+  ResellerPriceItemDto,
+  ResellerSaleDto,
+  ResellerSiteDto,
+  SiteOptionsDto,
+  SlugCheckDto,
+  WholesaleItemDto,
+} from './reseller-api.types';
 import {
   AuditLog,
   Cancellation,
@@ -114,6 +126,39 @@ export interface ApiPort {
   getPaymentStatus(gatewayPaymentId: string): Observable<PaymentStatusView>;
   listMyInvoices(): Observable<MyResellerInvoice[]>;
   getMyInvoice(id: string): Observable<MyResellerInvoice>;
+
+  /** Revendedor — rotas /reseller/* (valores em centavos da API). */
+  getResellerDashboard(): Observable<ResellerDashboardDto>;
+  listResellerCustomers(cursor?: string | null): Observable<CursorPage<ResellerCustomerDto>>;
+  createResellerCustomer(body: {
+    name: string;
+    doc?: string;
+    whatsapp?: string;
+    city?: string;
+  }): Observable<ResellerCustomerDto>;
+  listResellerSites(cursor?: string | null): Observable<CursorPage<ResellerSiteDto>>;
+  createResellerSite(body: {
+    customerId: string;
+    slug: string;
+    templateId: string;
+    planId: string;
+  }): Observable<ResellerSiteDto>;
+  publishResellerSite(siteId: string): Observable<ResellerSiteDto>;
+  checkResellerSlug(slug: string): Observable<SlugCheckDto>;
+  listResellerSiteOptions(): Observable<SiteOptionsDto>;
+  listResellerSales(cursor?: string | null): Observable<CursorPage<ResellerSaleDto>>;
+  recordResellerSale(
+    items: { productId: string; qty: number; unitPriceCents: number }[],
+    idempotencyKey: string,
+  ): Observable<ResellerSaleDto>;
+  getResellerLedger(opts?: {
+    from?: string;
+    to?: string;
+    cursor?: string | null;
+  }): Observable<LedgerStatementDto>;
+  getResellerLedgerBalance(): Observable<{ balanceCents: number }>;
+  listResellerWholesale(): Observable<{ items: WholesaleItemDto[] }>;
+  listResellerPrices(): Observable<{ items: ResellerPriceItemDto[] }>;
 }
 
 export interface CustomerOtp {

@@ -6,6 +6,9 @@ export const resellerRoutes: Routes = [
   {
     path: '',
     component: ResellerShellComponent,
-    children: [{ path: '', pathMatch: 'full', children: [] }],
+    children: [
+      { path: '', pathMatch: 'full', children: [] },
+      { path: '**', children: [] },
+    ],
   },
 ];

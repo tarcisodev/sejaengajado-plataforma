@@ -92,33 +92,35 @@
                 <td hlmTd class="tabular-nums">{{ row.valor }}</td>
                 <td hlmTd class="tabular-nums">{{ row.usos }}/{{ row.maxUsos }}</td>
                 <td hlmTd>
-                  <hlm-alert-dialog>
-                    <button
-                      hlmBtn
-                      hlmAlertDialogTrigger
-                      class="h-11"
-                      type="button"
-                      variant="destructive"
-                    >
-                      Excluir
-                    </button>
-                    <ng-template brnAlertDialogContent>
-                      <div hlmAlertDialogContent>
-                        <h2 hlmAlertDialogTitle class="font-display text-xl">Excluir</h2>
-                        <div hlmAlertDialogFooter>
-                          <button hlmAlertDialogCancel class="h-11" type="button">Fechar</button>
-                          <button
-                            hlmAlertDialogAction
-                            class="h-11"
-                            type="button"
-                            (click)="remove(row.id)"
-                          >
-                            Excluir
-                          </button>
+                  @if (canDelete) {
+                    <hlm-alert-dialog>
+                      <button
+                        hlmBtn
+                        hlmAlertDialogTrigger
+                        class="h-11"
+                        type="button"
+                        variant="destructive"
+                      >
+                        Excluir
+                      </button>
+                      <ng-template brnAlertDialogContent>
+                        <div hlmAlertDialogContent>
+                          <h2 hlmAlertDialogTitle class="font-display text-xl">Excluir</h2>
+                          <div hlmAlertDialogFooter>
+                            <button hlmAlertDialogCancel class="h-11" type="button">Fechar</button>
+                            <button
+                              hlmAlertDialogAction
+                              class="h-11"
+                              type="button"
+                              (click)="remove(row.id)"
+                            >
+                              Excluir
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </ng-template>
-                  </hlm-alert-dialog>
+                      </ng-template>
+                    </hlm-alert-dialog>
+                  }
                 </td>
               </tr>
             }

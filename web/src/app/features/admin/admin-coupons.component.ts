@@ -12,6 +12,7 @@ import { HlmTableImports } from '@spartan-ng/helm/table';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
+import { featureFlags } from '../../core/api/feature-flags';
 import { Coupon, Plan } from '../../core/models/domain';
 
 @Component({
@@ -32,6 +33,7 @@ import { Coupon, Plan } from '../../core/models/domain';
 })
 export class AdminCouponsComponent {
   private readonly api = inject(API_PORT);
+  readonly canDelete = featureFlags.adminCouponDelete;
   readonly rows = signal<Coupon[]>([]);
   readonly plans = signal<Plan[]>([]);
   readonly planIds = signal<string[]>([]);
