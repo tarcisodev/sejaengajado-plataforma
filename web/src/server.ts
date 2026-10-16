@@ -6,11 +6,11 @@ import express from 'express';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveHost } from './app/core/tenant/resolve-host';
+import { requestHostFromHeaders, resolveHost } from './app/core/tenant/resolve-host';
 import {
   apiInternalBase,
   businessNameFromBody,
-  fetchPublicSiteByHost,
+  fetchPublicSiteBySlug,
 } from './app/core/ssr/fetch-public-site';
 import { scrubSentryEvent } from './app/core/sentry/scrub';
 import bootstrap from './main.server';
@@ -36,7 +36,6 @@ const sentryRelease = (process.env['SENTRY_RELEASE'] || process.env['IMAGE_TAG']
 const supabaseUrl = (process.env['SUPABASE_URL'] ?? '').trim();
 const supabaseAnonKey = (process.env['SUPABASE_ANON_KEY'] ?? '').trim();
 const apiPublicUrl = (process.env['API_PUBLIC_URL'] ?? '/api').trim() || '/api';
-const isDev = process.env['NODE_ENV'] !== 'production';
 
 if (sentryDsn) {
   Sentry.init({
@@ -84,27 +83,30 @@ app.get('/se-public-config.json', (_req, res) => {
     );
 });
 
-/** Dev-only: proxy /api → local Nest (production Traefik routes /api). */
-if (isDev) {
-  app.use('/api', async (req, res) => {
-    const target = `${apiInternalBase()}${req.originalUrl}`;
-    try {
-      const upstream = await fetch(target, {
-        method: req.method,
-        headers: { accept: req.headers.accept ?? 'application/json' },
-      });
-      res.status(upstream.status);
-      const type = upstream.headers.get('content-type');
-      if (type) {
-        res.type(type);
-      }
-      const buf = Buffer.from(await upstream.arrayBuffer());
-      res.send(buf);
-    } catch {
-      res.status(502).json({ code: 'BAD_GATEWAY', message: 'API indisponível' });
+/**
+ * Proxy /api → Nest on the internal network.
+ * Traefik only mounts PathPrefix `/api` on `app.*`; tenant hosts hit web-ssr,
+ * so the browser (and any relative fetch) needs this hop. SSR itself uses
+ * API_INTERNAL_URL directly (see main.server.ts) to avoid CF→Traefik loops.
+ */
+app.use('/api', async (req, res) => {
+  const target = `${apiInternalBase()}${req.originalUrl}`;
+  try {
+    const upstream = await fetch(target, {
+      method: req.method,
+      headers: { accept: req.headers.accept ?? 'application/json' },
+    });
+    res.status(upstream.status);
+    const type = upstream.headers.get('content-type');
+    if (type) {
+      res.type(type);
     }
-  });
-}
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch {
+    res.status(502).json({ code: 'BAD_GATEWAY', message: 'API indisponível' });
+  }
+});
 
 /**
  * Serve hashed assets only. `index: false` keeps `/` and `?tenant=` on the SSR handler,
@@ -128,7 +130,8 @@ function noticeHtml(title: string, body: string): string {
 app.get('**', async (req, res, next) => {
   const { protocol, originalUrl, baseUrl, headers } = req;
   const responseInit: ResponseInit = { status: 200 };
-  const host = headers.host ?? '';
+  // Prefer X-Forwarded-Host behind Cloudflare → Traefik; fall back to Host.
+  const host = requestHostFromHeaders(headers);
   const search = originalUrl.includes('?') ? originalUrl.slice(originalUrl.indexOf('?')) : '';
   const decision = resolveHost(host, search);
 
@@ -140,12 +143,10 @@ app.get('**', async (req, res, next) => {
       return;
     }
 
-    const fetchHost =
-      host.includes('localhost') && decision.slug
-        ? `${decision.slug}.sejaengajado.com.br`
-        : (host.split(':')[0] ?? host);
+    // Always query by-host with the canonical slug host — never raw Host
+    // (trailing dots / forwarded quirks must not miss a PUBLISHED site).
     try {
-      const result = await fetchPublicSiteByHost(fetchHost);
+      const result = await fetchPublicSiteBySlug(decision.slug);
       if (result.kind === 'not-found') {
         res
           .status(404)

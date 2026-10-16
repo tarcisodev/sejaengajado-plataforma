@@ -1,6 +1,18 @@
-import { resolveHost, tenantPreviewUrl } from './resolve-host';
+import { requestHostFromHeaders, resolveHost, tenantPreviewUrl } from './resolve-host';
 
 describe('resolveHost', () => {
+  it('prefers X-Forwarded-Host over Host (Cloudflare → Traefik)', () => {
+    expect(
+      requestHostFromHeaders({
+        host: 'web-ssr:4000',
+        'x-forwarded-host': 'demo-forno.sejaengajado.com.br, other.example',
+      }),
+    ).toBe('demo-forno.sejaengajado.com.br');
+    expect(requestHostFromHeaders({ host: 'demo-barbearia.sejaengajado.com.br' })).toBe(
+      'demo-barbearia.sejaengajado.com.br',
+    );
+  });
+
   it('keeps the apex and localhost on the landing', () => {
     expect(resolveHost('sejaengajado.com.br').kind).toBe('landing');
     expect(resolveHost('www.sejaengajado.com.br').kind).toBe('landing');

@@ -1,4 +1,10 @@
-import { ByHostMemoryCache } from './by-host-cache';
+import {
+  BY_HOST_TTL_NEGATIVE_MS,
+  BY_HOST_TTL_OK_MS,
+  ByHostMemoryCache,
+  canonicalTenantHost,
+  normalizeHost,
+} from './by-host-cache';
 
 describe('ByHostMemoryCache', () => {
   it('caps entries so SSR memory stays bounded', () => {
@@ -11,14 +17,34 @@ describe('ByHostMemoryCache', () => {
     expect(cache.get('tenant-0.sejaengajado.com.br')).toBeNull();
   });
 
-  it('expires after TTL', () => {
+  it('keeps successful by-host payloads for ~60s', () => {
     jasmine.clock().install();
     jasmine.clock().mockDate(new Date('2026-10-16T12:00:00Z'));
     const cache = new ByHostMemoryCache();
     cache.set('demo-forno.sejaengajado.com.br', 200, { slug: 'demo-forno' });
     expect(cache.get('demo-forno.sejaengajado.com.br')).toBeTruthy();
-    jasmine.clock().tick(61_000);
+    jasmine.clock().tick(BY_HOST_TTL_OK_MS - 1_000);
+    expect(cache.get('demo-forno.sejaengajado.com.br')).toBeTruthy();
+    jasmine.clock().tick(2_000);
     expect(cache.get('demo-forno.sejaengajado.com.br')).toBeNull();
     jasmine.clock().uninstall();
+  });
+
+  it('expires 404 within a few seconds so publish after miss recovers', () => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date('2026-10-16T12:00:00Z'));
+    const cache = new ByHostMemoryCache();
+    cache.set('demo-forno.sejaengajado.com.br', 404, null);
+    expect(cache.get('demo-forno.sejaengajado.com.br')?.status).toBe(404);
+    jasmine.clock().tick(BY_HOST_TTL_NEGATIVE_MS + 1);
+    expect(cache.get('demo-forno.sejaengajado.com.br')).toBeNull();
+    jasmine.clock().uninstall();
+  });
+
+  it('builds the canonical tenant host from a slug', () => {
+    expect(canonicalTenantHost('Demo-Forno')).toBe('demo-forno.sejaengajado.com.br');
+    expect(normalizeHost('Demo-Forno.sejaengajado.com.br.')).toBe(
+      'demo-forno.sejaengajado.com.br',
+    );
   });
 });

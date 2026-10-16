@@ -185,11 +185,11 @@ jobs:
             if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/healthz" | grep -qx 'ok'; then
               web_hz=1
             fi
-            # Tenant host must hit web-ssr (not Traefik's bare "404 page not found").
+            # Tenant SSR: 200 + business name (not Traefik bare 404 / Express "Negócio não encontrado").
             tenant_body="$(mktemp)"
-            tenant_code=$(curl -sS --max-time 8 -o "$tenant_body" -w "%{http_code}" \
+            tenant_code=$(curl -sS --max-time 15 -o "$tenant_body" -w "%{http_code}" \
               "https://demo-forno.sejaengajado.com.br/" || echo "000")
-            if [[ "$tenant_code" != "000" ]] && ! grep -Fqi '404 page not found' "$tenant_body"; then
+            if [[ "$tenant_code" == "200" ]] && grep -Fq 'Forno' "$tenant_body"; then
               tenant_ok=1
             fi
             rm -f "$tenant_body"

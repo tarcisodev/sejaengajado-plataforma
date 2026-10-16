@@ -9,6 +9,32 @@ const APEX_HOSTS = new Set([
 const APEX_SUFFIX = '.sejaengajado.com.br';
 const LOCAL_SUFFIX = '.localhost';
 
+/**
+ * Host seen by Express behind Cloudflare → Traefik.
+ * Prefer X-Forwarded-Host (first hop) when present; never invent a tenant from junk.
+ */
+export function requestHostFromHeaders(headers: {
+  host?: string | string[];
+  'x-forwarded-host'?: string | string[];
+}): string {
+  const xf = headerFirst(headers['x-forwarded-host']);
+  if (xf) {
+    return xf;
+  }
+  return headerFirst(headers.host) ?? '';
+}
+
+function headerFirst(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) {
+    const first = value[0]?.split(',')[0]?.trim();
+    return first || null;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return value.split(',')[0]!.trim();
+  }
+  return null;
+}
+
 /** Dev override `?tenant=slug` wins over the host. Apex and `app.` stay on the platform. */
 export function resolveHost(hostHeader: string, search = ''): HostDecision {
   const tenant = readTenantQuery(search);

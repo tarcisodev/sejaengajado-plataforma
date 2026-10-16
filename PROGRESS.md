@@ -22,9 +22,10 @@
 | UI7 | DONE | 9fd9d66 | 2026-10-16 |
 | DOC1 | DONE | f8c73ef | 2026-10-16 |
 | HX | DONE | f1cfaac | 2026-10-16 |
+| TENANT-404 | DONE | (push) | 2026-10-16 |
 
 ## Ultimo bloco
-HX — Happy-path e2e endurecido (f1cfaac; Playwright skip-safe + sandbox OK).
+TENANT-404 — SSR tenant: host canônico + TTL curto 404 + API_INTERNAL no SSR; gate demo-forno 200+Forno.
 
 ## Proximo
 _(fila PROGRESS vazia — Marco 1 / go-live checklist em `docs/GO-LIVE.md`)_

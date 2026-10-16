@@ -2,13 +2,25 @@ export interface CachedByHost {
   status: number;
   body: Record<string, unknown> | null;
   storedAt: number;
+  /** Per-entry TTL — negatives stay short so publish after 404 recovers fast. */
+  ttlMs: number;
 }
 
-const TTL_MS = 60_000;
+/** Successful by-host payloads. */
+export const BY_HOST_TTL_OK_MS = 60_000;
+/** 404/410/5xx/empty — keep brief (seconds), not a minute. */
+export const BY_HOST_TTL_NEGATIVE_MS = 3_000;
 /** Cap so wildcard traffic cannot grow the SSR process without bound. */
 const MAX_ENTRIES = 500;
 
-/** In-memory by-host cache for the SSR Node process (60s TTL, max 500 hosts). */
+function ttlForStatus(status: number, body: Record<string, unknown> | null): number {
+  if (status >= 200 && status < 400 && body) {
+    return BY_HOST_TTL_OK_MS;
+  }
+  return BY_HOST_TTL_NEGATIVE_MS;
+}
+
+/** In-memory by-host cache for the SSR Node process. */
 export class ByHostMemoryCache {
   private readonly map = new Map<string, CachedByHost>();
 
@@ -18,11 +30,10 @@ export class ByHostMemoryCache {
     if (!hit) {
       return null;
     }
-    if (Date.now() - hit.storedAt > TTL_MS) {
+    if (Date.now() - hit.storedAt > hit.ttlMs) {
       this.map.delete(key);
       return null;
     }
-    // Refresh insertion order for LRU eviction on set.
     this.map.delete(key);
     this.map.set(key, hit);
     return hit;
@@ -31,7 +42,12 @@ export class ByHostMemoryCache {
   set(host: string, status: number, body: Record<string, unknown> | null): void {
     const key = normalizeHost(host);
     this.map.delete(key);
-    this.map.set(key, { status, body, storedAt: Date.now() });
+    this.map.set(key, {
+      status,
+      body,
+      storedAt: Date.now(),
+      ttlMs: ttlForStatus(status, body),
+    });
     this.evictExpired();
     while (this.map.size > MAX_ENTRIES) {
       const oldest = this.map.keys().next().value;
@@ -46,7 +62,6 @@ export class ByHostMemoryCache {
     this.map.clear();
   }
 
-  /** Test helper. */
   get size(): number {
     return this.map.size;
   }
@@ -54,7 +69,7 @@ export class ByHostMemoryCache {
   private evictExpired(): void {
     const now = Date.now();
     for (const [key, entry] of this.map) {
-      if (now - entry.storedAt > TTL_MS) {
+      if (now - entry.storedAt > entry.ttlMs) {
         this.map.delete(key);
       }
     }
@@ -64,5 +79,10 @@ export class ByHostMemoryCache {
 export const byHostMemoryCache = new ByHostMemoryCache();
 
 export function normalizeHost(host: string): string {
-  return host.trim().toLowerCase().split(':')[0] ?? '';
+  return host.trim().toLowerCase().replace(/\.$/, '').split(':')[0] ?? '';
+}
+
+/** Canonical public host for a tenant slug (always use this for by-host API calls). */
+export function canonicalTenantHost(slug: string): string {
+  return `${slug.trim().toLowerCase()}.sejaengajado.com.br`;
 }

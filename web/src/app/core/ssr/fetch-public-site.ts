@@ -1,4 +1,4 @@
-import { byHostMemoryCache, normalizeHost, type CachedByHost } from './by-host-cache';
+import { byHostMemoryCache, canonicalTenantHost, normalizeHost } from './by-host-cache';
 
 export type PublicSiteFetchResult =
   | { kind: 'ok'; status: number; body: Record<string, unknown> }
@@ -16,6 +16,11 @@ export function apiInternalBase(): string {
   return 'http://127.0.0.1:3000';
 }
 
+/** Absolute Nest base for Angular SSR HttpClient (tenant Host has no Traefik /api route). */
+export function apiInternalUrlForSsr(): string {
+  return `${apiInternalBase()}/api`;
+}
+
 export function classifyPublicSite(
   status: number,
   body: Record<string, unknown> | null,
@@ -23,11 +28,15 @@ export function classifyPublicSite(
   if (status === 410) {
     return { kind: 'archived' };
   }
-  if (status === 404 || !body) {
+  if (status === 404) {
     return { kind: 'not-found' };
   }
   if (status >= 500) {
     return { kind: 'error', status };
+  }
+  // 2xx/3xx without JSON is a transport glitch — not "site missing".
+  if (!body) {
+    return { kind: 'error', status: status || 502 };
   }
   const siteStatus = String(body['status'] ?? '');
   const unavailable = Boolean(body['temporarilyUnavailable']) || siteStatus === 'SUSPENDED';
@@ -35,6 +44,18 @@ export function classifyPublicSite(
     return { kind: 'suspended', body };
   }
   return { kind: 'ok', status, body };
+}
+
+/**
+ * Fetch public site by tenant slug (canonical host). Prefer this over raw Host headers
+ * that may include trailing dots / X-Forwarded quirks behind Cloudflare→Traefik.
+ */
+export async function fetchPublicSiteBySlug(
+  slug: string,
+  fetchImpl: typeof fetch = fetch,
+  cache = byHostMemoryCache,
+): Promise<PublicSiteFetchResult> {
+  return fetchPublicSiteByHost(canonicalTenantHost(slug), fetchImpl, cache);
 }
 
 export async function fetchPublicSiteByHost(
@@ -61,13 +82,8 @@ export async function fetchPublicSiteByHost(
         body = null;
       }
     }
-    const entry: CachedByHost = {
-      status: response.status,
-      body,
-      storedAt: Date.now(),
-    };
-    cache.set(normalized, entry.status, entry.body);
-    return classifyPublicSite(entry.status, entry.body);
+    cache.set(normalized, response.status, body);
+    return classifyPublicSite(response.status, body);
   } catch {
     return { kind: 'error', status: 502 };
   }
