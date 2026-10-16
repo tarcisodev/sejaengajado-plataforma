@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 
 import { Roles } from '../../auth/roles.decorator';
+import { parseLimit } from '../../common/parse-limit';
 import { AdminPaymentsService } from './admin-payments.service';
 
 @Controller('admin/payments')
@@ -15,7 +16,7 @@ export class AdminPaymentsController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const limit = limitRaw ? Number(limitRaw) : 20;
+    const limit = parseLimit(limitRaw);
     const page = await this.payments.list({ limit, cursor, from, to });
     return { items: page.items, nextCursor: page.nextCursor };
   }

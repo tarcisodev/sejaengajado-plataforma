@@ -16,6 +16,23 @@ const statusSchema = z.object({
   status: z.enum(['PUBLISHED', 'SUSPENDED']),
 });
 
+const siteSelect = {
+  id: true,
+  slug: true,
+  status: true,
+  editable: true,
+  isDemo: true,
+  resellerId: true,
+  customerId: true,
+  templateId: true,
+  planId: true,
+  publishedAt: true,
+  createdAt: true,
+  customer: { select: { id: true, name: true, email: true, city: true } },
+  plan: { select: { id: true, code: true, name: true, type: true } },
+  template: { select: { id: true, key: true, name: true, niche: true } },
+} as const;
+
 @Injectable()
 export class AdminSitesService {
   constructor(
@@ -38,14 +55,11 @@ export class AdminSitesService {
         : undefined,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
-      include: { customer: true, plan: true, template: true },
+      select: siteSelect,
     });
     return paginate(rows, limit, (row) => encodeTimeIdCursor(row.createdAt, row.id));
   }
 
-  /**
-   * Cria site para um cliente reutilizando SitesService.create no tenant da revenda.
-   */
   async create(body: unknown) {
     const parsed = createSiteSchema.safeParse(body);
     if (!parsed.success) {
@@ -62,6 +76,7 @@ export class AdminSitesService {
 
     const customer = await this.db.customer.findUnique({
       where: { id: parsed.data.customerId },
+      select: { id: true, resellerId: true },
     });
     if (!customer) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Recurso não encontrado' });
@@ -90,7 +105,10 @@ export class AdminSitesService {
         })),
       });
     }
-    const existing = await this.db.site.findUnique({ where: { id } });
+    const existing = await this.db.site.findUnique({
+      where: { id },
+      select: { id: true, slug: true, publishedAt: true },
+    });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Recurso não encontrado' });
     }
@@ -103,7 +121,7 @@ export class AdminSitesService {
             ? (existing.publishedAt ?? new Date())
             : existing.publishedAt,
       },
-      include: { customer: true, plan: true, template: true },
+      select: siteSelect,
     });
     this.byHostCache.invalidateSlug(updated.slug);
     return updated;
@@ -113,6 +131,7 @@ export class AdminSitesService {
     return this.db.template.findMany({
       where: { active: true },
       orderBy: { name: 'asc' },
+      select: { id: true, key: true, name: true, niche: true, schemaType: true, active: true },
     });
   }
 }

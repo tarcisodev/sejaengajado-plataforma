@@ -21,6 +21,16 @@ export class AdminCustomersService {
         : undefined,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
+      select: {
+        id: true,
+        resellerId: true,
+        name: true,
+        email: true,
+        city: true,
+        whatsapp: true,
+        userId: true,
+        createdAt: true,
+      },
     });
     return paginate(rows, limit, (row) => encodeTimeIdCursor(row.createdAt, row.id));
   }

@@ -73,6 +73,17 @@ export class AdminPaymentsService {
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
+      select: {
+        id: true,
+        resellerId: true,
+        orderId: true,
+        method: true,
+        status: true,
+        amountCents: true,
+        gatewayPaymentId: true,
+        paidAt: true,
+        createdAt: true,
+      },
     });
     return paginate(rows, limit, (row) => encodeTimeIdCursor(row.createdAt, row.id));
   }

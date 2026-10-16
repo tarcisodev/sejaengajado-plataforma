@@ -1,7 +1,17 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 
 import { Audit } from '../../audit/audit.interceptor';
 import { Roles } from '../../auth/roles.decorator';
+import { parseLimit } from '../../common/parse-limit';
 import { AdminSitesService } from './admin-sites.service';
 
 @Controller('admin')
@@ -11,7 +21,7 @@ export class AdminSitesController {
 
   @Get('sites')
   async list(@Query('limit') limitRaw?: string, @Query('cursor') cursor?: string) {
-    const limit = limitRaw ? Number(limitRaw) : 20;
+    const limit = parseLimit(limitRaw);
     const page = await this.sites.list({ limit, cursor });
     return { items: page.items, nextCursor: page.nextCursor };
   }
@@ -28,7 +38,7 @@ export class AdminSitesController {
 
   @Patch('sites/:id/status')
   @Audit({ action: 'admin.site.status', entity: 'Site', entityId: (_r, req) => req.params.id })
-  setStatus(@Param('id') id: string, @Body() body: unknown) {
+  setStatus(@Param('id', ParseUUIDPipe) id: string, @Body() body: unknown) {
     return this.sites.setStatus(id, body);
   }
 

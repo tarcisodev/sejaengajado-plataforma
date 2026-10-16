@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 
 import { Audit } from '../../audit/audit.interceptor';
 import { Roles } from '../../auth/roles.decorator';
+import { parseLimit } from '../../common/parse-limit';
 import { AdminInvoicesService } from './admin-invoices.service';
 
 @Controller('admin')
@@ -11,7 +12,7 @@ export class AdminInvoicesController {
 
   @Get('invoices')
   async list(@Query('limit') limitRaw?: string) {
-    const limit = limitRaw ? Number(limitRaw) : 50;
+    const limit = parseLimit(limitRaw, { defaultValue: 50 });
     const items = await this.invoices.list({ limit });
     return { items };
   }
@@ -22,7 +23,7 @@ export class AdminInvoicesController {
     entity: 'ResellerInvoice',
     entityId: (result) => (result as { id: string }).id,
   })
-  close(@Param('id') id: string, @Body() body: unknown) {
+  close(@Param('id', ParseUUIDPipe) id: string, @Body() body: unknown) {
     return this.invoices.close(id, body);
   }
 }
