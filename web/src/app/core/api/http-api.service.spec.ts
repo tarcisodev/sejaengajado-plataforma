@@ -254,6 +254,34 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
     expect((await publishPending).status).toBe('PUBLISHED');
   });
 
+  it('converts coupon.validade YYYY-MM-DD to end-of-day SP ISO on saveCoupon', async () => {
+    const pending = firstValueFrom(
+      api.saveCoupon({
+        id: '',
+        code: 'PROMO10',
+        tipo: 'PCT',
+        valor: 10,
+        validade: '2026-06-09',
+        maxUsos: 100,
+        usos: 0,
+        planIds: [],
+      }),
+    );
+    await Promise.resolve();
+    const req = http.expectOne((r) => r.url.includes('/admin/coupons') && r.method === 'POST');
+    expect(req.request.body.validTo).toBe('2026-06-10T02:59:59.000Z');
+    req.flush({
+      id: 'c1',
+      code: 'PROMO10',
+      type: 'PCT',
+      value: 10,
+      validTo: '2026-06-10T02:59:59.000Z',
+      maxUses: 100,
+      usedCount: 0,
+    });
+    await pending;
+  });
+
   it('sends Idempotency-Key on plaque movement POST', async () => {
     const key = 'plaque-in-1';
     const pending = firstValueFrom(

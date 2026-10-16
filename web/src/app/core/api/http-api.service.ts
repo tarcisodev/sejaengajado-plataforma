@@ -36,6 +36,7 @@ import {
   toApiPlatformConfig,
   unsupported,
 } from './api-mappers';
+import { endOfDaySaoPauloIso } from './coupon-date';
 import type {
   AdminPlaqueMoveCommand,
   AdminProductDto,
@@ -140,7 +141,11 @@ export class HttpApiService implements ApiPort {
   }
 
   listCustomers(_resellerId?: string | null): Observable<Customer[]> {
-    return of([]);
+    return this.http
+      .get<CursorPage<AdminCustomerDto>>(this.url('/admin/customers'), {
+        params: new HttpParams().set('limit', '100'),
+      })
+      .pipe(map((body) => (body.items ?? []).map(customerFromAdminDto)));
   }
 
   createCustomer(command: CreateCustomerCommand): Observable<Customer> {
@@ -163,20 +168,30 @@ export class HttpApiService implements ApiPort {
   }
 
   listSites(_resellerId?: string | null): Observable<Site[]> {
-    return of([]);
+    return this.http
+      .get<CursorPage<ResellerSiteDto>>(this.url('/admin/sites'), {
+        params: new HttpParams().set('limit', '100'),
+      })
+      .pipe(map((body) => (body.items ?? []).map(siteFromResellerDto)));
   }
 
   createSite(command: CreateSiteCommand): Observable<Site> {
-    return this.createResellerSite({
-      customerId: command.customerId,
-      slug: command.slug,
-      templateId: command.templateId,
-      planId: command.planId,
-    }).pipe(map((row) => siteFromResellerDto(row)));
+    return this.http
+      .post<ResellerSiteDto>(this.url('/admin/sites'), {
+        customerId: command.customerId,
+        slug: command.slug,
+        templateId: command.templateId,
+        planId: command.planId,
+      })
+      .pipe(map((row) => siteFromResellerDto(row)));
   }
 
   listPayments(_resellerId?: string | null): Observable<Payment[]> {
-    return of([]);
+    return this.http
+      .get<CursorPage<AdminPaymentDto>>(this.url('/admin/payments'), {
+        params: new HttpParams().set('limit', '100'),
+      })
+      .pipe(map((body) => (body.items ?? []).map(paymentFromAdminDto)));
   }
 
   getSiteBySlug(slug: string): Observable<Site | null> {
@@ -290,7 +305,7 @@ export class HttpApiService implements ApiPort {
         type: coupon.tipo,
         value: coupon.valor,
         active: true,
-        validTo: coupon.validade || undefined,
+        validTo: coupon.validade ? endOfDaySaoPauloIso(coupon.validade) : undefined,
         maxUses: coupon.maxUsos || undefined,
       })
       .pipe(map(mapCoupon));
@@ -664,6 +679,54 @@ function cursorParams(cursor?: string | null): HttpParams {
     return new HttpParams();
   }
   return new HttpParams().set('cursor', cursor);
+}
+
+interface AdminCustomerDto {
+  id: string;
+  userId?: string | null;
+  resellerId: string | null;
+  name: string;
+  doc: string;
+  whatsapp: string;
+  city: string;
+}
+
+interface AdminPaymentDto {
+  id: string;
+  orderId: string | null;
+  resellerId: string | null;
+  method: PaymentMethod;
+  status: Payment['status'];
+  amountCents: number;
+  gatewayPaymentId?: string | null;
+  paidAt?: string | null;
+}
+
+function customerFromAdminDto(row: AdminCustomerDto): Customer {
+  return {
+    id: row.id,
+    userId: row.userId ?? null,
+    resellerId: row.resellerId,
+    nome: row.name,
+    doc: row.doc,
+    whatsapp: row.whatsapp,
+    cidade: row.city,
+  };
+}
+
+function paymentFromAdminDto(row: AdminPaymentDto): Payment {
+  return {
+    id: row.id,
+    orderId: row.orderId,
+    subscriptionId: null,
+    resellerId: row.resellerId,
+    gateway: 'asaas',
+    gatewayPaymentId: row.gatewayPaymentId ?? '',
+    metodo: row.method,
+    valor: row.amountCents,
+    status: row.status,
+    paidAt: row.paidAt ?? null,
+  };
 }
 
 function asItems(

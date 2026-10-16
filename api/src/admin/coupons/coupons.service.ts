@@ -8,7 +8,25 @@ import {
 import { z } from 'zod';
 
 import { ADMIN_PRISMA, type AdminPrisma } from '../../tenant/prisma.module';
+import { parseCouponDateInput } from './coupon-date';
 import { applyCouponDiscount } from './coupon-discount';
+
+const couponDateSchema = z
+  .union([
+    z.string().datetime({ offset: true }),
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD ou datetime ISO'),
+  ])
+  .transform((value, ctx) => {
+    try {
+      return parseCouponDateInput(value);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Data inválida',
+      });
+      return z.NEVER;
+    }
+  });
 
 export const couponBodySchema = z
   .object({
@@ -16,8 +34,8 @@ export const couponBodySchema = z
     type: z.enum(['PCT', 'FIXED']),
     value: z.number().int().nonnegative(),
     active: z.boolean().optional(),
-    validFrom: z.string().datetime().nullable().optional(),
-    validTo: z.string().datetime().nullable().optional(),
+    validFrom: couponDateSchema.nullable().optional(),
+    validTo: couponDateSchema.nullable().optional(),
     maxUses: z.number().int().positive().nullable().optional(),
   })
   .superRefine((data, ctx) => {
