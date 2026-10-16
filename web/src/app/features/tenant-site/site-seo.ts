@@ -71,10 +71,7 @@ export function siteTitle(content: SiteContent): string {
   }
   const city = content.profile?.cidade?.trim();
   const service =
-    content.servicos?.[0]?.nome ||
-    content.products?.[0]?.nome ||
-    content.profile?.tags?.[0] ||
-    '';
+    content.servicos?.[0]?.nome || content.products?.[0]?.nome || content.profile?.tags?.[0] || '';
   if (city && service) {
     return `${displayName(content)} | ${service} em ${city}`;
   }

@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmAlert } from '@spartan-ng/helm/alert';
-import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInput } from '@spartan-ng/helm/input';
 
@@ -11,7 +10,7 @@ import { ConfirmActionComponent } from '../../shared/confirm-action/confirm-acti
 
 @Component({
   selector: 'app-reseller-profile',
-  imports: [HlmAlert, HlmButton, HlmCardImports, HlmInput, ConfirmActionComponent],
+  imports: [HlmAlert, HlmCardImports, HlmInput, ConfirmActionComponent],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './reseller-profile.component.html',
 })

@@ -108,6 +108,39 @@ describe('admin sites / customers / payments', () => {
         .expect(200);
       expect(sites.body.items.length).toBeGreaterThanOrEqual(1);
 
+      const newSlug = `admin-meta-${randomUUID().slice(0, 6)}`;
+      const patchedMeta = await request(app.getHttpServer())
+        .patch(`/api/admin/sites/${created.body.id}`)
+        .set('Authorization', `Bearer ${session.token}`)
+        .send({
+          slug: newSlug,
+          status: 'PUBLISHED',
+        })
+        .expect(200);
+      expect(patchedMeta.body).toMatchObject({
+        id: created.body.id,
+        slug: newSlug,
+        status: 'PUBLISHED',
+      });
+
+      const patchedContent = await request(app.getHttpServer())
+        .patch(`/api/admin/sites/${created.body.id}/content`)
+        .set('Authorization', `Bearer ${session.token}`)
+        .send({
+          content: {
+            businessName: 'Loja Admin',
+            tagline: 'Tudo pelo admin',
+            theme: { niche: 'generico', p1: '#1e3a5f', p2: '#3d5a4c' },
+            links: [{ label: 'Cardápio', url: 'https://loja-teste.com.br/menu', highlight: true }],
+            pix: { key: 'pix@loja-teste.com.br', beneficiary: 'Loja Admin' },
+          },
+        })
+        .expect(200);
+      expect(patchedContent.body.content).toMatchObject({
+        businessName: 'Loja Admin',
+        tagline: 'Tudo pelo admin',
+      });
+
       const inPeriod = await request(app.getHttpServer())
         .get('/api/admin/payments?from=2026-06-01&to=2026-06-30')
         .set('Authorization', `Bearer ${session.token}`)

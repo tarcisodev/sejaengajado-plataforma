@@ -294,7 +294,10 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
       '\\u2028': '\\u2028',
       '\\u2029': '\\u2029',
     };
-    return value.replace(/[<>/]/g, (x) => charMap[x]).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+    return value
+      .replace(/[<>/]/g, (x) => charMap[x])
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
   }
 
   private upsertAnalytics(analytics: Site['content']['analytics']): void {

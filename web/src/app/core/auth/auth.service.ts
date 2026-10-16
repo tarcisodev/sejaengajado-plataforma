@@ -22,6 +22,7 @@ export class AuthService {
   readonly me = signal<AuthMe | null>(null);
   readonly sessionStatus = signal<SessionStatus>('loading');
   readonly ready = signal(false);
+  readonly passwordRecovery = signal(false);
 
   private boot?: Promise<void>;
   private authSub: { unsubscribe: () => void } | null = null;
@@ -53,7 +54,7 @@ export class AuthService {
   async requestPasswordReset(email: string): Promise<void> {
     const sb = await this.requireClient();
     const redirectTo =
-      typeof window !== 'undefined' ? `${window.location.origin}/entrar` : undefined;
+      typeof window !== 'undefined' ? `${window.location.origin}/entrar?mode=reset` : undefined;
     const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo,
     });
@@ -68,6 +69,7 @@ export class AuthService {
     if (error) {
       throw error;
     }
+    this.passwordRecovery.set(false);
   }
 
   async refreshMe(): Promise<AuthMe> {
@@ -86,6 +88,7 @@ export class AuthService {
       this.clearBrowserResidue();
     }
     this.me.set(null);
+    this.passwordRecovery.set(false);
     this.sessionStatus.set('anonymous');
     await this.router.navigateByUrl('/entrar');
   }
@@ -138,6 +141,13 @@ export class AuthService {
 
   private async bootstrap(): Promise<void> {
     try {
+      if (
+        typeof window !== 'undefined' &&
+        (/type=recovery/i.test(window.location.hash) ||
+          /type=recovery|mode=reset/i.test(window.location.search))
+      ) {
+        this.passwordRecovery.set(true);
+      }
       const sb = await ensureSupabaseBrowser();
       if (!sb) {
         this.sessionStatus.set('anonymous');
@@ -163,8 +173,12 @@ export class AuthService {
   private async handleAuthEvent(event: AuthChangeEvent, session: Session | null): Promise<void> {
     if (event === 'SIGNED_OUT') {
       this.me.set(null);
+      this.passwordRecovery.set(false);
       this.sessionStatus.set('anonymous');
       return;
+    }
+    if (event === 'PASSWORD_RECOVERY') {
+      this.passwordRecovery.set(true);
     }
     await this.onSession(session);
   }

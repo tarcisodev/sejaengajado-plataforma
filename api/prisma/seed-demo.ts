@@ -6,6 +6,11 @@
 import { Prisma, PrismaClient, ProductCode, UserRole } from '@prisma/client';
 
 import { assertDemoSeedAllowed } from './demo-seed-guard';
+import {
+  formulaDemoBarbearia,
+  formulaDemoEstudio,
+  formulaDemoForno,
+} from './showcase-formula-content';
 
 assertDemoSeedAllowed();
 
@@ -239,85 +244,19 @@ async function main(): Promise<void> {
       slug: 'demo-forno',
       templateId: templates.restaurante.id,
       sample: 'forno.svg',
-      content: {
-        theme: { niche: 'restaurante', brandColor: '#c2410c' },
-        businessName: 'Forno da Praça',
-        profile: {
-          nome: 'Forno da Praça',
-          slogan: 'Pães e lanches frescos todo dia',
-          logoUrl: `${assetBase}/samples/forno.svg`,
-          cidade: 'Uberaba',
-          uf: 'MG',
-          tags: ['padaria', 'lanche', 'café'],
-        },
-        pix: { key: 'forno@demo.sejaengajado.com.br', receiverName: 'Forno da Praça' },
-        googleReviewUrl: 'https://g.page/r/demo-forno',
-        catalog: { layout: 'grid' },
-        strip: { enabled: true, motif: 'pizza', speed: 'normal', direction: 'left' },
-        faq: [
-          {
-            question: 'Fazem entrega?',
-            answer: 'Sim, no centro de Uberaba das 10h às 20h.',
-          },
-        ],
-        timezone: 'America/Sao_Paulo',
-      },
+      content: formulaDemoForno(assetBase),
     },
     {
       slug: 'demo-barbearia',
       templateId: templates.barbearia.id,
       sample: 'barbearia.svg',
-      content: {
-        theme: { niche: 'barbearia', brandColor: '#1e3a5f' },
-        businessName: 'Barbearia do Centro',
-        profile: {
-          nome: 'Barbearia do Centro',
-          slogan: 'Corte, barba e cuidado masculino',
-          logoUrl: `${assetBase}/samples/barbearia.svg`,
-          cidade: 'Uberaba',
-          uf: 'MG',
-          tags: ['corte', 'barba', 'barbearia'],
-        },
-        pix: { key: 'barbearia@demo.sejaengajado.com.br', receiverName: 'Barbearia do Centro' },
-        googleReviewUrl: 'https://g.page/r/demo-barbearia',
-        catalog: { layout: 'list' },
-        strip: { enabled: true, motif: 'tesoura', speed: 'slow', direction: 'left' },
-        faq: [
-          {
-            question: 'Aceitam encaixe?',
-            answer: 'Sim, conforme agenda do dia. Prefira agendar pelo WhatsApp.',
-          },
-        ],
-        timezone: 'America/Sao_Paulo',
-      },
+      content: formulaDemoBarbearia(assetBase),
     },
     {
       slug: 'demo-estudio',
       templateId: templates.loja.id,
       sample: 'estudio.svg',
-      content: {
-        theme: { niche: 'generico', brandColor: '#0f766e' },
-        businessName: 'Estúdio Luz Local',
-        profile: {
-          nome: 'Estúdio Luz Local',
-          slogan: 'Fotos e serviços para o seu negócio',
-          logoUrl: `${assetBase}/samples/estudio.svg`,
-          cidade: 'Uberaba',
-          uf: 'MG',
-          tags: ['foto', 'estúdio', 'serviço'],
-        },
-        pix: { key: 'estudio@demo.sejaengajado.com.br', receiverName: 'Estúdio Luz Local' },
-        googleReviewUrl: 'https://g.page/r/demo-estudio',
-        catalog: { layout: 'grid' },
-        strip: { enabled: false, motif: 'none', speed: 'normal', direction: 'left' },
-        faq: [
-          {
-            question: 'Atendem empresas?',
-            answer: 'Sim — ensaio de produto, equipe e fachada.',
-          },
-        ],
-        timezone: 'America/Sao_Paulo',
-      },
+      content: formulaDemoEstudio(assetBase),
     },
   ] as const;
 

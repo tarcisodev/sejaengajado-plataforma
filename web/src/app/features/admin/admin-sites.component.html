@@ -354,7 +354,11 @@
               @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
                 <app-confirm-action
                   title="Suspender site"
-                  [effect]="'O site fica inacessível em ' + row.slug + '.sejaengajado.com.br até ser reativado.'"
+                  [effect]="
+                    'O site fica inacessível em ' +
+                    row.slug +
+                    '.sejaengajado.com.br até ser reativado.'
+                  "
                   verb="Suspender"
                   undoHint="Dá para reativar depois."
                   ariaLabel="Suspender site"
@@ -452,7 +456,11 @@
                       @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
                         <app-confirm-action
                           title="Suspender site"
-                          [effect]="'O site fica inacessível em ' + row.slug + '.sejaengajado.com.br até ser reativado.'"
+                          [effect]="
+                            'O site fica inacessível em ' +
+                            row.slug +
+                            '.sejaengajado.com.br até ser reativado.'
+                          "
                           verb="Suspender"
                           undoHint="Dá para reativar depois."
                           ariaLabel="Suspender site"

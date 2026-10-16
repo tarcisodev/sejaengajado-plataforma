@@ -69,6 +69,44 @@
       <p class="text-sm text-muted-foreground">
         Contas convidadas entram com e-mail e senha. Depois confirme o código do autenticador (MFA).
       </p>
+    } @else if (mode() === 'reset') {
+      <form class="grid gap-4" (submit)="completeReset($event)">
+        <p class="text-sm text-muted-foreground">Defina a sua nova senha (mínimo 8 caracteres).</p>
+        <div hlmField>
+          <label hlmFieldLabel for="new-password">Nova senha</label>
+          <input
+            hlmInput
+            id="new-password"
+            data-field="newPassword"
+            class="h-11"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            [value]="newPassword()"
+            (input)="newPassword.set(inputValue($event))"
+            required
+          />
+        </div>
+        <button
+          hlmBtn
+          class="h-11 w-full"
+          type="submit"
+          data-action="save-password"
+          [disabled]="pending()"
+          [attr.aria-busy]="pending()"
+        >
+          Salvar nova senha
+        </button>
+      </form>
+      <button
+        hlmBtn
+        type="button"
+        variant="link"
+        class="h-auto justify-start px-0"
+        (click)="mode.set('login')"
+      >
+        Voltar ao login
+      </button>
     } @else {
       <form class="grid gap-4" (submit)="requestReset($event)">
         <p class="text-sm text-muted-foreground">
@@ -109,7 +147,9 @@
       @if (devMailpit) {
         <p class="text-sm text-muted-foreground">
           Em desenvolvimento o e-mail aparece no
-          <a class="underline" href="http://localhost:8025" target="_blank" rel="noopener">Mailpit</a>.
+          <a class="underline" href="http://localhost:8025" target="_blank" rel="noopener"
+            >Mailpit</a
+          >.
         </p>
       }
     }

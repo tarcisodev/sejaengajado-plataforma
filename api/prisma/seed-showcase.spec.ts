@@ -63,7 +63,10 @@ describe('runShowcaseSeed', () => {
     };
 
     const templates = new Map<string, { id: string; key: string }>();
-    const sites = new Map<string, { id: string; slug: string }>();
+    const sites = new Map<
+      string,
+      { id: string; slug: string; isDemo: boolean; content?: unknown }
+    >();
     let customer: {
       id: string;
       resellerId: string;
@@ -144,19 +147,40 @@ describe('runShowcaseSeed', () => {
           async ({
             data,
           }: {
-            data: { slug: string; isDemo: boolean; planId: string };
+            data: { slug: string; isDemo: boolean; planId: string; content?: unknown };
           }) => {
             expect(data.isDemo).toBe(true);
             expect(data.planId).toBe(plan.id);
-            const row = { id: `site-${data.slug}`, slug: data.slug };
+            const row = {
+              id: `site-${data.slug}`,
+              slug: data.slug,
+              isDemo: data.isDemo,
+              content: data.content,
+            };
             sites.set(data.slug, row);
             return row;
           },
         ),
-        update: jest.fn(async () => {
-          calls.siteUpdate += 1;
-          throw new Error('must not update site');
-        }),
+        update: jest.fn(
+          async ({
+            where,
+            data,
+          }: {
+            where: { id: string };
+            data: { isDemo?: boolean; content?: unknown };
+          }) => {
+            calls.siteUpdate += 1;
+            const site = Array.from(sites.values()).find((s) => s.id === where.id);
+            if (site && !site.isDemo) {
+              throw new Error('must not update real site');
+            }
+            if (site) {
+              Object.assign(site, data);
+              return site;
+            }
+            return { id: where.id, ...data };
+          },
+        ),
       },
       plaque: {
         findFirst: jest.fn(async () => null),
@@ -222,7 +246,7 @@ describe('runShowcaseSeed', () => {
       expect.arrayContaining(['restaurante', 'barbearia', 'loja-local']),
     );
 
-    expect(calls.siteUpdate).toBe(0);
+    expect(calls.siteUpdate).toBe(3);
     expect(calls.templateUpdate).toBe(0);
     expect(calls.planCreate + calls.planUpdate + calls.planUpsert).toBe(0);
     expect(calls.platformConfig + calls.product + calls.user + calls.resellerPlan).toBe(0);
@@ -239,7 +263,7 @@ describe('runShowcaseSeed', () => {
     );
   });
 
-  it('does not alter an existing customer or site content', async () => {
+  it('does not alter an existing customer or real site content', async () => {
     const { db, setCustomer } = mockDb();
     setCustomer({
       id: SHOWCASE_CUSTOMER_ID,
@@ -251,6 +275,7 @@ describe('runShowcaseSeed', () => {
       async ({ where }: { where: { slug: string } }) => ({
         id: `existing-${where.slug}`,
         slug: where.slug,
+        isDemo: false,
         content: { businessName: 'CONTEUDO_ORIGINAL' },
       }),
     );
@@ -261,5 +286,27 @@ describe('runShowcaseSeed', () => {
     expect(db.customer.create).not.toHaveBeenCalled();
     expect(db.site.create).not.toHaveBeenCalled();
     expect(db.site.update).not.toHaveBeenCalled();
+  });
+
+  it('updates demo sites when existing site is isDemo=true', async () => {
+    const { db, sites, calls } = mockDb();
+    sites.set('demo-forno', {
+      id: 'existing-demo-forno',
+      slug: 'demo-forno',
+      isDemo: true,
+      content: { businessName: 'OLD_DEMO' },
+    });
+
+    await runShowcaseSeed(db as never);
+    expect(calls.siteUpdate).toBe(1);
+    expect(db.site.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'existing-demo-forno' },
+        data: expect.objectContaining({
+          isDemo: true,
+          content: expect.any(Object),
+        }),
+      }),
+    );
   });
 });

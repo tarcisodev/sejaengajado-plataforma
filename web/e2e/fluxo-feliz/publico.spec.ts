@@ -33,21 +33,42 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     });
   }
 
-  test('SSR survives 20 consecutive GETs per demo (no false 404) @smoke', async ({
+  test('SSR survives 20 consecutive GETs per demo (Chrome UA + curl UA, no false 404) @smoke', async ({
     request,
   }) => {
+    const userAgents = [
+      {
+        label: 'chrome',
+        headers: {
+          'user-agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+      },
+      {
+        label: 'curl',
+        headers: {
+          'user-agent': 'curl/8.10.1',
+          accept: '*/*',
+        },
+      },
+    ] as const;
     const rounds = 20;
     for (const demo of demos) {
-      for (let i = 1; i <= rounds; i++) {
-        const url = prodSmoke
-          ? `https://${demo.slug}.sejaengajado.com.br/`
-          : `${apex}/?tenant=${demo.slug}`;
-        const res = await request.get(url, { maxRedirects: 0 });
-        const body = await res.text();
-        expect(res.status(), `${demo.slug} #${i}`).toBe(200);
-        expect(body, `${demo.slug} #${i}`).toMatch(demo.name);
-        expect(body, `${demo.slug} #${i}`).not.toMatch(/Negócio não encontrado/i);
-        expect(body, `${demo.slug} #${i}`).not.toMatch(/Não encontramos esse negócio/i);
+      for (const ua of userAgents) {
+        for (let i = 1; i <= rounds; i++) {
+          const url = prodSmoke
+            ? `https://${demo.slug}.sejaengajado.com.br/`
+            : `${apex}/?tenant=${demo.slug}`;
+          const res = await request.get(url, { maxRedirects: 0, headers: ua.headers });
+          const body = await res.text();
+          expect(res.status(), `${demo.slug} [${ua.label}] #${i}`).toBe(200);
+          expect(body, `${demo.slug} [${ua.label}] #${i}`).toMatch(demo.name);
+          expect(body, `${demo.slug} [${ua.label}] #${i}`).not.toMatch(/Negócio não encontrado/i);
+          expect(body, `${demo.slug} [${ua.label}] #${i}`).not.toMatch(
+            /Não encontramos esse negócio/i,
+          );
+        }
       }
     }
   });

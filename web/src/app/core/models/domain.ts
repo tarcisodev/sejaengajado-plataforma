@@ -125,13 +125,7 @@ export interface SiteWhatsapp {
   introPedido?: string;
 }
 
-export type SiteLinkTipo =
-  | SiteLinkType
-  | 'agenda'
-  | 'youtube'
-  | 'facebook'
-  | 'tiktok'
-  | 'outro';
+export type SiteLinkTipo = SiteLinkType | 'agenda' | 'youtube' | 'facebook' | 'tiktok' | 'outro';
 
 export interface SiteLink {
   tipo: SiteLinkTipo;

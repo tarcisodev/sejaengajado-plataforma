@@ -8,12 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArchive,
-  lucideEye,
-  lucideEyeOff,
-  lucideSave,
-} from '@ng-icons/lucide';
+import { lucideArchive, lucideEye, lucideEyeOff, lucideSave } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInput } from '@spartan-ng/helm/input';
@@ -21,15 +16,18 @@ import { HlmInput } from '@spartan-ng/helm/input';
 import { Plan, Site, SiteContent, SiteStatus } from '../../core/models/domain';
 import { ConfirmActionComponent } from '../../shared/confirm-action/confirm-action.component';
 
-export type SiteEditorSaveEvent = { content: SiteContent; templateId: string };
+export interface SiteEditorSaveEvent {
+  content: SiteContent;
+  templateId: string;
+}
 
-export type SiteEditorMetaEvent = {
+export interface SiteEditorMetaEvent {
   slug?: string;
   planId?: string;
   status?: SiteStatus;
   customerId?: string;
   resellerId?: string;
-};
+}
 
 /**
  * Editor compartilhado (admin / revenda / cliente) — campos do fluxo feliz M1 + FORMULA.
