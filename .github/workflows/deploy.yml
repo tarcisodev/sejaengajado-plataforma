@@ -122,7 +122,7 @@ jobs:
           chmod +x infra/scripts/wait-oneoff.sh
           export IMAGE_TAG BACKUP_TAG S3_ENDPOINT SUPABASE_ANON_KEY
           export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}"
-          docker service update --detach=false \
+          docker service update --detach=true \
             --image "${REGISTRY}/sejaengajado-api:${IMAGE_TAG}" \
             --replicas 1 sejaengajado_migrate \
             || docker stack deploy --with-registry-auth -c infra/stack.yml sejaengajado

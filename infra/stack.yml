@@ -1,12 +1,13 @@
 # Stack Swarm `sejaengajado` — single-node Hostinger.
 # Traefik v3.5.3 na rede TarcisoDevNet; certresolver `cfdns` (DNS Cloudflare).
 # `letsencryptresolver` (HTTP challenge) NÃO é usado neste stack.
-# Postgres: banco `sejaengajado` no Supabase self-hosted (host Docker `supabase_supabase_db`
-# na rede TarcisoDevNet — sem rede overlay separada).
+# Postgres: banco `sejaengajado` na TarcisoDevNet.
+# Auth: GoTrue dedicado em auth.sejaengajado.com.br (stack `se-auth`, ver infra/auth/).
+# Mounts internos se_supabase_* apontam para secrets externos se_auth_*_v1 (código inalterado).
 # Sem Redis (⏳P11). Sem valores de segredo — só nomes external.
 # Deploy na VPS: Tarciso/Atlas. Validar: docker stack config -c infra/stack.yml
 # Env do deploy (obrigatórios onde marcado): IMAGE_TAG, BACKUP_TAG, S3_ENDPOINT;
-# opcional: ASAAS_BASE_URL (default sandbox), SUPABASE_ANON_KEY.
+# opcional: ASAAS_BASE_URL (default sandbox), SUPABASE_ANON_KEY (= se_auth_anon_key).
 
 version: "3.8"
 
@@ -37,7 +38,7 @@ services:
       API_INTERNAL_URL: http://api:3000
       API_PUBLIC_URL: /api
       NODE_OPTIONS: --max-old-space-size=192
-      SUPABASE_URL: https://supabase.tarciso.dev
+      SUPABASE_URL: https://auth.sejaengajado.com.br
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
       SENTRY_RELEASE: ${IMAGE_TAG:?IMAGE_TAG required}
@@ -86,7 +87,7 @@ services:
       NODE_OPTIONS: --max-old-space-size=256
       DATABASE_URL_FILE: /run/secrets/se_database_url
       ADMIN_DATABASE_URL_FILE: /run/secrets/se_admin_database_url
-      SUPABASE_URL: https://supabase.tarciso.dev
+      SUPABASE_URL: https://auth.sejaengajado.com.br
       SUPABASE_JWT_AUD: authenticated
       SUPABASE_JWT_SECRET_FILE: /run/secrets/se_supabase_jwt_secret
       SUPABASE_SERVICE_ROLE_KEY_FILE: /run/secrets/se_supabase_service_role_key
@@ -164,7 +165,7 @@ services:
 
   migrate:
     image: ghcr.io/tarcisodev/sejaengajado-api:${IMAGE_TAG:?IMAGE_TAG required}
-    command:
+    entrypoint:
       [
         "sh",
         "-c",
@@ -210,8 +211,8 @@ secrets:
   se_database_url: { external: true, name: se_database_url_v1 }
   se_admin_database_url: { external: true, name: se_admin_database_url_v1 }
   se_backup_database_url: { external: true, name: se_backup_database_url_v1 }
-  se_supabase_jwt_secret: { external: true, name: se_supabase_jwt_secret_v1 }
-  se_supabase_service_role_key: { external: true, name: se_supabase_service_role_key_v1 }
+  se_supabase_jwt_secret: { external: true, name: se_auth_jwt_secret_v1 }
+  se_supabase_service_role_key: { external: true, name: se_auth_service_role_key_v1 }
   se_smtp_url: { external: true, name: se_smtp_url_v1 }
   se_asaas_api_key: { external: true, name: se_asaas_api_key_v1 }
   se_asaas_webhook_token: { external: true, name: se_asaas_webhook_token_v1 }

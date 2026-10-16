@@ -1,0 +1,118 @@
+# Stack `se-auth` (VPS-level, ADR-002): GoTrue dedicado do Seja Engajado. Schema `auth` no DB sejaengajado (role se_auth).
+version: "3.8"
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+services:
+  gotrue:
+    image: supabase/gotrue:v2.182.1
+    entrypoint: ["sh","-c"]
+    command:
+      - >-
+        export GOTRUE_DB_DATABASE_URL="$$(cat /run/secrets/se_auth_db_url)"
+        GOTRUE_JWT_SECRET="$$(cat /run/secrets/se_auth_jwt_secret)"
+        GOTRUE_SMTP_PASS="$$(sed 's#^smtp://[^:]*:\([^@]*\)@.*#\1#' /run/secrets/se_smtp_url)" && exec auth
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: https://auth.sejaengajado.com.br
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_NAMESPACE: auth
+      GOTRUE_SITE_URL: https://app.sejaengajado.com.br
+      GOTRUE_URI_ALLOW_LIST: https://app.sejaengajado.com.br,https://app.sejaengajado.com.br/**,https://sejaengajado.com.br,https://sejaengajado.com.br/**
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_JWT_ISSUER: https://auth.sejaengajado.com.br/auth/v1
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: "true"
+      GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL: "10"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: "true"
+      GOTRUE_MAILER_OTP_LENGTH: "6"
+      GOTRUE_MAILER_OTP_EXP: "600"
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Seu código de acesso - Seja Engajado"
+      GOTRUE_MAILER_SUBJECTS_INVITE: "Convite - Seja Engajado"
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Recuperar acesso - Seja Engajado"
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://templates/otp.html
+      GOTRUE_MAILER_TEMPLATES_INVITE: http://templates/invite.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://templates/recovery.html
+      GOTRUE_SMTP_HOST: smtp.resend.com
+      GOTRUE_SMTP_PORT: "587"
+      GOTRUE_SMTP_USER: resend
+      GOTRUE_SMTP_ADMIN_EMAIL: no-reply@sejaengajado.com.br
+      GOTRUE_SMTP_SENDER_NAME: Seja Engajado
+      GOTRUE_SMTP_MAX_FREQUENCY: 60s
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: "30"
+      GOTRUE_RATE_LIMIT_OTP: "30"
+      GOTRUE_RATE_LIMIT_VERIFY: "30"
+      GOTRUE_RATE_LIMIT_TOKEN_REFRESH: "150"
+      GOTRUE_MFA_TOTP_ENROLL_ENABLED: "true"
+      GOTRUE_MFA_TOTP_VERIFY_ENABLED: "true"
+      GOTRUE_MFA_MAX_ENROLLED_FACTORS: "5"
+      GOTRUE_LOG_LEVEL: info
+    secrets: [se_auth_db_url, se_auth_jwt_secret, se_smtp_url]
+    networks: [TarcisoDevNet, auth_internal]
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9999/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy: { condition: any, delay: 5s, window: 120s }
+      update_config: { parallelism: 1, order: start-first, failure_action: rollback, monitor: 30s }
+      placement: { constraints: [node.role == manager] }
+      resources: { reservations: { memory: 32M }, limits: { memory: 128M, cpus: "0.50" } }
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=TarcisoDevNet
+        - traefik.http.routers.se-auth.rule=Host(`auth.sejaengajado.com.br`) && PathPrefix(`/auth/v1`)
+        - traefik.http.routers.se-auth.priority=500
+        - traefik.http.routers.se-auth.entrypoints=websecure
+        - traefik.http.routers.se-auth.tls.certresolver=cfdns
+        - traefik.http.routers.se-auth.middlewares=se-auth-cors,se-auth-strip,se-auth-ratelimit
+        - traefik.http.middlewares.se-auth-cors.headers.accesscontrolalloworiginlist=https://app.sejaengajado.com.br,https://sejaengajado.com.br
+        - traefik.http.middlewares.se-auth-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS
+        - traefik.http.middlewares.se-auth-cors.headers.accesscontrolallowheaders=apikey,authorization,content-type,x-client-info,x-supabase-api-version,x-retry-count
+        - traefik.http.middlewares.se-auth-cors.headers.accesscontrolexposeheaders=x-supabase-api-version
+        - traefik.http.middlewares.se-auth-cors.headers.accesscontrolmaxage=600
+        - traefik.http.middlewares.se-auth-cors.headers.addvaryheader=true
+        - traefik.http.middlewares.se-auth-strip.stripprefix.prefixes=/auth/v1
+        - traefik.http.middlewares.se-auth-ratelimit.ratelimit.average=10
+        - traefik.http.middlewares.se-auth-ratelimit.ratelimit.burst=30
+        - traefik.http.services.se-auth.loadbalancer.server.port=9999
+  templates:
+    image: nginx:1.27-alpine
+    configs:
+      - { source: se_auth_tpl_otp, target: /usr/share/nginx/html/otp.html }
+      - { source: se_auth_tpl_invite, target: /usr/share/nginx/html/invite.html }
+      - { source: se_auth_tpl_recovery, target: /usr/share/nginx/html/recovery.html }
+    networks: [auth_internal]
+    logging: *logging
+    deploy:
+      replicas: 1
+      restart_policy: { condition: any }
+      placement: { constraints: [node.role == manager] }
+      resources: { limits: { memory: 24M } }
+networks:
+  TarcisoDevNet: { external: true }
+  auth_internal: { driver: overlay, internal: true }
+secrets:
+  se_auth_db_url: { external: true, name: se_auth_db_url_v1 }
+  se_auth_jwt_secret: { external: true, name: se_auth_jwt_secret_v1 }
+  se_smtp_url: { external: true, name: se_smtp_url_v1 }
+configs:
+  se_auth_tpl_otp: { file: ./templates/otp.html, name: se_auth_tpl_otp_v1 }
+  se_auth_tpl_invite: { file: ./templates/invite.html, name: se_auth_tpl_invite_v1 }
+  se_auth_tpl_recovery: { file: ./templates/recovery.html, name: se_auth_tpl_recovery_v1 }

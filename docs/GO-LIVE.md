@@ -3,7 +3,7 @@
 Checklist **ordenado**. Marque com evidência (link/print) em cada item.  
 Deploy na VPS: **Tarciso** (Cursor não aplica).
 
-Referências: Fase 0 (`infra/runbooks/fase0/`), wildcard (`infra/runbooks/06-cert-producao.md`), restore (`docs/runbooks/restore.md`), monitoramento (`docs/runbooks/monitoring.md`), secrets (`infra/secrets.md`), CI (`.github/workflows/deploy.yml`).
+Referências: Fase 0 (`infra/runbooks/fase0/`), auth dedicado (`infra/runbooks/se-auth.md`), wildcard (`infra/runbooks/06-cert-producao.md`), restore (`docs/runbooks/restore.md`), monitoramento (`docs/runbooks/monitoring.md`), secrets (`infra/secrets.md`), CI (`.github/workflows/deploy.yml`).
 
 ---
 
@@ -11,15 +11,18 @@ Referências: Fase 0 (`infra/runbooks/fase0/`), wildcard (`infra/runbooks/06-cer
 
 - [ ] F0.1–F0.6 concluídos (RAM ≥ 1,2 GB livre ou KVM 4, swap, logs, hardening, Portainer fechado, `cfdns` staging ok).
 - [ ] E-mail do domínio funcionando após troca de NS (MX/SPF intactos).
-- [ ] Postgres do Supabase **sem** porta publicada: `nc -zv <VPS_IP> 5432` falha.
+- [ ] Postgres **sem** porta publicada: `nc -zv <VPS_IP> 5432` falha.
 
 ## 2. Secrets e contas
 
 - [ ] Secrets Swarm criados (`docker secret ls | grep se_`) conforme `infra/secrets.md` (cópia Passbolt + offsite).
+- [ ] Auth: `se_auth_{jwt_secret,db_url,service_role_key,anon_key}_v1` (não usar `se_supabase_*` aposentados).
+- [ ] Stack `se-auth` no ar: `docker stack deploy -c infra/auth/se-auth.yml se-auth` + `curl -fsS https://auth.sejaengajado.com.br/auth/v1/health`.
+- [ ] App com `SUPABASE_URL=https://auth.sejaengajado.com.br` (stack `sejaengajado`).
 - [ ] R2: `se-uploads` / `se-backup` (+ mídia); lifecycle 30d no backup.
 - [ ] Healthchecks.io: `se-pg-backup-daily`, `se-restore-monthly`, `se-jobs`, `vps-host`.
 - [ ] Sentry project + DSN em `se_sentry_dsn_v1`.
-- [ ] UptimeRobot: raiz, `app.`, `app./api/health/ready` + alerta de certificado (sem `teste.*` até haver site).
+- [ ] UptimeRobot: raiz, `app.`, `auth.`, `app./api/health/ready` + alerta de certificado (sem `teste.*` até haver site).
 - [ ] Asaas: sandbox e2e (05-B7) verde → conta produção aprovada; secrets trocados; URL webhook cadastrada.
 
 ## 3. Runner e CI
@@ -45,8 +48,8 @@ Referências: Fase 0 (`infra/runbooks/fase0/`), wildcard (`infra/runbooks/06-cer
 
 - [ ] Matriz RBAC + A↔B + RLS verde no CI; jobs, multa e fatura testados.
 - [ ] Valores reais em `PlatformConfig` e atacado inicial (⏳P6).
-- [ ] SMTP (Auth + avisos) SPF/DKIM/DMARC; OTP, convite, reset e aviso entregando (⏳P16); P2a conferido.
-- [ ] `GOTRUE_JWT_EXP=3600` (OK do Tarciso — afeta QR SaaS); usuário não convidado = 403.
+- [ ] SMTP (Auth + avisos) SPF/DKIM/DMARC; OTP, convite, reset e aviso entregando (⏳P16); GoTrue em `auth.sejaengajado.com.br`.
+- [ ] `GOTRUE_JWT_EXP=3600` no `se-auth`; usuário não convidado = 403 (`GOTRUE_DISABLE_SIGNUP=true`).
 - [ ] Termos, privacidade (LGPD) e contrato do revendedor publicados (⏳P25).
 - [ ] Slugs reservados + blocklist; denúncia e suspensão admin testados.
 - [ ] Monitores ativos (Sentry recebe evento de teste; Uptime + HC).
@@ -67,7 +70,7 @@ free -m
 nc -zv <VPS_IP> 5432   # deve FALHAR
 ```
 
-Mais: login Supabase → criar site → subdomínio sem DNS novo; site SUSPENDED; webhook sandbox.
+Mais: login via `auth.sejaengajado.com.br` → criar site → subdomínio sem DNS novo; site SUSPENDED; webhook sandbox.
 
 - [ ] Smoke acima verde.
 
