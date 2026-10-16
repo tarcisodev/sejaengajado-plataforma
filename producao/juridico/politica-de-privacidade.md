@@ -1,10 +1,9 @@
-> **RASCUNHO, revisar com advogado antes de publicar**
 
 # Política de Privacidade — Seja Engajado
 
-Última atualização: [PREENCHER data]
+Última atualização: 16/10/2026
 
-**Controladora / Plataforma:** Seja Engajado, nome empresarial [PREENCHER razão social], CNPJ [PREENCHER], com sede em [PREENCHER endereço], Uberaba-MG. Contato: [PREENCHER e-mail de contato]. Site: sejaengajado.com.br.
+**Controladora / Plataforma:** Seja Engajado, nome empresarial TARCISO HELI FERREIRA JUNIOR LTDA (nome fantasia COMPGENCE), CNPJ 49.764.068/0001-36, com sede na Rua dos Crisântemos, 322, Lourdes, Uberaba-MG, CEP 38035-080. Contato: contato@tarciso.dev. Site: sejaengajado.com.br.
 
 Esta Política explica como tratamos dados pessoais conforme a Lei Geral de Proteção de Dados Pessoais (LGPD, Lei nº 13.709/2018) e o Marco Civil da Internet (Lei nº 12.965/2014).
 
@@ -26,15 +25,17 @@ Esta Política explica como tratamos dados pessoais conforme a Lei Geral de Prot
 Não tratamos intencionalmente dados sensíveis nem dados de crianças. Não vendemos dados pessoais. Comunicações de marketing só com consentimento ou para clientes, com opção de descadastro.
 
 ## 3. Cookies
-Usamos apenas cookies essenciais (sessão e segurança). Caso venhamos a usar cookies analíticos ou de marketing, pediremos consentimento. [PREENCHER se houver ferramenta de analytics]
+Usamos apenas cookies essenciais (sessão e segurança). Caso venhamos a usar cookies analíticos ou de marketing, pediremos consentimento. No momento, não utilizamos nenhuma ferramenta de analytics.
 
 ## 4. Operadores e compartilhamento
 | Operador | Função | Observação |
 |---|---|---|
 | Asaas | Cobrança (PIX, boleto, cartão) | Dados de pagamento ficam com o Asaas; não armazenamos número de cartão |
 | Cloudflare | DNS, CDN, proteção contra ataques, storage R2 (imagens e arquivos dos sites) | Pode haver processamento fora do Brasil |
-| Provedor de e-mail [PREENCHER nome] | Envio de códigos de login e avisos | — |
-| Provedor de autenticação/banco [PREENCHER, ex.: Supabase] | Autenticação e banco de dados | — |
+| Resend (provedor de e-mail) | Envio de códigos de login e avisos | — |
+| Hostinger (servidor VPS) | Hospedagem da autenticação e do banco de dados próprios da Plataforma | — |
+| Cloudflare R2 | Armazenamento de arquivos e imagens | — |
+| Sentry | Monitoramento de erros | — |
 | Revendedor | Acesso aos dados dos próprios clientes para prestar o serviço | Responde pelo uso que fizer desses dados |
 Também podemos compartilhar dados com autoridades mediante requisição legal ou ordem judicial.
 
@@ -44,10 +45,10 @@ Alguns operadores podem processar dados fora do Brasil. Nesses casos, adotamos a
 ## 6. Retenção
 | Dado | Prazo |
 |---|---|
-| Conta de revendedor/cliente | Enquanto o contrato durar |
-| Site arquivado (60 dias de inadimplência ou cancelamento) | Mantido arquivado por [PREENCHER, ex.: 180] dias para reativação e depois excluído/anonimizado |
+| Conta de revendedor/cliente | Enquanto a conta existir |
+| Site arquivado (60 dias de inadimplência ou cancelamento) | Mantido arquivado por 60 (sessenta) dias para reativação e depois excluído/anonimizado |
 | Registros de acesso a aplicações | Mínimo de 6 meses, conforme o Marco Civil da Internet |
-| Dados fiscais e financeiros | Pelo prazo exigido pela legislação fiscal (em geral 5 anos) |
+| Dados fiscais e financeiros | Enquanto a conta existir e por mais 5 (cinco) anos após o seu encerramento, conforme a legislação fiscal |
 | Estatísticas de scans | De forma agregada/anonimizada, sem prazo |
 
 ## 7. Segurança
@@ -55,10 +56,10 @@ Criptografia em trânsito (HTTPS), controle de acesso por papel (admin, revended
 
 ## 8. Direitos do titular
 Conforme a LGPD, você pode solicitar: confirmação da existência de tratamento; acesso; correção; anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade; portabilidade; eliminação dos dados tratados com consentimento; informação sobre compartilhamentos; informação sobre a possibilidade de não consentir; revogação do consentimento; e oposição a tratamento baseado em legítimo interesse. Também pode peticionar à Autoridade Nacional de Proteção de Dados (ANPD).
-Pedidos pelo e-mail do encarregado. Responderemos em até [PREENCHER, ex.: 15] dias. Visitantes de biosites: encaminharemos o pedido ao cliente controlador.
+Pedidos pelo e-mail do encarregado. Responderemos em até 15 (quinze) dias. Visitantes de biosites: encaminharemos o pedido ao cliente controlador.
 
 ## 9. Encarregado (DPO)
-Encarregado: [PREENCHER nome] — e-mail: [PREENCHER e-mail de contato/privacidade]. (Agentes de pequeno porte podem ter regras simplificadas quanto ao encarregado; manter ao menos um canal de comunicação.)
+Encarregado: Tarciso Heli Ferreira Junior — e-mail: contato@tarciso.dev.
 
 ## 10. Alterações
 Esta Política pode ser atualizada; mudanças relevantes serão avisadas por e-mail ou no painel.

@@ -1,8 +1,7 @@
-> **RASCUNHO, revisar com advogado antes de publicar**
 
 # Política de Uso Aceitável — Seja Engajado
 
-**Controladora / Plataforma:** Seja Engajado, nome empresarial [PREENCHER razão social], CNPJ [PREENCHER], com sede em [PREENCHER endereço], Uberaba-MG. Contato: [PREENCHER e-mail de contato]. Site: sejaengajado.com.br.
+**Controladora / Plataforma:** Seja Engajado, nome empresarial TARCISO HELI FERREIRA JUNIOR LTDA (nome fantasia COMPGENCE), CNPJ 49.764.068/0001-36, com sede na Rua dos Crisântemos, 322, Lourdes, Uberaba-MG, CEP 38035-080. Contato: contato@tarciso.dev. Site: sejaengajado.com.br.
 
 Vale para revendedores, clientes e qualquer conteúdo publicado nos biosites (`*.sejaengajado.com.br`).
 
@@ -20,9 +19,9 @@ Vale para revendedores, clientes e qualquer conteúdo publicado nos biosites (`*
 - Tentar burlar a segurança, sobrecarregar ou fazer engenharia reversa da Plataforma.
 
 ## 2. Denúncia e remoção (takedown)
-2.1. Qualquer pessoa pode denunciar pelo e-mail [PREENCHER e-mail de contato] com: endereço do site, descrição do problema e, se for violação de direito próprio (ex.: autoral ou imagem), identificação do denunciante e prova da titularidade.
-2.2. A Plataforma analisa em até [PREENCHER, ex.: 2] dias úteis. Conteúdo claramente ilícito ou perigoso (golpe, phishing, abuso infantil, malware) pode ser removido ou o site suspenso **imediatamente**.
-2.3. Nos demais casos, o revendedor e o cliente responsáveis são notificados e têm [PREENCHER, ex.: 48 horas] para ajustar ou apresentar defesa.
+2.1. Qualquer pessoa pode denunciar pelo e-mail contato@tarciso.dev com: endereço do site, descrição do problema e, se for violação de direito próprio (ex.: autoral ou imagem), identificação do denunciante e prova da titularidade.
+2.2. A Plataforma analisa em até 5 (cinco) dias úteis. Conteúdo claramente ilícito ou perigoso (golpe, phishing, abuso infantil, malware) pode ser removido ou o site suspenso **imediatamente**.
+2.3. Nos demais casos, o revendedor e o cliente responsáveis são notificados e têm 5 (cinco) dias úteis para ajustar ou apresentar defesa.
 2.4. **Ordem judicial:** cumprida no prazo determinado, conforme o Marco Civil da Internet (Lei nº 12.965/2014).
 2.5. **Conteúdo íntimo não autorizado:** removido após notificação do participante ou de seu representante legal, como prevê o Marco Civil da Internet, sem necessidade de ordem judicial.
 2.6. Quem tiver conteúdo removido pode contestar pelo mesmo e-mail; se a remoção for indevida, o conteúdo é restabelecido.

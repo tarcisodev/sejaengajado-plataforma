@@ -1,10 +1,9 @@
-> **RASCUNHO, revisar com advogado antes de publicar**
 
 # Termos de Uso — Seja Engajado
 
-Última atualização: [PREENCHER data]
+Última atualização: 16/10/2026
 
-**Controladora / Plataforma:** Seja Engajado, nome empresarial [PREENCHER razão social], CNPJ [PREENCHER], com sede em [PREENCHER endereço], Uberaba-MG. Contato: [PREENCHER e-mail de contato]. Site: sejaengajado.com.br.
+**Controladora / Plataforma:** Seja Engajado, nome empresarial TARCISO HELI FERREIRA JUNIOR LTDA (nome fantasia COMPGENCE), CNPJ 49.764.068/0001-36, com sede na Rua dos Crisântemos, 322, Lourdes, Uberaba-MG, CEP 38035-080. Contato: contato@tarciso.dev. Site: sejaengajado.com.br.
 
 ## 1. O que é a plataforma
 A Seja Engajado ("Plataforma") oferece biosites (minissites em subdomínio do tipo `cliente.sejaengajado.com.br`) e placas físicas com QR Code/NFC que direcionam à avaliação do negócio no Google. A Plataforma é comercializada por **revendedores independentes**. A hierarquia de acesso é: administrador (Plataforma) > revendedor > cliente.
@@ -48,13 +47,13 @@ A marca Seja Engajado, o software, os templates e o layout pertencem à Platafor
 Regidos pela Política de Cobrança e Suspensão. Em resumo, cliente: aviso de 1 a 7 dias de atraso, somente leitura de 8 a 15, suspensão a partir de 16 e arquivamento em 60. Revendedor: 30 dias de carência.
 
 ## 11. Direito de arrependimento
-Para contratações feitas fora do estabelecimento comercial (por exemplo, pela internet), o consumidor pode desistir no prazo de 7 dias, conforme o CDC. Se a placa já tiver sido produzida/entregue, [PREENCHER regra de devolução — validar com advogado].
+Para contratações feitas fora do estabelecimento comercial (por exemplo, pela internet), o consumidor pode desistir no prazo de 7 dias, conforme o CDC. Exercido o arrependimento em até 7 dias, os valores pagos serão devolvidos. Por ser produzida de forma personalizada, a placa só será trocada ou reembolsada em caso de defeito de fabricação ou de produção, sem prejuízo dos direitos previstos no CDC.
 
 ## 12. Dados pessoais
 Tratados conforme a Política de Privacidade e a LGPD (Lei nº 13.709/2018).
 
 ## 13. Alterações
-Estes Termos podem ser alterados, com aviso prévio por e-mail ou no painel de [PREENCHER, ex.: 15] dias para mudanças relevantes.
+Estes Termos podem ser alterados, com aviso prévio por e-mail ou no painel de 15 (quinze) dias para mudanças relevantes.
 
 ## 14. Lei e foro
 Lei brasileira. Foro da comarca de Uberaba-MG, ressalvado o direito do consumidor de ajuizar ação em seu domicílio.
