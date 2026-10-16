@@ -13,7 +13,7 @@
 | AW6 | DONE | 379005c | 2026-10-16 |
 | AW7 | DONE | 6c4db08 | 2026-10-16 |
 | BR1 | DONE | 7cfff66 | 2026-10-16 |
-| LU2 | TODO | — | — |
+| LU2 | DONE | 5add9a3 | 2026-10-16 |
 | LU3 | TODO | — | — |
 | LU1+ | TODO | — | — |
 | LU5 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-BR1 — Brand pack C (7cfff66).
+LU2 — Divisores de seção (5add9a3).
 
 ## Proximo
-LU2 — Divisores de seção configuráveis (Lumen B2 / 03-B3).
+LU3 — Faixa animada (Lumen B3 / 03-B4).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
