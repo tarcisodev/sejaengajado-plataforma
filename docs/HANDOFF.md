@@ -25,10 +25,12 @@
 
 | PR | URL | Propósito | CI |
 |---|---|---|---|
+| #41 | https://github.com/tarcisodev/sejaengajado-plataforma/pull/41 | Handoff docs (este) | docs-only |
+| #40 | https://github.com/tarcisodev/sejaengajado-plataforma/pull/40 | #18 vendedor/login/admin/FORMULA | CI em andamento (setup/docker/CodeQL) |
 | #39 | https://github.com/tarcisodev/sejaengajado-plataforma/pull/39 | Dependabot: group minor/patch, ignore majors | pr-ci-ok + CodeQL verdes (jobs pesados skipped — docs/chore) |
 | #20–#38 | Dependabot bumps (vários majors) | Deps — **não priorizar** vs P0 | — |
 
-**Sem PR ainda:** `feat/8-fluxo-feliz`, `feat/18-vendedor-login-biosite`.  
+**Sem PR ainda:** `feat/8-fluxo-feliz` (só branch remota).  
 **Já merged:** #19 (ci harden), #17/#11 (biosite SSR), #15/#9 (pipeline).
 
 ### Issues abertas (P0 / relacionadas)
