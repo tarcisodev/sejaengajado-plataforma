@@ -1,6 +1,10 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { RESPONSE_INIT } from '@angular/core';
-import { CommonEngine, isMainModule } from '@angular/ssr/node';
+import { REQUEST, REQUEST_CONTEXT, RESPONSE_INIT } from '@angular/core';
+import {
+  CommonEngine,
+  createWebRequestFromNodeRequest,
+  isMainModule,
+} from '@angular/ssr/node';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { readFileSync } from 'node:fs';
@@ -12,7 +16,7 @@ import {
   businessNameFromBody,
   fetchPublicSiteBySlug,
 } from './app/core/ssr/fetch-public-site';
-import { SSR_PUBLIC_SITE } from './app/core/ssr/ssr-public-site';
+import type { SsrRequestContext } from './app/core/ssr/ssr-request-context';
 import { scrubSentryEvent } from './app/core/sentry/scrub';
 import bootstrap from './main.server';
 
@@ -147,7 +151,7 @@ app.get('**', async (req, res, next) => {
     // Always query by-host with the canonical slug host — never raw Host
     // (trailing dots / forwarded quirks must not miss a PUBLISHED site).
     // On any transport failure: 502 HTML and STOP — never continue into Angular
-    // with SSR_PUBLIC_SITE=null (that caused false 404 + TypeError on profile).
+    // without REQUEST_CONTEXT.publicSite (that caused false 404).
     try {
       const result = await fetchPublicSiteBySlug(decision.slug);
       if (result.kind === 'not-found') {
@@ -188,8 +192,6 @@ app.get('**', async (req, res, next) => {
           .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
         return;
       }
-      // Hand the already-fetched site to Angular — second HttpClient GET was
-      // racing Nest ETag/304 and rendering not-found / crashing on undefined profile.
       ssrPublicSite = result.body;
     } catch (err) {
       Sentry.captureException(err);
@@ -202,8 +204,14 @@ app.get('**', async (req, res, next) => {
     }
   }
 
+  const requestContext: SsrRequestContext = {
+    publicSite: ssrPublicSite,
+    tenantSlug: decision.kind === 'tenant' ? decision.slug : null,
+  };
+
   // Beasties off: evitava path /server/*.css e picos de heap no container.
   // publicPath só no apex (SSG); em tenant `/` colidiria com index da landing.
+  // REQUEST + REQUEST_CONTEXT: per-request DI (useValue no app root vaza entre requests).
   commonEngine
     .render({
       bootstrap,
@@ -214,12 +222,33 @@ app.get('**', async (req, res, next) => {
       providers: [
         { provide: APP_BASE_HREF, useValue: baseUrl },
         { provide: RESPONSE_INIT, useValue: responseInit },
-        { provide: SSR_PUBLIC_SITE, useValue: ssrPublicSite },
+        { provide: REQUEST, useValue: createWebRequestFromNodeRequest(req) },
+        { provide: REQUEST_CONTEXT, useValue: requestContext },
       ],
     })
     .then((html) => {
       if (decision.kind === 'tenant') {
         res.set('Cache-Control', 'private, no-store');
+        const status = responseInit.status ?? 200;
+        // Prefetch ok but Angular lost context → never ship a false 404.
+        if (
+          ssrPublicSite &&
+          (status === 404 ||
+            status === 502 ||
+            /Negócio não encontrado|Não encontramos esse negócio/i.test(html))
+        ) {
+          // Prefetch existed — Angular lost REQUEST_CONTEXT / SSR_PUBLIC_SITE.
+          console.error(
+            '[ssr] Angular rendered miss/502 despite prefetch; forcing 502',
+            decision.slug,
+            { status },
+          );
+          res
+            .status(502)
+            .type('html')
+            .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
+          return;
+        }
       }
       res.status(responseInit.status ?? 200).send(html);
     })

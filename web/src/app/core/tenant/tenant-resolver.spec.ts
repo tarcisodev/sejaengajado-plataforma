@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { PLATFORM_ID, REQUEST_CONTEXT, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
@@ -82,7 +82,7 @@ describe('TenantResolver', () => {
     expect(response.status).toBe(410);
   });
 
-  it('reuses SSR_PUBLIC_SITE without calling the API', async () => {
+  it('reuses REQUEST_CONTEXT.publicSite without calling the API', async () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -98,14 +98,17 @@ describe('TenantResolver', () => {
           },
         },
         {
-          provide: SSR_PUBLIC_SITE,
+          provide: REQUEST_CONTEXT,
           useValue: {
-            status: 'PUBLISHED',
-            slug: 'demo-forno',
-            templateKey: 'restaurante',
-            schemaType: 'Restaurant',
-            content: { businessName: 'Forno da Praça', profile: { nome: 'Forno' }, theme: {} },
-            temporarilyUnavailable: false,
+            tenantSlug: 'demo-forno',
+            publicSite: {
+              status: 'PUBLISHED',
+              slug: 'demo-forno',
+              templateKey: 'restaurante',
+              schemaType: 'Restaurant',
+              content: { businessName: 'Forno da Praça', profile: { nome: 'Forno' }, theme: {} },
+              temporarilyUnavailable: false,
+            },
           },
         },
       ],
@@ -117,5 +120,32 @@ describe('TenantResolver', () => {
       expect(view.site.content.businessName).toContain('Forno');
       expect(view.site.schemaType).toBe('Restaurant');
     }
+  });
+
+  it('on SSR without prefetch returns ssr-unavailable (502), never not-found', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        TenantResolver,
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: AuthService,
+          useValue: {
+            me: signal(null),
+            sessionStatus: signal('anonymous'),
+            ready: signal(true),
+          },
+        },
+        { provide: SSR_PUBLIC_SITE, useValue: null },
+      ],
+    });
+    const resolver = TestBed.inject(TenantResolver);
+    const view = await firstValueFrom(resolver.resolve('demo-forno.sejaengajado.com.br'));
+    expect(view).toEqual({ kind: 'ssr-unavailable', slug: 'demo-forno' });
+    const response: ResponseInit = {};
+    applyHttpStatus(response, view);
+    expect(response.status).toBe(502);
   });
 });

@@ -6,7 +6,9 @@ export type TenantView =
   | { kind: 'site'; site: Site }
   | { kind: 'suspended'; businessName: string }
   | { kind: 'archived'; businessName: string }
-  | { kind: 'not-found'; slug: string };
+  | { kind: 'not-found'; slug: string }
+  /** SSR missing prefetch — must become HTTP 502, never 404. */
+  | { kind: 'ssr-unavailable'; slug: string };
 
 function businessLabel(site: Site, slug: string): string {
   return site.content?.businessName || site.content?.profile?.nome || slug;
@@ -28,6 +30,9 @@ export function viewForSite(site: Site | null, slug: string): TenantView {
 export function httpStatusFor(view: TenantView): number {
   if (view.kind === 'not-found') {
     return 404;
+  }
+  if (view.kind === 'ssr-unavailable') {
+    return 502;
   }
   if (view.kind === 'archived') {
     return 410;
@@ -64,5 +69,7 @@ export function titleFor(view: TenantView): string {
       return 'Indisponível · Seja Engajado';
     case 'not-found':
       return 'Negócio não encontrado · Seja Engajado';
+    case 'ssr-unavailable':
+      return 'Indisponível · Seja Engajado';
   }
 }

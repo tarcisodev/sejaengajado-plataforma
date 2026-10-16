@@ -29,8 +29,8 @@
 FLUXO-FELIZ M0 - bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
 
 ## Proximo
-PROMPT-PIPELINE PR A (#12) — pr-ci ubuntu-latest, docker smoke, rollback seguro; depois B (#13) e C (#14).
-FLUXO-FELIZ M1+ em paralelo (issue #8 / #10).
+P0 #16 biosite SSR_PUBLIC_SITE (REQUEST_CONTEXT) — PR urgente após d7249c7.
+PROMPT-PIPELINE B/C (#13/#14). FLUXO-FELIZ M1+ (#8).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1-#6)_
