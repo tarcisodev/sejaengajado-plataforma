@@ -300,6 +300,18 @@
                   Despublicar
                 </button>
               }
+              @if (row.status === 'PUBLISHED' || row.status === 'READ_ONLY') {
+                <button
+                  hlmBtn
+                  class="h-11"
+                  type="button"
+                  variant="outline"
+                  data-open-plaque
+                  (click)="openPlaque(row)"
+                >
+                  Placa
+                </button>
+              }
             </div>
           </td>
         </tr>
@@ -307,3 +319,80 @@
     </tbody>
   </table>
 </section>
+
+@if (plaqueSite(); as plaque) {
+  <section hlmCard class="mt-6 p-4 md:p-6" data-plaque-panel>
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 class="font-display text-xl">Placa de avaliação</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{{ plaque.slug }}</p>
+      </div>
+      <button hlmBtn type="button" variant="outline" class="h-11" (click)="closePlaque()">
+        Fechar
+      </button>
+    </div>
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+      <div class="grid gap-3">
+        <label class="grid gap-1 text-sm">
+          Tipo
+          <select
+            class="h-11 rounded-lg border border-input bg-background px-3"
+            data-plaque-type
+            [value]="plaqueType()"
+            (change)="onPlaqueTypeChange($event)"
+          >
+            <option value="QR">QR</option>
+            <option value="NFC">NFC</option>
+          </select>
+        </label>
+        <label class="grid gap-1 text-sm">
+          Link curto (/avaliar)
+          <input
+            hlmInput
+            class="h-11"
+            readonly
+            data-plaque-review-url
+            [value]="plaqueReviewLink()"
+          />
+        </label>
+        <label class="grid gap-1 text-sm">
+          URL do site
+          <input hlmInput class="h-11" readonly data-plaque-site-url [value]="plaqueSiteLink()" />
+        </label>
+        <label class="grid gap-1 text-sm">
+          URL para NFC
+          <input hlmInput class="h-11" readonly data-plaque-nfc-url [value]="plaqueNfcLink()" />
+        </label>
+        <div class="flex flex-wrap gap-2">
+          <button
+            hlmBtn
+            class="h-11"
+            type="button"
+            data-plaque-assign
+            [disabled]="plaqueBusy() || !operable()"
+            (click)="assignPlaque()"
+          >
+            Registrar saída no estoque
+          </button>
+          <button hlmBtn class="h-11" type="button" variant="outline" (click)="downloadPlaqueSvg()">
+            Baixar SVG
+          </button>
+          <button hlmBtn class="h-11" type="button" variant="outline" (click)="downloadPlaquePng()">
+            Baixar PNG
+          </button>
+        </div>
+      </div>
+      <div
+        class="grid place-items-center rounded-lg border border-border bg-background p-4"
+        data-plaque-qr
+      >
+        @if (plaquePng()) {
+          <img class="w-56" [src]="plaquePng()" alt="QR da placa de avaliação" />
+        } @else {
+          <p class="text-sm text-muted-foreground">Gerando QR…</p>
+        }
+      </div>
+    </div>
+  </section>
+}

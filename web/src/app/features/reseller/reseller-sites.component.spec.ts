@@ -59,6 +59,19 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
         city: '',
       }),
     );
+    const recordPlaque = jasmine.createSpy('recordResellerPlaqueMovement').and.returnValue(
+      of({
+        id: 'm1',
+        resellerId: 'r1',
+        type: 'OUT',
+        plaqueType: 'QR',
+        qty: 1,
+        unitCostCents: null,
+        siteId: 'site-a',
+        reason: 'ASSIGN',
+        createdAt: new Date().toISOString(),
+      }),
+    );
 
     TestBed.configureTestingModule({
       imports: [ResellerSitesComponent],
@@ -90,7 +103,7 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
                     slug: 'loja-a',
                     templateId: 't1',
                     planId: 'p1',
-                    status: 'DRAFT',
+                    status: 'PUBLISHED',
                     editable: true,
                     content: {},
                     publishedAt: null,
@@ -122,13 +135,14 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
             unpublishResellerSite: () => of({}),
             patchResellerSite: () => of({}),
             listTemplates: () => of([]),
+            recordResellerPlaqueMovement: recordPlaque,
           },
         },
       ],
     });
     const fixture = TestBed.createComponent(ResellerSitesComponent);
     fixture.detectChanges();
-    return { fixture, createCustomer, publishSite };
+    return { fixture, createCustomer, publishSite, recordPlaque };
   }
 
   it('blocks opening the wizard when reseller is DELINQUENT', async () => {
@@ -205,5 +219,29 @@ describe('ResellerSitesComponent (AW3/FF2)', () => {
     expect(createCustomer).toHaveBeenCalled();
     expect(fixture.componentInstance.customerId()).toBe('c-new');
     expect(fixture.componentInstance.step()).toBe('template');
+  });
+
+  it('opens plaque panel with review URL and assigns stock OUT (FF4)', async () => {
+    const { fixture, recordPlaque } = setup('ACTIVE');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const site = fixture.componentInstance.rows()[0];
+    fixture.componentInstance.openPlaque(site);
+    await fixture.componentInstance.refreshPlaqueQr();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-plaque-panel]')).toBeTruthy();
+    expect(
+      (fixture.nativeElement.querySelector('[data-plaque-review-url]') as HTMLInputElement).value,
+    ).toContain('/api/public/r/loja-a/avaliar');
+    expect(fixture.nativeElement.querySelector('[data-plaque-qr] img')).toBeTruthy();
+
+    fixture.componentInstance.assignPlaque();
+    await fixture.whenStable();
+    expect(recordPlaque).toHaveBeenCalledWith(
+      jasmine.objectContaining({ type: 'OUT', reason: 'ASSIGN', siteId: 'site-a' }),
+      jasmine.any(String),
+    );
   });
 });

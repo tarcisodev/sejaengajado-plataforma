@@ -19,8 +19,11 @@ import { AuthService } from '../../core/auth/auth.service';
 import type { Site, SiteContent } from '../../core/models/domain';
 import { SitePageComponent } from '../tenant-site/site-page.component';
 import { formatBrl } from '../landing/landing-seo';
+import { plaqueNfcPayload, plaqueReviewUrl, plaqueSiteUrl } from './plaque-links';
+import { qrPngDataUrl, qrSvg } from './qr-code';
 
 type WizardStep = 'cliente' | 'template' | 'conteudo' | 'slug' | 'previa';
+type PlaqueType = 'QR' | 'NFC';
 
 @Component({
   selector: 'app-reseller-sites',
@@ -58,9 +61,26 @@ export class ResellerSitesComponent {
   readonly slugOk = signal(false);
   readonly draft = signal<ResellerSiteDto | null>(null);
   readonly busy = signal(false);
+  readonly plaqueSite = signal<ResellerSiteDto | null>(null);
+  readonly plaqueType = signal<PlaqueType>('QR');
+  readonly plaqueSvg = signal('');
+  readonly plaquePng = signal('');
+  readonly plaqueBusy = signal(false);
   readonly previewSite = computed(() => {
     const draft = this.draft();
     return draft ? toPreviewSite(draft) : null;
+  });
+  readonly plaqueReviewLink = computed(() => {
+    const site = this.plaqueSite();
+    return site ? plaqueReviewUrl(site.slug) : '';
+  });
+  readonly plaqueSiteLink = computed(() => {
+    const site = this.plaqueSite();
+    return site ? plaqueSiteUrl(site.slug) : '';
+  });
+  readonly plaqueNfcLink = computed(() => {
+    const site = this.plaqueSite();
+    return site ? plaqueNfcPayload(site.slug) : '';
   });
 
   readonly operable = computed(() => {
@@ -272,6 +292,89 @@ export class ResellerSitesComponent {
 
   publicUrl(slug: string): string {
     return `https://${slug}.sejaengajado.com.br`;
+  }
+
+  openPlaque(site: ResellerSiteDto): void {
+    this.plaqueSite.set(site);
+    this.plaqueType.set('QR');
+    void this.refreshPlaqueQr();
+  }
+
+  closePlaque(): void {
+    this.plaqueSite.set(null);
+    this.plaqueSvg.set('');
+    this.plaquePng.set('');
+  }
+
+  onPlaqueTypeChange(event: Event): void {
+    this.plaqueType.set((event.target as HTMLSelectElement).value as PlaqueType);
+  }
+
+  async refreshPlaqueQr(): Promise<void> {
+    const url = this.plaqueReviewLink();
+    if (!url) {
+      return;
+    }
+    const [svg, png] = await Promise.all([qrSvg(url), qrPngDataUrl(url)]);
+    this.plaqueSvg.set(svg);
+    this.plaquePng.set(png);
+  }
+
+  assignPlaque(): void {
+    const site = this.plaqueSite();
+    if (!site || this.plaqueBusy() || !this.operable()) {
+      return;
+    }
+    this.plaqueBusy.set(true);
+    const key = crypto.randomUUID();
+    this.api
+      .recordResellerPlaqueMovement(
+        {
+          type: 'OUT',
+          plaqueType: this.plaqueType(),
+          qty: 1,
+          reason: 'ASSIGN',
+          siteId: site.id,
+        },
+        key,
+      )
+      .subscribe({
+        next: () => {
+          this.plaqueBusy.set(false);
+          toast.success('Placa registrada no estoque (saída).');
+        },
+        error: (error: unknown) => {
+          this.plaqueBusy.set(false);
+          this.toastApiError(error, 'Não foi possível baixar a placa do estoque.');
+        },
+      });
+  }
+
+  downloadPlaqueSvg(): void {
+    const svg = this.plaqueSvg();
+    const site = this.plaqueSite();
+    if (!svg || !site) {
+      return;
+    }
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = `placa-${site.slug}.svg`;
+    a.click();
+    URL.revokeObjectURL(href);
+  }
+
+  downloadPlaquePng(): void {
+    const png = this.plaquePng();
+    const site = this.plaqueSite();
+    if (!png || !site) {
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = png;
+    a.download = `placa-${site.slug}.png`;
+    a.click();
   }
 
   onCustomerChange(event: Event): void {

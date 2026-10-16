@@ -136,6 +136,13 @@ app.get('**', async (req, res, next) => {
   if (decision.kind === 'app') {
     // fall through to Angular
   } else if (decision.kind === 'tenant') {
+    const pathOnly = originalUrl.split('?')[0] ?? '/';
+    if (pathOnly === '/avaliar' || pathOnly === '/avaliar/') {
+      const target = `${apiInternalBase()}/api/public/r/${encodeURIComponent(decision.slug)}/avaliar`;
+      res.redirect(302, target);
+      return;
+    }
+
     const fetchHost =
       host.includes('localhost') && decision.slug
         ? `${decision.slug}.sejaengajado.com.br`

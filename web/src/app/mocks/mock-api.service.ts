@@ -939,7 +939,7 @@ export class MockApiService implements ApiPort {
           type: 'OUT';
           plaqueType: 'QR' | 'NFC';
           qty: number;
-          reason: 'GIFT';
+          reason: 'GIFT' | 'ASSIGN';
           siteId: string;
         },
     idempotencyKey: string,
