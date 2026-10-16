@@ -1,3 +1,5 @@
+Agente novo: leia docs/HANDOFF.md e docs/PLANO-FLUXO-FELIZ.md antes de começar.
+
 # AGENTS — Seja Engajado
 
 Stack: Angular 22.2 (standalone, SSR, Tailwind 4) em `web/`; NestJS 11 + Prisma 6 + Postgres 16 em `api/`. Loop de finalização: `PROGRESS.md` na raiz. Skills Angular: `.agents/skills/angular-developer/SKILL.md`.

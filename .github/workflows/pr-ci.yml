@@ -20,6 +20,7 @@ env:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       code: ${{ steps.filter.outputs.code }}
       api: ${{ steps.filter.outputs.api }}
@@ -27,8 +28,8 @@ jobs:
       docker: ${{ steps.filter.outputs.docker }}
       e2e: ${{ steps.filter.outputs.e2e }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
         id: filter
         with:
           filters: |
@@ -59,12 +60,46 @@ jobs:
               - '!PROGRESS.md'
               - '!.github/ISSUE_TEMPLATE/**'
 
+  setup:
+    needs: [changes]
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-api
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-web
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
+      - name: npm ci api
+        if: steps.nm-api.outputs.cache-hit != 'true' && (needs.changes.outputs.api == 'true' || needs.changes.outputs.e2e == 'true')
+        working-directory: api
+        run: npm ci
+      - name: npm ci web
+        if: steps.nm-web.outputs.cache-hit != 'true' && (needs.changes.outputs.web == 'true' || needs.changes.outputs.e2e == 'true')
+        working-directory: web
+        run: npm ci
+
   guards:
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
       - name: Risk tier
@@ -83,130 +118,198 @@ jobs:
           bash infra/scripts/check-migration-expand.sh
           node infra/scripts/check-traefik-hostregexp.mjs
       - name: Gitleaks
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo \
             zricethezav/gitleaks:v8.21.2 \
             detect --source=/repo --verbose --redact \
-            --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
+            --log-opts="${BASE_SHA}..${HEAD_SHA}"
 
-  quick-api:
-    needs: [changes]
-    if: needs.changes.outputs.api == 'true'
+  lint:
+    needs: [changes, setup]
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: api/package-lock.json
-      - uses: actions/cache@v4
-        id: nm
-        with:
-          path: api/node_modules
-          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
-      - name: npm ci
-        if: steps.nm.outputs.cache-hit != 'true'
-        run: npm ci
-      - name: prisma generate + lint + typecheck + unit
-        run: |
-          npx prisma generate
-          npm run lint
-          npm run lint:money
-          npm test
-
-  quick-web:
-    needs: [changes]
-    if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - uses: actions/cache@v4
-        id: nm
-        with:
-          path: web/node_modules
-          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
-      - name: npm ci
-        if: steps.nm.outputs.cache-hit != 'true'
-        run: npm ci
-      - name: Chrome for Karma
-        id: chrome
-        uses: browser-actions/setup-chrome@v1
-      - name: lint + format + typecheck + unit
-        env:
-          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
-        run: |
-          npm run lint
-          npm run format:check
-          npm run typecheck
-          npm test -- --watch=false --browsers=ChromeHeadlessCI
-
-  test-int:
-    needs: [changes]
-    if: needs.changes.outputs.api == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: api/package-lock.json
-      - uses: actions/cache@v4
-        id: nm
-        with:
-          path: api/node_modules
-          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
-      - name: npm ci
-        if: steps.nm.outputs.cache-hit != 'true'
-        run: npm ci
-      - name: Integration (Testcontainers Postgres)
-        run: |
-          npx prisma generate
-          npm run test:int
-
-  build:
-    needs: [changes]
-    if: needs.changes.outputs.e2e == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: |
             api/package-lock.json
             web/package-lock.json
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-api
+        if: needs.changes.outputs.api == 'true'
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - name: npm ci api (cache miss fallback)
+        if: needs.changes.outputs.api == 'true' && steps.nm-api.outputs.cache-hit != 'true'
+        working-directory: api
+        run: npm ci
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-web
+        if: needs.changes.outputs.web == 'true'
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
+      - name: npm ci web (cache miss fallback)
+        if: needs.changes.outputs.web == 'true' && steps.nm-web.outputs.cache-hit != 'true'
+        working-directory: web
+        run: npm ci
+      - name: API lint
+        if: needs.changes.outputs.api == 'true'
+        working-directory: api
+        run: |
+          npx prisma generate
+          npm run lint
+          npm run lint:money
+      - name: Web lint + format
+        if: needs.changes.outputs.web == 'true'
+        working-directory: web
+        run: |
+          npm run lint
+          npm run format:check
+
+  test:
+    needs: [changes, setup]
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-api
+        if: needs.changes.outputs.api == 'true'
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - name: npm ci api (cache miss fallback)
+        if: needs.changes.outputs.api == 'true' && steps.nm-api.outputs.cache-hit != 'true'
+        working-directory: api
+        run: npm ci
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-web
+        if: needs.changes.outputs.web == 'true'
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
+      - name: npm ci web (cache miss fallback)
+        if: needs.changes.outputs.web == 'true' && steps.nm-web.outputs.cache-hit != 'true'
+        working-directory: web
+        run: npm ci
+      - name: API unit
+        if: needs.changes.outputs.api == 'true'
+        working-directory: api
+        run: |
+          npx prisma generate
+          npm test
+      - name: Chrome for Karma
+        if: needs.changes.outputs.web == 'true'
+        id: chrome
+        uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce # v1.7.3
+      - name: Web typecheck + unit
+        if: needs.changes.outputs.web == 'true'
+        working-directory: web
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          npm run typecheck
+          npm test -- --watch=false --browsers=ChromeHeadlessCI
+
+  test-int:
+    needs: [changes, setup]
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: api
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-dev-only
+          POSTGRES_DB: sejaengajado
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sejaengajado"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: nm-api
         with:
           path: api/node_modules
           key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
-      - uses: actions/cache@v4
+      - name: npm ci api (cache miss fallback)
+        if: steps.nm-api.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Integration (Testcontainers Postgres + services)
+        env:
+          REDIS_URL: redis://127.0.0.1:6379
+        run: |
+          npx prisma generate
+          npm run test:int
+
+  build:
+    needs: [changes, setup]
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: nm-api
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - name: npm ci api (cache miss fallback)
+        if: steps.nm-api.outputs.cache-hit != 'true'
+        working-directory: api
+        run: npm ci
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: nm-web
         with:
           path: web/node_modules
           key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
-      - name: npm ci api
-        if: steps.nm-api.outputs.cache-hit != 'true'
-        working-directory: api
-        run: npm ci
-      - name: npm ci web
+      - name: npm ci web (cache miss fallback)
         if: steps.nm-web.outputs.cache-hit != 'true'
         working-directory: web
         run: npm ci
@@ -220,14 +323,14 @@ jobs:
         run: npm run build
       - name: Bundle budget
         run: node scripts/ci/bundle-budget.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: api-dist
           path: |
             api/dist
             api/dist-seed
           retention-days: 1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: web-dist
           path: web/dist/web
@@ -237,6 +340,7 @@ jobs:
     needs: [changes]
     if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         include:
@@ -247,10 +351,10 @@ jobs:
             context: web
             file: web/Dockerfile
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Build (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
@@ -261,9 +365,11 @@ jobs:
           cache-to: type=gha,mode=max,scope=pr-${{ matrix.app }}
       - name: Smoke API image
         if: matrix.app == 'api'
+        env:
+          IMAGE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          img="se-pr-api:${{ github.sha }}"
+          img="se-pr-api:${IMAGE_SHA}"
           docker run --rm --entrypoint sh "$img" -c 'test -f /app/dist/main.js && test -f /app/dist-seed/seed-showcase.js'
           set +e
           timeout 20s docker run --rm --entrypoint node "$img" -e "require('/app/dist/main.js')"
@@ -275,13 +381,16 @@ jobs:
           fi
       - name: Smoke Web image
         if: matrix.app == 'web'
+        env:
+          IMAGE_SHA: ${{ github.sha }}
         run: |
-          docker run --rm --entrypoint sh "se-pr-web:${{ github.sha }}" -c 'test -f /app/dist/web/server/server.mjs'
+          docker run --rm --entrypoint sh "se-pr-web:${IMAGE_SHA}" -c 'test -f /app/dist/web/server/server.mjs'
 
   e2e:
-    needs: [changes, build]
+    needs: [changes, setup, build]
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     concurrency:
       group: pr-e2e-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -299,43 +408,52 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: |
             api/package-lock.json
             web/package-lock.json
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: nm-api
         with:
           path: api/node_modules
           key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
-      - uses: actions/cache@v4
+      - name: npm ci api (cache miss fallback)
+        if: steps.nm-api.outputs.cache-hit != 'true'
+        working-directory: api
+        run: npm ci
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: nm-web
         with:
           path: web/node_modules
           key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
-      - uses: actions/cache@v4
+      - name: npm ci web (cache miss fallback)
+        if: steps.nm-web.outputs.cache-hit != 'true'
+        working-directory: web
+        run: npm ci
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: pw
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-pw-${{ hashFiles('web/package-lock.json') }}
-      - name: npm ci api
-        if: steps.nm-api.outputs.cache-hit != 'true'
-        working-directory: api
-        run: npm ci
-      - name: npm ci web
-        if: steps.nm-web.outputs.cache-hit != 'true'
-        working-directory: web
-        run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: api-dist
           path: api
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: web-dist
           path: web/dist/web
@@ -348,6 +466,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
           ADMIN_DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          REDIS_URL: redis://127.0.0.1:6379
           ALLOW_DEMO_SEED: "1"
           PORT: "3000"
           NODE_ENV: development
@@ -358,8 +477,8 @@ jobs:
           set +a
           npx prisma generate
           npx prisma migrate deploy
-          npm run seed:demo || true
-          npm run seed:showcase || node dist-seed/seed-showcase.js || true
+          npm run seed:demo
+          npm run seed:showcase || node dist-seed/seed-showcase.js
           export SUPABASE_JWT_SECRET_FILE="${SUPABASE_JWT_SECRET_FILE:-}"
           if [ -z "$SUPABASE_JWT_SECRET_FILE" ] && [ -n "${SUPABASE_JWT_SECRET:-}" ]; then
             mkdir -p ../.local/dev-secrets
@@ -385,8 +504,9 @@ jobs:
           PORT: "4000"
           API_INTERNAL_URL: http://127.0.0.1:3000
           API_PUBLIC_URL: /api
+          PW_CACHE_HIT: ${{ steps.pw.outputs.cache-hit }}
         run: |
-          if [ "${{ steps.pw.outputs.cache-hit }}" != "true" ]; then
+          if [ "$PW_CACHE_HIT" != "true" ]; then
             npx playwright install chromium --with-deps
           else
             npx playwright install-deps chromium || true
@@ -413,41 +533,50 @@ jobs:
 
   pr-ci-ok:
     if: always()
-    needs: [changes, guards, quick-api, quick-web, test-int, build, docker-build, e2e]
+    needs: [changes, setup, guards, lint, test, test-int, build, docker-build, e2e]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Aggregate
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          SETUP_RESULT: ${{ needs.setup.result }}
+          GUARDS_RESULT: ${{ needs.guards.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          TEST_INT_RESULT: ${{ needs.test-int.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DOCKER_RESULT: ${{ needs.docker-build.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          API: ${{ needs.changes.outputs.api }}
+          WEB: ${{ needs.changes.outputs.web }}
+          DOCKER: ${{ needs.changes.outputs.docker }}
+          E2E: ${{ needs.changes.outputs.e2e }}
         run: |
-          code="${{ needs.changes.outputs.code }}"
-          api="${{ needs.changes.outputs.api }}"
-          web="${{ needs.changes.outputs.web }}"
-          docker="${{ needs.changes.outputs.docker }}"
-          e2e="${{ needs.changes.outputs.e2e }}"
-          echo "code=$code api=$api web=$web docker=$docker e2e=$e2e"
-          echo "guards=${{ needs.guards.result }}"
-          echo "quick-api=${{ needs.quick-api.result }}"
-          echo "quick-web=${{ needs.quick-web.result }}"
-          echo "test-int=${{ needs.test-int.result }}"
-          echo "build=${{ needs.build.result }}"
-          echo "docker-build=${{ needs.docker-build.result }}"
-          echo "e2e=${{ needs.e2e.result }}"
-          test "${{ needs.changes.result }}" = "success" || exit 1
-          if [ "$code" != "true" ]; then
+          echo "code=$CODE api=$API web=$WEB docker=$DOCKER e2e=$E2E"
+          echo "setup=$SETUP_RESULT guards=$GUARDS_RESULT lint=$LINT_RESULT test=$TEST_RESULT"
+          echo "test-int=$TEST_INT_RESULT build=$BUILD_RESULT docker-build=$DOCKER_RESULT e2e=$E2E_RESULT"
+          test "$CHANGES_RESULT" = "success" || exit 1
+          if [ "$CODE" != "true" ]; then
             echo "docs-only — pr-ci-ok"
             exit 0
           fi
-          test "${{ needs.guards.result }}" = "success" || exit 1
-          if [ "$api" = "true" ]; then
-            test "${{ needs.quick-api.result }}" = "success" || exit 1
-            test "${{ needs.test-int.result }}" = "success" || exit 1
+          test "$GUARDS_RESULT" = "success" || exit 1
+          if [ "$API" = "true" ] || [ "$WEB" = "true" ] || [ "$E2E" = "true" ]; then
+            test "$SETUP_RESULT" = "success" || exit 1
           fi
-          if [ "$web" = "true" ]; then
-            test "${{ needs.quick-web.result }}" = "success" || exit 1
+          if [ "$API" = "true" ] || [ "$WEB" = "true" ]; then
+            test "$LINT_RESULT" = "success" || exit 1
+            test "$TEST_RESULT" = "success" || exit 1
           fi
-          if [ "$e2e" = "true" ]; then
-            test "${{ needs.build.result }}" = "success" || exit 1
-            test "${{ needs.e2e.result }}" = "success" || exit 1
+          if [ "$API" = "true" ]; then
+            test "$TEST_INT_RESULT" = "success" || exit 1
           fi
-          if [ "$docker" = "true" ]; then
-            test "${{ needs.docker-build.result }}" = "success" || exit 1
+          if [ "$E2E" = "true" ]; then
+            test "$BUILD_RESULT" = "success" || exit 1
+            test "$E2E_RESULT" = "success" || exit 1
+          fi
+          if [ "$DOCKER" = "true" ]; then
+            test "$DOCKER_RESULT" = "success" || exit 1
           fi
