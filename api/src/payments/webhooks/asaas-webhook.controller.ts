@@ -11,6 +11,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 
 import { Public } from '../../auth/public.decorator';
+import { clientIp } from '../../common/client-ip';
 import { AsaasWebhookService } from './asaas-webhook.service';
 import { hashClientIp, WebhookRateLimit } from './webhook-rate-limit';
 
@@ -49,12 +50,4 @@ export class AsaasWebhookController {
 
     return { ok: true };
   }
-}
-
-function clientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0]!.trim();
-  }
-  return req.ip ?? req.socket.remoteAddress ?? 'unknown';
 }

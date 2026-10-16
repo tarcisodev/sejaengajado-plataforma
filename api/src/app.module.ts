@@ -45,7 +45,20 @@ export class AppModule {
       imports: [
         ConfigModule.register(env),
         LoggerModule.forRoot(loggerParams),
-        ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+        ThrottlerModule.forRoot([
+          {
+            ttl: 60_000,
+            limit: 120,
+            getTracker: (req: Record<string, unknown>) => {
+              const headers = req['headers'] as Record<string, unknown> | undefined;
+              const cf = headers?.['cf-connecting-ip'];
+              if (typeof cf === 'string' && cf.trim()) {
+                return cf.trim();
+              }
+              return typeof req['ip'] === 'string' ? req['ip'] : 'unknown';
+            },
+          },
+        ]),
         PrismaModule.register(env),
         AuthModule.register(env),
         AuditModule,

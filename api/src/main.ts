@@ -26,6 +26,9 @@ export async function boot(
     { bufferLogs: true },
   );
   app.useLogger(app.get(Logger));
+  // One hop: Cloudflare → Traefik → Nest. Rate limits prefer CF-Connecting-IP
+  // (see common/client-ip.ts). Traefik must set forwardedHeaders.trustedIPs to
+  // Cloudflare ranges — infra/runbooks/traefik-forwarded-headers.md.
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.useBodyParser('json', { limit: BODY_LIMIT });
