@@ -5,7 +5,7 @@
     "build": "nest build && tsc -p tsconfig.seed.json",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "lint": "tsc --noEmit -p tsconfig.json && node scripts/lint-payments-boundary.mjs && node scripts/lint-system-prisma.mjs",
+    "lint": "tsc --noEmit -p tsconfig.json && node scripts/lint-payments-boundary.mjs && node scripts/lint-system-prisma.mjs && node scripts/lint-migration-passwords.mjs",
     "lint:money": "node scripts/lint-money.mjs",
     "lint:payments-boundary": "node scripts/lint-payments-boundary.mjs",
     "lint:system-prisma": "node scripts/lint-system-prisma.mjs",
