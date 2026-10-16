@@ -12,12 +12,35 @@ import {
 import { Audit } from '../../audit/audit.interceptor';
 import { Roles } from '../../auth/roles.decorator';
 import { parseLimit } from '../../common/parse-limit';
+import { UploadService } from '../../reseller/sites/upload.service';
 import { AdminSitesService } from './admin-sites.service';
 
 @Controller('admin')
 @Roles('ADMIN')
 export class AdminSitesController {
-  constructor(private readonly sites: AdminSitesService) {}
+  constructor(
+    private readonly sites: AdminSitesService,
+    private readonly uploads: UploadService,
+  ) {}
+
+  /** Presigned image upload (JPEG/PNG/WebP, max 5 MB) stored under `admin/`. */
+  @Post('uploads/presign')
+  presignUpload(@Body() body: unknown) {
+    return this.uploads.createPresignedUpload(body, { kind: 'admin' });
+  }
+
+  @Get('slugs/check')
+  checkSlug(
+    @Query('slug') slug?: string,
+    @Query('excludeId', new ParseUUIDPipe({ optional: true })) excludeId?: string,
+  ) {
+    return this.sites.checkSlug(slug ?? '', excludeId);
+  }
+
+  @Get('site-options')
+  siteOptions() {
+    return this.sites.siteOptions();
+  }
 
   @Get('sites')
   async list(@Query('limit') limitRaw?: string, @Query('cursor') cursor?: string) {

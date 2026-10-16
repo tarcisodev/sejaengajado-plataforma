@@ -30,10 +30,17 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function normalizeProfile(raw: unknown, fallbackName: string): SiteProfile {
   const profile = asRecord(raw) ?? {};
+  const text = (key: string): string | undefined => {
+    const value = profile[key];
+    return typeof value === 'string' ? value : undefined;
+  };
   return {
     nome: String(profile['nome'] ?? fallbackName),
-    slogan: typeof profile['slogan'] === 'string' ? profile['slogan'] : undefined,
-    logoUrl: typeof profile['logoUrl'] === 'string' ? profile['logoUrl'] : undefined,
+    slogan: text('slogan'),
+    logoUrl: text('logoUrl'),
+    logoAlt: text('logoAlt'),
+    coverUrl: text('coverUrl'),
+    coverAlt: text('coverAlt'),
     tags: Array.isArray(profile['tags'])
       ? profile['tags'].filter((tag): tag is string => typeof tag === 'string')
       : undefined,
@@ -44,6 +51,14 @@ function normalizeProfile(raw: unknown, fallbackName: string): SiteProfile {
 
 function normalizeTheme(raw: unknown): SiteTheme {
   const theme = asRecord(raw) ?? {};
+  // Sites novos (wizard) trazem `niche` sem p1/p2: deixa o tema do nicho + brandColor resolver.
+  if (typeof theme['niche'] === 'string' && !theme['p1'] && !theme['p2']) {
+    return {
+      ...theme,
+      niche: theme['niche'] as SiteTheme['niche'],
+      italic: theme['italic'] === 'italic' ? 'italic' : 'normal',
+    } as SiteTheme;
+  }
   return {
     ...DEFAULT_THEME,
     ...theme,

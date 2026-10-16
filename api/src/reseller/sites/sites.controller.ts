@@ -78,6 +78,9 @@ export class SitesController {
 
   @Post('uploads/presign')
   presign(@CurrentUser() user: AuthUser, @Body() body: unknown) {
-    return this.uploads.createPresignedUpload(body, user.resellerId!);
+    return this.uploads.createPresignedUpload(body, {
+      kind: 'reseller',
+      resellerId: user.resellerId ?? '',
+    });
   }
 }

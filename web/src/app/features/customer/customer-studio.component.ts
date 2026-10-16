@@ -8,14 +8,11 @@ import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
-import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
-import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
-import { HlmTabsImports } from '@spartan-ng/helm/tabs';
 import { HlmTextarea } from '@spartan-ng/helm/textarea';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { featureFlags } from '../../core/api/feature-flags';
@@ -39,6 +36,7 @@ import {
 } from '../../core/theme/niche-themes';
 import { themeForTemplate } from '../../mocks/site-bios';
 import { formatBrl } from '../landing/landing-seo';
+import { SiteEditorComponent, SiteEditorSaveEvent } from '../site-editor/site-editor.component';
 import { SitePageComponent } from '../tenant-site/site-page.component';
 
 const NICHE_OPTIONS: NicheThemeKey[] = [
@@ -60,6 +58,7 @@ export const CUSTOMER_TODAY = new InjectionToken<Date>('CUSTOMER_TODAY');
 @Component({
   selector: 'app-customer-studio',
   imports: [
+    SiteEditorComponent,
     SitePageComponent,
     BrnAlertDialogContent,
     BrnDialogContent,
@@ -68,12 +67,9 @@ export const CUSTOMER_TODAY = new InjectionToken<Date>('CUSTOMER_TODAY');
     HlmBadge,
     HlmButton,
     HlmCardImports,
-    HlmCheckbox,
     HlmDialogImports,
     HlmFieldImports,
-    HlmInput,
     HlmSelectImports,
-    HlmTabsImports,
     HlmTextarea,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -445,6 +441,42 @@ export class CustomerStudioComponent {
       },
       error: (error: unknown) => this.toastApiError(error, 'Não foi possível salvar.'),
     });
+  }
+
+  /** Conteúdo vindo do site-editor compartilhado (mesmo editor do admin/revendedor). */
+  onEditorSave(event: SiteEditorSaveEvent): void {
+    const site = this.draft();
+    if (!site || !this.editing()) {
+      return;
+    }
+    this.api.updateSiteContent(site.id, event.content, event.templateId).subscribe({
+      next: (saved) => {
+        this.draft.set(saved);
+        this.replaceSite(saved);
+        this.message.set('Alterações salvas.');
+        toast.success('Alterações salvas.');
+      },
+      error: (error: unknown) => this.toastApiError(error, 'Não foi possível salvar.'),
+    });
+  }
+
+  onEditorPublish(event: SiteEditorSaveEvent): void {
+    const site = this.draft();
+    if (!site || !this.editing()) {
+      return;
+    }
+    this.api
+      .updateSiteContent(site.id, event.content, event.templateId)
+      .pipe(switchMap((saved) => this.api.publishSite(saved.id)))
+      .subscribe({
+        next: (published) => {
+          this.draft.set(published);
+          this.replaceSite(published);
+          this.message.set('Site publicado.');
+          toast.success('Site publicado.');
+        },
+        error: (error: unknown) => this.toastApiError(error, 'Não foi possível publicar.'),
+      });
   }
 
   publish(): void {

@@ -4,13 +4,29 @@
   [attr.data-schema]="schemaType()"
   [ngStyle]="themeVars()"
 >
-  <header class="hero">
-    <div class="ring" aria-hidden="true">
+  <header class="hero" [class.has-cover]="!!coverUrl()">
+    @if (coverUrl()) {
+      <div class="hero-cover" data-hero-cover>
+        <img
+          [src]="coverUrl()"
+          [alt]="site.content.profile.coverAlt || 'Capa de ' + nome()"
+          width="1280"
+          height="720"
+          fetchpriority="high"
+        />
+      </div>
+    }
+    <div class="ring">
       <div class="in">
         @if (site.content.profile?.logoUrl) {
-          <img [src]="site.content.profile.logoUrl" [alt]="" />
+          <img
+            [src]="site.content.profile.logoUrl"
+            [alt]="site.content.profile.logoAlt || 'Logo de ' + nome()"
+            width="240"
+            height="240"
+          />
         } @else {
-          <span>{{ initials() }}</span>
+          <span aria-hidden="true">{{ initials() }}</span>
         }
       </div>
     </div>
@@ -25,37 +41,67 @@
         }
       </ul>
     }
-    <span class="loc"
-      >{{ site.content.profile?.cidade || '' }}/{{ site.content.profile?.uf || '' }}</span
-    >
-    @if (site.content.google) {
-      <p class="google-rating" data-block="google-rating">
-        <span data-google-rating>{{ googleRatingLabel() }}</span>
-        <span class="muted">·</span>
-        <span data-google-reviews>{{ googleReviewCountLabel() }}</span>
-        <span class="example-label">avaliações (exemplo)</span>
-      </p>
+    <p class="meta">
+      @if (site.content.profile?.cidade) {
+        <span class="loc">
+          <ng-icon name="lucideMapPin" size="14" />
+          {{ site.content.profile.cidade }}{{ site.content.profile.uf ? '/' + site.content.profile.uf : '' }}
+        </span>
+      }
+      @if (openNow(); as status) {
+        <span class="open-now" data-open-now [attr.data-open-kind]="status.kind">{{ status.label }}</span>
+      }
+      @if (hasRating()) {
+        <span class="rating" data-block="google-rating">
+          <ng-icon name="lucideStar" size="14" />
+          <span data-google-rating>{{ googleRatingLabel() }}</span>
+          <span class="muted">({{ googleReviewCountLabel() }})</span>
+        </span>
+      }
+    </p>
+
+    <nav class="actions" aria-label="Contato">
+      @if (site.content.whatsapp?.numero) {
+        <a class="act act-main" [href]="whatsappHref()" target="_blank" rel="noopener" data-link="whatsapp">
+          <ng-icon name="lucideMessageCircle" />
+          <span>WhatsApp</span>
+        </a>
+      }
+      @if (phone()) {
+        <a class="act" [href]="telHref(phone())" data-link="tel">
+          <ng-icon name="lucidePhone" />
+          <span>Ligar</span>
+        </a>
+      }
+      @if (site.content.email) {
+        <a class="act" [href]="'mailto:' + site.content.email" data-link="email">
+          <ng-icon name="lucideMail" />
+          <span>E-mail</span>
+        </a>
+      }
+      @if (hasLocation()) {
+        <a class="act" [href]="mapsLink()" data-link="maps" target="_blank" rel="noopener">
+          <ng-icon name="lucideMapPin" />
+          <span>Rota</span>
+        </a>
+      }
+    </nav>
+
+    @if (socials().length) {
+      <ul class="socials" data-block="redes">
+        @for (rede of socials(); track rede.url) {
+          <li>
+            <a [href]="rede.url" [attr.data-social]="rede.tipo" [attr.aria-label]="rede.label" target="_blank" rel="noopener">
+              <ng-icon [name]="rede.icon" />
+            </a>
+          </li>
+        }
+      </ul>
     }
-    <div class="hero-ctas">
-      @if (site.content.whatsapp) {
-        <a class="cta cta-main" [href]="whatsappHref()" data-link="whatsapp">WhatsApp</a>
-      }
-      @if (site.content.phone || site.content.telefone) {
-        <a
-          class="cta"
-          [href]="'tel:' + (site.content.phone || site.content.telefone)"
-          data-link="tel"
-          >Ligar</a
-        >
-      }
-      @if (site.content.address) {
-        <a class="cta" [href]="mapsLink()" data-link="maps" target="_blank" rel="noopener">Rota</a>
-      }
-    </div>
     <div class="wave">
       <app-section-divider
         shape="ondulada"
-        [height]="40"
+        [height]="36"
         fromColor="var(--t-primary, var(--p1, #0f766e))"
         toColor="var(--t-surface, #fff)"
       />
@@ -71,11 +117,16 @@
     />
   }
 
-  @if (site.content.links?.length) {
+  @if (links().length) {
     <ul class="links" data-block="links">
-      @for (link of site.content.links; track link.url) {
+      @for (link of links(); track $index) {
         <li>
-          <a [href]="link.url" [attr.data-link]="link.tipo">{{ link.titulo }}</a>
+          <a [href]="link.url" [attr.data-link]="link.tipo" [class.main]="link.destaque" target="_blank" rel="noopener">
+            <b>{{ link.titulo }}</b>
+            @if (link.subtitulo) {
+              <small>{{ link.subtitulo }}</small>
+            }
+          </a>
         </li>
       }
     </ul>
@@ -84,12 +135,12 @@
   @if (site.content.servicos?.length) {
     <section data-block="servicos">
       <h2>Serviços</h2>
-      <ul class="svcgrid">
+      <ul class="grid2">
         @for (svc of site.content.servicos; track svc.nome) {
           <li>
-            <a [href]="interestHref(svc.nome)">
+            <a class="tile" [href]="interestHref(svc.nome)">
               @if (svc.fotoUrl) {
-                <img [src]="svc.fotoUrl" alt="" width="320" height="240" loading="lazy" />
+                <img [src]="svc.fotoUrl" [alt]="svc.nome" width="320" height="240" loading="lazy" />
               }
               <b>{{ svc.nome }}</b>
             </a>
@@ -99,89 +150,41 @@
     </section>
   }
 
-  @if (site.content.google) {
-    <section class="review" data-block="google">
-      <h2>Avaliações no Google</h2>
-      <p>
-        Nota
-        <strong data-google-rating>{{ googleRatingLabel() }}</strong>
-        ·
-        <span data-google-reviews>{{ googleReviewCountLabel() }}</span>
-        avaliações
-        <span class="example-label">(exemplo)</span>
-      </p>
-      <p>
-        <a href="/avaliar" [attr.data-place-id]="site.content.google.placeId">Avaliar no Google</a>
-      </p>
-    </section>
-  }
-
-  @if (site.content.hours?.length || site.content.weeklyHours) {
-    <section data-block="hours">
-      <h2>Horários</h2>
-      @if (openNow(); as status) {
-        <p class="open-now" data-open-now [attr.data-open-kind]="status.kind">{{ status.label }}</p>
-      }
-      @if (site.content.hours?.length) {
-        <ul class="hours">
-          @for (row of site.content.hours; track row.dias) {
-            <li>{{ hourLine(row) }}</li>
-          }
-        </ul>
-      }
-    </section>
-  }
-
-  @if (site.content.gallery?.length) {
-    <section data-block="gallery">
-      <h2>Galeria</h2>
-      <div class="gallery">
-        @for (src of site.content.gallery; track src) {
-          <img [src]="src" alt="" width="480" height="360" loading="lazy" />
-        }
-      </div>
-    </section>
-  }
-
-  @if (site.content.products?.length) {
+  @if (products().length) {
     <section data-block="catalog">
       <h2>Catálogo</h2>
-      @if (categories().length) {
-        <div class="cat-chips" role="group" aria-label="Filtrar por categoria">
-          <button
-            type="button"
-            class="cat-chip"
-            [attr.aria-pressed]="categoryFilter() === null"
-            (click)="setCategory(null)"
-          >
+      @if (categories().length > 1) {
+        <div class="cats" role="group" aria-label="Filtrar por categoria">
+          <button type="button" [attr.aria-pressed]="categoryFilter() === null" (click)="setCategory(null)">
             Todos
           </button>
           @for (cat of categories(); track cat) {
-            <button
-              type="button"
-              class="cat-chip"
-              [attr.aria-pressed]="categoryFilter() === cat"
-              (click)="setCategory(cat)"
-            >
+            <button type="button" [attr.aria-pressed]="categoryFilter() === cat" (click)="setCategory(cat)">
               {{ cat }}
             </button>
           }
         </div>
       }
-      <ul class="catalog" data-catalog-layout="grid">
-        @for (item of filteredProducts(); track item.nome) {
-          <li>
-            <a [href]="interestHref(item.nome)">
-              @if (item.fotoUrl) {
-                <img [src]="item.fotoUrl" alt="" width="320" height="240" loading="lazy" />
-              } @else {
-                <div class="catalog-ph" aria-hidden="true"></div>
+      <ul class="grid2" data-catalog-layout="grid">
+        @for (item of filteredProducts(); track $index) {
+          <li class="tile" data-catalog-item>
+            @if (item.fotoUrl) {
+              <img [src]="item.fotoUrl" [alt]="alt(item)" width="320" height="240" loading="lazy" />
+            } @else {
+              <div class="ph" aria-hidden="true"></div>
+            }
+            <div class="body">
+              <b>{{ item.nome }}</b>
+              @if (item.descricao) {
+                <small>{{ item.descricao }}</small>
               }
-              <span>
-                <b>{{ item.nome }}</b>
-                <small>{{ item.precoTexto || 'consulte' }}</small>
-              </span>
-            </a>
+              <span class="price" data-price>{{ price(item) || 'Consulte' }}</span>
+              @if (site.content.whatsapp?.numero) {
+                <a class="order" [href]="interestHref(item.nome, price(item))" target="_blank" rel="noopener">
+                  {{ item.rotuloBotao || 'Pedir' }}
+                </a>
+              }
+            </div>
           </li>
         }
       </ul>
@@ -204,16 +207,55 @@
   }
 
   @if (site.content.video?.youtubeId) {
-    <section class="video" data-block="video">
+    <section data-block="video">
       <h2>{{ site.content.video.titulo || 'Vídeo' }}</h2>
-      <div class="video-frame">
-        <iframe
-          [src]="youtubeEmbed()"
-          title="Vídeo do negócio"
-          loading="lazy"
-          allowfullscreen
-        ></iframe>
+      <div class="frame">
+        <iframe [src]="youtubeEmbed()" title="Vídeo do negócio" loading="lazy" allowfullscreen></iframe>
       </div>
+    </section>
+  }
+
+  @if (photos().length) {
+    <section data-block="gallery">
+      <h2>Galeria</h2>
+      <div class="gallery">
+        @for (photo of photos(); track $index) {
+          <img [src]="photo.url" [alt]="photo.alt || 'Foto de ' + nome()" width="480" height="480" loading="lazy" />
+        }
+      </div>
+    </section>
+  }
+
+  @if (testimonials().length) {
+    <section data-block="testimonials">
+      <h2>Depoimentos</h2>
+      <ul class="quotes">
+        @for (t of testimonials(); track $index) {
+          <li>
+            <ng-icon name="lucideQuote" />
+            <p>{{ t.text }}</p>
+            <b>{{ t.name }}</b>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (showReviews()) {
+    <section class="review" data-block="google">
+      <h2>Avaliações no Google</h2>
+      @if (hasRating()) {
+        <p>
+          <ng-icon name="lucideStar" />
+          <strong data-google-rating>{{ googleRatingLabel() }}</strong>
+          · <span data-google-reviews>{{ googleReviewCountLabel() }}</span> avaliações
+        </p>
+      }
+      @if (reviewHref()) {
+        <a class="btn" [href]="reviewHref()" target="_blank" rel="noopener" data-link="review">
+          Avaliar no Google
+        </a>
+      }
     </section>
   }
 
@@ -221,6 +263,64 @@
     <h2>Sobre</h2>
     <p>{{ about() }}</p>
   </section>
+
+  @if (hasHours()) {
+    <section data-block="hours">
+      <h2><ng-icon name="lucideClock" /> Horário</h2>
+      <ul class="hours">
+        @for (line of weeklyLines(); track line) {
+          <li>{{ line }}</li>
+        }
+        @for (row of legacyHours(); track $index) {
+          <li>{{ hourLine(row) }}</li>
+        }
+      </ul>
+      @if (site.content.hoursNote) {
+        <p class="muted">{{ site.content.hoursNote }}</p>
+      }
+    </section>
+  }
+
+  @if (hasLocation()) {
+    <section data-block="map">
+      <h2>Onde estamos</h2>
+      @if (addressLine()) {
+        <p class="addr">{{ addressLine() }}</p>
+        @if (mapLoaded() && mapSrc(); as src) {
+          <iframe class="map" [src]="src" title="Mapa do negócio" loading="lazy"></iframe>
+        } @else {
+          <div class="map-ph" data-map-placeholder>
+            <button type="button" class="btn ghost" data-load-map (click)="loadMap()">Ver mapa</button>
+          </div>
+        }
+      }
+      <a class="btn" [href]="mapsLink()" target="_blank" rel="noopener" data-link="maps-open">
+        <ng-icon name="lucideMapPin" /> Abrir no Google Maps
+      </a>
+    </section>
+  }
+
+  @if (pixKey()) {
+    <section class="pix" data-block="pix">
+      <h2>Pix</h2>
+      @if (pixIsExample()) {
+        <p class="example" data-pix-example>Dados de exemplo — não use para pagamento real</p>
+      }
+      <p class="pix-key"><strong data-pix-key>{{ pixKey() }}</strong></p>
+      @if (pixName()) {
+        <p class="muted">{{ pixName() }}</p>
+      }
+      @if (site.content.pix?.qrUrl) {
+        <img class="qr" [src]="site.content.pix!.qrUrl" alt="QR Code do Pix" width="160" height="160" />
+      }
+      <button type="button" class="btn" data-copy-pix aria-label="Copiar chave Pix" (click)="copyPix()">
+        <ng-icon name="lucideCopy" /> {{ copied() ? 'Chave copiada!' : 'Copiar chave Pix' }}
+      </button>
+      <p class="muted small" aria-live="polite">
+        {{ copied() ? 'Chave copiada para a área de transferência.' : 'Confira o nome do recebedor antes de pagar.' }}
+      </p>
+    </section>
+  }
 
   @if (site.content.faq?.length) {
     <section data-block="faq">
@@ -236,65 +336,13 @@
     </section>
   }
 
-  @if (site.content.address) {
-    <section data-block="map">
-      <h2>Onde estamos</h2>
-      <p class="address-line">{{ addressLine() }}</p>
-      @if (mapLoaded() && mapSrc(); as src) {
-        <iframe class="map" [src]="src" title="Mapa do negócio" loading="lazy"></iframe>
-      } @else {
-        <div class="map-placeholder" data-map-placeholder>
-          <button type="button" class="cta" data-load-map (click)="loadMap()">Carregar mapa</button>
-        </div>
-      }
-      <p class="actions">
-        <a [href]="mapsLink()" target="_blank" rel="noopener">Abrir no Maps</a>
-        @if (site.content.phone) {
-          <a [href]="'tel:' + site.content.phone">Ligar</a>
-        }
-      </p>
-    </section>
-  }
-
-  @if (site.content.pix) {
-    <section class="pix" data-block="pix">
-      <h2>Pix</h2>
-      @if (pixIsExample()) {
-        <p class="example-label" data-pix-example>Dados de exemplo — não use para pagamento real</p>
-      }
-      <p data-pix-key>{{ site.content.pix.chave }}</p>
-      <p>{{ site.content.pix.nome }}</p>
-      <p class="pix-hint">Confira o nome do recebedor antes de pagar.</p>
-      @if (site.content.pix.qrUrl) {
-        <img class="qr" [src]="site.content.pix.qrUrl" alt="QR do Pix" width="128" height="128" />
-      }
-      <button type="button" (click)="copyPix()">Copiar chave</button>
-      @if (copied()) {
-        <p aria-live="polite">Chave copiada</p>
-      }
-    </section>
-  }
-
-  @if (site.content.redes?.length) {
-    <section data-block="redes">
-      <h2>Redes</h2>
-      <ul class="links">
-        @for (rede of site.content.redes; track rede.url) {
-          <li>
-            <a [href]="rede.url" [attr.data-social]="rede.tipo" target="_blank" rel="noopener">{{
-              rede.tipo
-            }}</a>
-          </li>
-        }
-      </ul>
-    </section>
-  }
-
   <footer>
-    <p>feito por <a href="https://sejaengajado.com.br/">Seja Engajado</a></p>
+    <p>Site criado por <a href="https://sejaengajado.com.br/">Seja Engajado</a></p>
   </footer>
 
-  @if (site.content.whatsapp && !embed) {
-    <a class="wa-fab" [href]="whatsappHref()" data-fab="whatsapp" aria-label="WhatsApp">WhatsApp</a>
+  @if (site.content.whatsapp?.numero && !embed) {
+    <a class="fab" [href]="whatsappHref()" target="_blank" rel="noopener" data-fab="whatsapp" aria-label="Chamar no WhatsApp">
+      <ng-icon name="lucideMessageCircle" size="26" />
+    </a>
   }
 </article>

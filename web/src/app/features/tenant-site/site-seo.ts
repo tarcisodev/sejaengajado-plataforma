@@ -1,6 +1,12 @@
 import { SiteContent, SiteHours, SiteWeeklyHours, WeekdayKey } from '../../core/models/domain';
 import type { NicheThemeKey } from '../../core/theme/niche-themes';
 import { resolveNicheKey } from '../../core/theme/niche-themes';
+import {
+  galleryImages,
+  productCents,
+  productPriceLabel,
+  weeklyHoursOf,
+} from '../../core/site/site-content';
 
 export interface ClockParts {
   d: string;
@@ -107,12 +113,17 @@ export function ogImageUrl(content: SiteContent): string {
   if (fromSeo) {
     return fromSeo;
   }
+  const isHttp = (value: string | undefined): value is string => !!value && /^https?:\/\//.test(value);
+  const cover = content.profile?.coverUrl?.trim();
+  if (isHttp(cover)) {
+    return cover;
+  }
   const logo = content.profile?.logoUrl?.trim();
-  if (logo) {
+  if (isHttp(logo)) {
     return logo;
   }
-  const gallery = content.gallery?.find((url) => Boolean(url?.trim()));
-  if (gallery) {
+  const gallery = galleryImages(content)[0]?.url;
+  if (isHttp(gallery)) {
     return gallery;
   }
   return 'https://sejaengajado.com.br/og.svg';
@@ -125,10 +136,13 @@ export function whatsappHref(numero: string, text: string): string {
 
 export function addressLine(content: SiteContent): string {
   const address = content.address;
-  if (!address) {
+  if (!address?.logradouro) {
     return '';
   }
-  return `${address.logradouro}, ${address.cidade} - ${address.uf}`;
+  const city = [address.cidade, address.uf].filter(Boolean).join(' - ');
+  const parts = [address.logradouro, address.bairro, city].filter((part) => part && part.trim());
+  const line = parts.join(', ');
+  return address.cep ? `${line}, ${address.cep}` : line;
 }
 
 export function mapsEmbed(content: SiteContent): string {
@@ -173,9 +187,10 @@ export function countdownParts(endIso: string, now = new Date()): ClockParts | n
 export function siteJsonLd(content: SiteContent, slug: string, schemaType: string): string {
   const url = siteCanonical(slug);
   const resolvedType = schemaTypeForContent(content, schemaType);
-  const sameAs = (content.links ?? [])
-    .filter((link) => link.tipo === 'instagram')
-    .map((link) => link.url);
+  const sameAs = [
+    ...(content.links ?? []).filter((link) => link.tipo === 'instagram').map((link) => link.url),
+    ...(content.redes ?? []).filter((rede) => !!rede?.url).map((rede) => rede.url),
+  ];
   const business: Record<string, unknown> = {
     '@type': resolvedType,
     name: displayName(content),
@@ -187,19 +202,25 @@ export function siteJsonLd(content: SiteContent, slug: string, schemaType: strin
       addressLocality: content.profile.cidade,
       addressRegion: content.profile.uf,
       addressCountry: 'BR',
-      ...(content.address ? { streetAddress: content.address.logradouro } : {}),
+      ...(content.address?.logradouro ? { streetAddress: content.address.logradouro } : {}),
+      ...(content.address?.cep ? { postalCode: content.address.cep } : {}),
     },
   };
   if (content.phone) {
     business['telephone'] = content.phone;
   }
-  if (content.address) {
+  if (content.email) {
+    business['email'] = content.email;
+  }
+  if (content.mapsUrl) {
+    business['hasMap'] = content.mapsUrl;
+  } else if (content.address?.logradouro) {
     business['hasMap'] = mapsLink(content);
   }
   if (sameAs.length) {
     business['sameAs'] = sameAs;
   }
-  const hours = openingHoursSpecification(content.weeklyHours);
+  const hours = openingHoursSpecification(weeklyHoursOf(content));
   if (hours.length) {
     business['openingHoursSpecification'] = hours;
   }
@@ -213,11 +234,15 @@ export function siteJsonLd(content: SiteContent, slug: string, schemaType: strin
     };
   }
   if (content.products?.length) {
-    business['makesOffer'] = content.products.map((item) => ({
-      '@type': 'Offer',
-      name: item.nome,
-      description: item.precoTexto,
-    }));
+    business['makesOffer'] = content.products.map((item) => {
+      const cents = productCents(item);
+      return {
+        '@type': 'Offer',
+        name: item.nome,
+        description: productPriceLabel(item) || undefined,
+        ...(cents !== null ? { price: (cents / 100).toFixed(2), priceCurrency: 'BRL' } : {}),
+      };
+    });
   }
   const graph: Record<string, unknown>[] = [
     business,

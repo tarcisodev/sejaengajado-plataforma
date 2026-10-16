@@ -31,6 +31,47 @@ export function buildUploadObjectKey(resellerId: string, contentType: string): s
   return `resellers/${resellerId}/${randomUUID()}${extFor(contentType)}`;
 }
 
+/**
+ * Who owns an upload. Drives the object-key prefix (tenant isolation):
+ * - reseller: `resellers/<resellerId>/<uuid>.ext`
+ * - admin: `admin/<uuid>.ext`
+ * - customer: `customers/<userId>/<uuid>.ext`
+ */
+export type UploadScope =
+  | { kind: 'reseller'; resellerId: string }
+  | { kind: 'admin' }
+  | { kind: 'customer'; userId: string };
+
+/** Object key for a presigned upload, prefixed by its owner scope. */
+export function buildScopedUploadKey(scope: UploadScope, contentType: string): string {
+  switch (scope.kind) {
+    case 'reseller':
+      return buildUploadObjectKey(requireId(scope.resellerId), contentType);
+    case 'admin':
+      return `admin/${randomUUID()}${extFor(contentType)}`;
+    case 'customer':
+      return `customers/${requireId(scope.userId)}/${randomUUID()}${extFor(contentType)}`;
+    default: {
+      const exhaustive: never = scope;
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Escopo de upload inválido',
+        scope: String(exhaustive),
+      });
+    }
+  }
+}
+
+function requireId(id: string | null | undefined): string {
+  if (!id || !/^[0-9a-zA-Z-]{1,64}$/.test(id)) {
+    throw new BadRequestException({
+      code: 'VALIDATION_FAILED',
+      message: 'Escopo de upload inválido',
+    });
+  }
+  return id;
+}
+
 export function uploadPostConditions(
   contentType: string,
   maxBytes: number,
@@ -47,7 +88,11 @@ export class UploadService {
 
   constructor(@Inject(ENV) private readonly env: Env) {}
 
-  async createPresignedUpload(body: unknown, resellerId: string) {
+  /**
+   * Presigned S3 POST (JPEG/PNG/WebP, ≤ 5 MB, 5 min).
+   * @param scope owner of the upload (reseller / admin / customer).
+   */
+  async createPresignedUpload(body: unknown, scope: UploadScope) {
     const parsed = requestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException({
@@ -100,7 +145,7 @@ export class UploadService {
       });
     }
 
-    const key = buildUploadObjectKey(resellerId, contentType);
+    const key = buildScopedUploadKey(scope, contentType);
     const { url, fields } = await createPresignedPost(this.getClient(), {
       Bucket: bucket,
       Key: key,

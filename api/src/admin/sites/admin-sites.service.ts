@@ -10,7 +10,10 @@ import { z } from 'zod';
 
 import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../../common/cursor';
 import { ByHostCache } from '../../public/sites/by-host.cache';
-import { siteContentSchema } from '../../reseller/sites/site-content.schema';
+import {
+  mergeSiteContent,
+  siteContentSchema,
+} from '../../reseller/sites/site-content.schema';
 import {
   assertSlugFormat,
   assertSlugNotBrand,
@@ -29,6 +32,8 @@ const statusSchema = z.object({
 const patchContentSchema = z.object({
   templateId: z.string().uuid().optional(),
   content: z.unknown().optional(),
+  /** true = shallow-merge top-level keys into stored content (wizard step drafts). */
+  merge: z.boolean().optional(),
 });
 
 /** Admin Advanced: slug, plan, status, customer, reseller owner. */
@@ -173,7 +178,7 @@ export class AdminSitesService {
   async updateContent(id: string, body: unknown) {
     const existing = await this.db.site.findUnique({
       where: { id },
-      select: { id: true, slug: true },
+      select: { id: true, slug: true, content: true },
     });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Recurso não encontrado' });
@@ -195,7 +200,10 @@ export class AdminSitesService {
       data.templateId = parsed.data.templateId;
     }
     if (parsed.data.content !== undefined) {
-      const content = siteContentSchema.safeParse(parsed.data.content);
+      const raw = parsed.data.merge
+        ? mergeSiteContent(existing.content, parsed.data.content)
+        : parsed.data.content;
+      const content = siteContentSchema.safeParse(raw);
       if (!content.success) {
         throw new BadRequestException({
           code: 'VALIDATION_FAILED',
@@ -333,9 +341,66 @@ export class AdminSitesService {
     }
   }
 
+  /** Slug availability across all tenants (admin wizard). */
+  async checkSlug(raw: string, excludeId?: string) {
+    const slug = normalizeSlug(raw ?? '');
+    try {
+      assertSlugFormat(slug);
+      assertSlugNotBrand(slug);
+      const reserved = await this.db.reservedSlug.findUnique({ where: { slug } });
+      if (reserved) {
+        throw slugReservedError();
+      }
+      const taken = await this.db.site.findFirst({
+        where: {
+          slug: { equals: slug, mode: 'insensitive' },
+          ...(excludeId ? { NOT: { id: excludeId } } : {}),
+        },
+        select: { id: true },
+      });
+      if (taken) {
+        throw slugTakenError();
+      }
+      return { slug, available: true };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof ConflictException) {
+        const response = error.getResponse() as { code?: string };
+        return { slug, available: false, code: response.code ?? 'SLUG_INVALID' };
+      }
+      throw error;
+    }
+  }
+
+  /** Plans + active templates for the admin "Novo site" wizard. */
+  async siteOptions() {
+    const [plans, templates] = await Promise.all([
+      this.db.plan.findMany({
+        orderBy: { code: 'asc' },
+        select: { id: true, code: true, name: true, type: true, priceCents: true },
+      }),
+      this.db.template.findMany({
+        where: { active: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, key: true, name: true, niche: true },
+      }),
+    ]);
+    return { plans, templates };
+  }
+
   async publish(id: string) {
     const site = await this.get(id);
-    siteContentSchema.parse(site.content);
+    const content = siteContentSchema.safeParse(site.content);
+    if (!content.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Conteúdo inválido',
+        fields: content.error.issues.map((issue) => ({
+          path: ['content', ...issue.path].join('.'),
+          code: issue.code,
+          message: issue.message,
+        })),
+      });
+    }
     const updated = await this.db.site.update({
       where: { id },
       data: {

@@ -1,307 +1,1271 @@
-<section class="grid gap-6" data-site-editor>
-  <div hlmCard class="p-4 md:p-6">
-    <h2 class="font-display text-xl">Editor do site</h2>
-    <p class="mt-1 text-sm text-muted-foreground">
-      {{ site().slug }}.sejaengajado.com.br · {{ site().status }}
-    </p>
+<section class="grid gap-6" data-site-editor [attr.data-editor-mode]="mode()">
+  <div class="grid gap-6" [class.lg:grid-cols-12]="showPreview()">
+    <div class="min-w-0" [class.lg:col-span-7]="showPreview()">
+      <div hlmCard class="p-4 md:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h2 class="font-display text-xl">
+              {{ mode() === 'wizard' ? 'Conteúdo do site' : 'Editor do site' }}
+            </h2>
+            <p class="mt-1 truncate text-sm text-muted-foreground">
+              {{ site().slug }}.sejaengajado.com.br ·
+              <span class="font-semibold">{{ site().status }}</span>
+            </p>
+          </div>
+          <button
+            hlmBtn
+            type="button"
+            variant="outline"
+            class="h-11 gap-1.5"
+            data-toggle-preview
+            [attr.aria-pressed]="showPreview()"
+            [attr.aria-label]="showPreview() ? 'Ocultar prévia do celular' : 'Mostrar prévia do celular'"
+            (click)="showPreview.set(!showPreview())"
+          >
+            <ng-icon name="lucideSmartphone" />
+            {{ showPreview() ? 'Ocultar prévia' : 'Ver prévia' }}
+          </button>
+        </div>
 
-    <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Abas do editor">
-      <button
-        hlmBtn
-        type="button"
-        class="h-11"
-        role="tab"
-        [variant]="tab() === 'conteudo' ? 'default' : 'outline'"
-        [attr.aria-selected]="tab() === 'conteudo'"
-        data-tab="conteudo"
-        (click)="tab.set('conteudo')"
-      >
-        Conteúdo
-      </button>
-      <button
-        hlmBtn
-        type="button"
-        class="h-11"
-        role="tab"
-        [variant]="tab() === 'formula' ? 'default' : 'outline'"
-        [attr.aria-selected]="tab() === 'formula'"
-        data-tab="formula"
-        (click)="tab.set('formula')"
-      >
-        FORMULA
-      </button>
-      @if (showAdvanced()) {
-        <button
-          hlmBtn
-          type="button"
-          class="h-11"
-          role="tab"
-          [variant]="tab() === 'avancado' ? 'default' : 'outline'"
-          [attr.aria-selected]="tab() === 'avancado'"
-          data-tab="avancado"
-          (click)="tab.set('avancado')"
-        >
-          Avançado
-        </button>
-      }
+        <div class="mt-4 flex gap-2 overflow-x-auto border-b border-border pb-3" role="tablist">
+          @for (t of tabs(); track t.key; let i = $index) {
+            <button
+              hlmBtn
+              type="button"
+              class="h-11 shrink-0"
+              role="tab"
+              [variant]="tab() === t.key ? 'default' : 'outline'"
+              [attr.aria-selected]="tab() === t.key"
+              [attr.data-tab]="t.key"
+              (click)="goTab(t.key)"
+            >
+              @if (mode() === 'wizard') {
+                {{ i + 1 }}.
+              }
+              {{ t.label }}
+              @if (tabHasErrors(t.key)) {
+                <span class="ml-1 inline-block size-2 rounded-full bg-destructive" aria-label="com erros"></span>
+              }
+            </button>
+          }
+        </div>
+
+        <!-- IDENTIDADE -->
+        @if (tab() === 'identidade') {
+          <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" aria-label="Identidade">
+            <label class="grid gap-1.5 text-sm md:col-span-2">
+              <span class="font-medium">Nome do negócio *</span>
+              <input
+                hlmInput
+                class="h-11"
+                data-field="businessName"
+                autocomplete="organization"
+                [value]="d().businessName"
+                [attr.aria-invalid]="!!err('businessName')"
+                (input)="patch('businessName', val($event))"
+                (blur)="touch('businessName')"
+                placeholder="Ex.: Barbearia Estilo"
+              />
+              @if (err('businessName'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+
+            <label class="grid gap-1.5 text-sm md:col-span-2">
+              <span class="font-medium">Slogan</span>
+              <input
+                hlmInput
+                class="h-11"
+                data-field="slogan"
+                maxlength="120"
+                [value]="d().slogan"
+                (input)="patch('slogan', val($event))"
+                (blur)="touch('slogan')"
+                placeholder="Ex.: O melhor corte da cidade"
+              />
+              @if (err('slogan'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+
+            <label class="grid gap-1.5 text-sm md:col-span-2">
+              <span class="font-medium">Sobre o negócio</span>
+              <textarea
+                hlmInput
+                class="min-h-24 py-2"
+                data-field="description"
+                maxlength="600"
+                [value]="d().about"
+                (input)="patch('about', val($event))"
+                (blur)="touch('about')"
+                placeholder="Conte em poucas linhas o que você oferece e seus diferenciais."
+              ></textarea>
+              @if (err('about'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+
+            <!-- Foto de perfil -->
+            <div class="grid content-start gap-2 rounded-lg border border-border p-3" data-upload-block="logo">
+              <span class="text-sm font-medium">Foto de perfil (quadrada)</span>
+              <div class="flex items-center gap-3">
+                @if (d().logoUrl) {
+                  <img
+                    [src]="d().logoUrl"
+                    [alt]="d().logoAlt || 'Foto de perfil'"
+                    class="size-16 shrink-0 rounded-full border border-border object-cover"
+                  />
+                } @else {
+                  <div class="grid size-16 shrink-0 place-items-center rounded-full bg-muted text-xs text-muted-foreground">
+                    1:1
+                  </div>
+                }
+                <div class="flex flex-wrap gap-2">
+                  <label class="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent">
+                    <input
+                      type="file"
+                      class="sr-only"
+                      data-upload="logo"
+                      [accept]="accept"
+                      [disabled]="!!uploading()"
+                      (change)="onUpload($event, 'logo')"
+                    />
+                    <ng-icon name="lucideUpload" />
+                    {{ uploading() === 'logo' ? 'Enviando…' : d().logoUrl ? 'Trocar' : 'Enviar foto' }}
+                  </label>
+                  @if (d().logoUrl) {
+                    <app-confirm-action
+                      title="Remover foto de perfil"
+                      effect="A foto sai do site (o arquivo enviado não é apagado)."
+                      verb="Remover"
+                      ariaLabel="Remover foto de perfil"
+                      triggerVariant="outline"
+                      [destructive]="true"
+                      (confirm)="patch('logoUrl', '')"
+                    >
+                      <ng-icon name="lucideTrash2" />
+                    </app-confirm-action>
+                  }
+                </div>
+              </div>
+              <p class="text-xs text-muted-foreground">JPEG, PNG ou WebP até 5 MB. Recortamos no centro.</p>
+              <input
+                hlmInput
+                class="h-10 text-sm"
+                data-field="logoUrl"
+                placeholder="Ou cole o link da imagem"
+                [value]="d().logoUrl.startsWith('data:') ? '' : d().logoUrl"
+                (input)="patch('logoUrl', val($event))"
+                (blur)="touch('logoUrl')"
+              />
+              @if (err('logoUrl'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+              @if (d().logoUrl) {
+                <label class="grid gap-1 text-xs">
+                  Texto alternativo (acessibilidade)
+                  <input
+                    hlmInput
+                    class="h-10 text-sm"
+                    data-field="logoAlt"
+                    [value]="d().logoAlt"
+                    (input)="patch('logoAlt', val($event))"
+                    [placeholder]="'Logo de ' + (d().businessName || 'seu negócio')"
+                  />
+                </label>
+              }
+            </div>
+
+            <!-- Capa -->
+            <div class="grid content-start gap-2 rounded-lg border border-border p-3" data-upload-block="cover">
+              <span class="text-sm font-medium">Capa (16:9)</span>
+              @if (d().coverUrl) {
+                <img
+                  [src]="d().coverUrl"
+                  [alt]="d().coverAlt || 'Capa'"
+                  class="aspect-video w-full rounded border border-border object-cover"
+                />
+              } @else {
+                <div class="grid aspect-video w-full place-items-center rounded bg-muted text-xs text-muted-foreground">
+                  16:9
+                </div>
+              }
+              <div class="flex flex-wrap gap-2">
+                <label class="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent">
+                  <input
+                    type="file"
+                    class="sr-only"
+                    data-upload="cover"
+                    [accept]="accept"
+                    [disabled]="!!uploading()"
+                    (change)="onUpload($event, 'cover')"
+                  />
+                  <ng-icon name="lucideImagePlus" />
+                  {{ uploading() === 'cover' ? 'Enviando…' : d().coverUrl ? 'Trocar capa' : 'Enviar capa' }}
+                </label>
+                @if (d().coverUrl) {
+                  <app-confirm-action
+                    title="Remover capa"
+                    effect="A capa sai do topo do site."
+                    verb="Remover"
+                    ariaLabel="Remover capa"
+                    triggerVariant="outline"
+                    [destructive]="true"
+                    (confirm)="patch('coverUrl', '')"
+                  >
+                    <ng-icon name="lucideTrash2" />
+                  </app-confirm-action>
+                }
+              </div>
+              <input
+                hlmInput
+                class="h-10 text-sm"
+                data-field="coverUrl"
+                placeholder="Ou cole o link da capa"
+                [value]="d().coverUrl.startsWith('data:') ? '' : d().coverUrl"
+                (input)="patch('coverUrl', val($event))"
+                (blur)="touch('coverUrl')"
+              />
+              @if (err('coverUrl'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+              @if (d().coverUrl) {
+                <label class="grid gap-1 text-xs">
+                  Texto alternativo da capa
+                  <input
+                    hlmInput
+                    class="h-10 text-sm"
+                    data-field="coverAlt"
+                    [value]="d().coverAlt"
+                    (input)="patch('coverAlt', val($event))"
+                    [placeholder]="'Capa de ' + (d().businessName || 'seu negócio')"
+                  />
+                </label>
+              }
+            </div>
+
+            <label class="grid gap-1.5 text-sm">
+              <span class="font-medium">Ramo (tema)</span>
+              <select
+                class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                data-field="niche"
+                [value]="d().niche"
+                (change)="patch('niche', $any(val($event)))"
+              >
+                @for (n of nicheChoices; track n.value) {
+                  <option [value]="n.value">{{ n.label }}</option>
+                }
+              </select>
+            </label>
+
+            <div class="grid gap-1.5 text-sm">
+              <span class="font-medium">Cor principal</span>
+              <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Cores sugeridas">
+                @for (c of swatches; track c) {
+                  <button
+                    type="button"
+                    class="size-8 rounded-full border-2"
+                    [style.background]="c"
+                    [class.border-foreground]="d().brandColor === c"
+                    [class.border-transparent]="d().brandColor !== c"
+                    [attr.aria-label]="'Usar a cor ' + c"
+                    [attr.aria-pressed]="d().brandColor === c"
+                    (click)="patch('brandColor', c)"
+                  ></button>
+                }
+                <input
+                  type="color"
+                  class="size-9 cursor-pointer rounded border border-input"
+                  data-field="brandColor"
+                  aria-label="Escolher outra cor"
+                  [value]="d().brandColor || '#1e3a5f'"
+                  (input)="patch('brandColor', val($event))"
+                />
+              </div>
+              @if (err('brandColor'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </div>
+
+            <label class="grid gap-1.5 text-sm">
+              <span class="font-medium">Cidade</span>
+              <input
+                hlmInput
+                class="h-11"
+                data-field="cidade"
+                autocomplete="address-level2"
+                [value]="d().cidade"
+                (input)="patch('cidade', val($event))"
+                placeholder="Ex.: Uberaba"
+              />
+            </label>
+
+            <label class="grid gap-1.5 text-sm">
+              <span class="font-medium">UF</span>
+              <input
+                hlmInput
+                class="h-11 uppercase"
+                maxlength="2"
+                data-field="uf"
+                autocomplete="address-level1"
+                [value]="d().uf"
+                (input)="patch('uf', val($event))"
+                (blur)="touch('uf')"
+                placeholder="MG"
+              />
+              @if (err('uf'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+          </div>
+        }
+
+        <!-- CONTATO -->
+        @if (tab() === 'contato') {
+          <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" aria-label="Contato">
+            <label class="grid gap-1.5 text-sm">
+              <span class="font-medium">WhatsApp (com DDD)</span>
+              <input
+                hlmInput
+                class="h-11"
+                type="tel"
+                inputmode="tel"
+                data-field="whatsapp"
+                [value]="d().whatsapp"
+                (input)="patch('whatsapp', val($event))"
+                (blur)="touch('whatsapp')"
+                placeholder="Ex.: 34 99999-8888"
+              />
+              @if (err('whatsapp'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+
+            <label class="grid gap-1.5 text-sm">
+              <span class="font-medium">Telefone</span>
+              <input
+                hlmInput
+                class="h-11"
+                type="tel"
+                inputmode="tel"
+                data-field="phone"
+                [value]="d().phone"
+                (input)="patch('phone', val($event))"
+                (blur)="touch('phone')"
+                placeholder="Ex.: (34) 3333-4444"
+              />
+              @if (err('phone'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+
+            <label class="grid gap-1.5 text-sm md:col-span-2">
+              <span class="font-medium">Mensagem inicial do WhatsApp</span>
+              <input
+                hlmInput
+                class="h-11"
+                data-field="whatsappMsg"
+                [value]="d().whatsappMsg"
+                (input)="patch('whatsappMsg', val($event))"
+                placeholder="Olá! Vim pelo site."
+              />
+            </label>
+
+            <label class="grid gap-1.5 text-sm md:col-span-2">
+              <span class="font-medium">E-mail</span>
+              <input
+                hlmInput
+                class="h-11"
+                type="email"
+                inputmode="email"
+                data-field="email"
+                [value]="d().email"
+                (input)="patch('email', val($event))"
+                (blur)="touch('email')"
+                placeholder="contato@seunegocio.com.br"
+              />
+              @if (err('email'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+
+            <fieldset class="grid gap-3 rounded-lg border border-border p-3 md:col-span-2 md:grid-cols-2">
+              <legend class="px-1 text-sm font-medium">Redes sociais</legend>
+              <label class="grid gap-1 text-xs">
+                Instagram
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="instagram"
+                  [value]="d().instagram"
+                  (input)="patch('instagram', val($event))"
+                  (blur)="touch('instagram')"
+                  placeholder="@seunegocio"
+                />
+                @if (err('instagram'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+              <label class="grid gap-1 text-xs">
+                Facebook
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="facebook"
+                  [value]="d().facebook"
+                  (input)="patch('facebook', val($event))"
+                  (blur)="touch('facebook')"
+                  placeholder="@pagina ou link"
+                />
+                @if (err('facebook'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+              <label class="grid gap-1 text-xs">
+                TikTok
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="tiktok"
+                  [value]="d().tiktok"
+                  (input)="patch('tiktok', val($event))"
+                  (blur)="touch('tiktok')"
+                  placeholder="@perfil"
+                />
+                @if (err('tiktok'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+              <label class="grid gap-1 text-xs">
+                YouTube
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="youtube"
+                  [value]="d().youtube"
+                  (input)="patch('youtube', val($event))"
+                  (blur)="touch('youtube')"
+                  placeholder="@canal ou link"
+                />
+                @if (err('youtube'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-2">
+                Site
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="website"
+                  [value]="d().website"
+                  (input)="patch('website', val($event))"
+                  (blur)="touch('website')"
+                  placeholder="www.seunegocio.com.br"
+                />
+                @if (err('website'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+            </fieldset>
+
+            <fieldset class="grid gap-3 rounded-lg border border-border p-3 md:col-span-2 md:grid-cols-6">
+              <legend class="px-1 text-sm font-medium">Endereço</legend>
+              <label class="grid gap-1 text-xs md:col-span-4">
+                Rua e número
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="logradouro"
+                  autocomplete="street-address"
+                  [value]="d().logradouro"
+                  (input)="patch('logradouro', val($event))"
+                  placeholder="Av. Leopoldino de Oliveira, 1000"
+                />
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-2">
+                CEP
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  inputmode="numeric"
+                  data-field="cep"
+                  autocomplete="postal-code"
+                  [value]="d().cep"
+                  (input)="patch('cep', val($event))"
+                  (blur)="touch('cep')"
+                  placeholder="38000-000"
+                />
+                @if (err('cep'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-2">
+                Bairro
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="bairro"
+                  [value]="d().bairro"
+                  (input)="patch('bairro', val($event))"
+                  placeholder="Centro"
+                />
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-3">
+                Cidade
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="addressCidade"
+                  [value]="d().cidade"
+                  (input)="patch('cidade', val($event))"
+                  placeholder="Uberaba"
+                />
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-1">
+                UF
+                <input
+                  hlmInput
+                  class="h-11 text-sm uppercase"
+                  maxlength="2"
+                  data-field="addressUf"
+                  [value]="d().uf"
+                  (input)="patch('uf', val($event))"
+                  (blur)="touch('uf')"
+                  placeholder="MG"
+                />
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-6">
+                Link do Google Maps
+                <div class="flex gap-2">
+                  <input
+                    hlmInput
+                    class="h-11 min-w-0 flex-1 text-sm"
+                    data-field="mapsUrl"
+                    [value]="d().mapsUrl"
+                    (input)="patch('mapsUrl', val($event))"
+                    (blur)="touch('mapsUrl')"
+                    placeholder="https://maps.app.goo.gl/..."
+                  />
+                  <button
+                    hlmBtn
+                    type="button"
+                    variant="outline"
+                    class="h-11 shrink-0 gap-1"
+                    data-action="maps-from-address"
+                    aria-label="Gerar link do Maps a partir do endereço"
+                    (click)="fillMapsFromAddress()"
+                  >
+                    <ng-icon name="lucideMapPin" />
+                    Gerar
+                  </button>
+                </div>
+                @if (err('mapsUrl'); as m) {
+                  <span class="text-destructive" role="alert">{{ m }}</span>
+                }
+              </label>
+            </fieldset>
+
+            <fieldset class="grid gap-2 rounded-lg border border-border p-3 md:col-span-2" data-hours-editor>
+              <legend class="px-1 text-sm font-medium">Horário de funcionamento</legend>
+              <label class="inline-flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="size-5"
+                  data-toggle-hours
+                  [checked]="d().hasHours"
+                  (change)="patch('hasHours', checked($event))"
+                />
+                Mostrar horário no site
+              </label>
+              @if (d().hasHours) {
+                @for (day of weekdays; track day.key) {
+                  <div class="grid grid-cols-[4.5rem_auto_1fr] items-center gap-2 text-sm" [attr.data-day]="day.key">
+                    <span class="font-medium">{{ day.short }}</span>
+                    <label class="inline-flex min-h-11 items-center gap-1.5 text-xs">
+                      <input
+                        type="checkbox"
+                        class="size-5"
+                        [checked]="d().week[day.key].open"
+                        [attr.aria-label]="day.long + ' aberto'"
+                        (change)="setDay(day.key, { open: checked($event) })"
+                      />
+                      {{ d().week[day.key].open ? 'Aberto' : 'Fechado' }}
+                    </label>
+                    @if (d().week[day.key].open) {
+                      <div class="flex items-center gap-1.5">
+                        <input
+                          hlmInput
+                          type="time"
+                          class="h-11 w-full min-w-0 text-sm"
+                          [attr.aria-label]="day.long + ' abre'"
+                          [value]="d().week[day.key].from"
+                          (input)="setDay(day.key, { from: val($event) })"
+                        />
+                        <span aria-hidden="true">–</span>
+                        <input
+                          hlmInput
+                          type="time"
+                          class="h-11 w-full min-w-0 text-sm"
+                          [attr.aria-label]="day.long + ' fecha'"
+                          [value]="d().week[day.key].to"
+                          (input)="setDay(day.key, { to: val($event) })"
+                        />
+                      </div>
+                    } @else {
+                      <span></span>
+                    }
+                  </div>
+                  @if (errors()['hours.' + day.key]; as m) {
+                    <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+                  }
+                }
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    hlmBtn
+                    type="button"
+                    variant="outline"
+                    class="h-11"
+                    aria-label="Copiar o horário de segunda para terça a sexta"
+                    (click)="copyMondayToWeekdays()"
+                  >
+                    Copiar segunda para ter–sex
+                  </button>
+                </div>
+                <label class="grid gap-1 text-xs">
+                  Observação (opcional)
+                  <input
+                    hlmInput
+                    class="h-11 text-sm"
+                    data-field="hoursNote"
+                    [value]="d().hoursNote"
+                    (input)="patch('hoursNote', val($event))"
+                    placeholder="Ex.: Feriados sob consulta"
+                  />
+                </label>
+              }
+            </fieldset>
+
+            <label class="grid gap-1.5 text-sm md:col-span-2">
+              <span class="font-medium">Link de avaliação no Google</span>
+              <input
+                hlmInput
+                class="h-11"
+                data-field="googleReviewUrl"
+                [value]="d().googleReviewUrl"
+                (input)="patch('googleReviewUrl', val($event))"
+                (blur)="touch('googleReviewUrl')"
+                placeholder="https://g.page/r/.../review"
+              />
+              <span class="text-xs text-muted-foreground">
+                No Google Meu Negócio: "Pedir avaliações" → copiar link.
+              </span>
+              @if (err('googleReviewUrl'); as m) {
+                <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+              }
+            </label>
+          </div>
+        }
+
+        <!-- MÓDULOS -->
+        @if (tab() === 'modulos') {
+          <div class="mt-6 grid gap-4" role="tabpanel" aria-label="Módulos">
+            <!-- Catálogo -->
+            <div class="rounded-lg border border-border p-3 md:p-4" data-module="catalog">
+              <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                <span>
+                  <span class="block font-medium">Catálogo / Cardápio</span>
+                  <span class="block text-xs text-muted-foreground">Itens com foto, preço e botão de pedir no WhatsApp.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  class="size-6 shrink-0"
+                  data-toggle-catalog
+                  [checked]="d().catalog"
+                  (change)="patch('catalog', checked($event))"
+                />
+              </label>
+              @if (d().catalog) {
+                <div class="mt-3 grid gap-3">
+                  @for (item of d().products; track $index; let i = $index) {
+                    <div class="grid gap-2 rounded-md border border-border bg-muted/20 p-3 sm:grid-cols-6" data-catalog-item>
+                      <div class="flex items-start gap-2 sm:col-span-6">
+                        @if (item.fotoUrl) {
+                          <img [src]="item.fotoUrl" [alt]="item.fotoAlt || item.nome" class="size-14 shrink-0 rounded object-cover" />
+                        } @else {
+                          <div class="grid size-14 shrink-0 place-items-center rounded bg-muted text-[10px] text-muted-foreground">sem foto</div>
+                        }
+                        <label class="grid min-w-0 flex-1 gap-1 text-xs">
+                          Nome do item
+                          <input
+                            hlmInput
+                            class="h-11 text-sm"
+                            data-field="productName"
+                            [value]="item.nome"
+                            (input)="updateProduct(i, { nome: val($event) })"
+                            (blur)="touch('products')"
+                            [placeholder]="'Item ' + (i + 1)"
+                          />
+                          @if (err('products.' + i + '.nome'); as m) {
+                            <span class="text-destructive" role="alert">{{ m }}</span>
+                          }
+                        </label>
+                      </div>
+                      <label class="grid gap-1 text-xs sm:col-span-2">
+                        Preço (R$)
+                        <input
+                          hlmInput
+                          class="h-11 text-sm"
+                          inputmode="decimal"
+                          data-field="productPrice"
+                          [value]="item.price"
+                          (input)="updateProduct(i, { price: val($event) })"
+                          (blur)="formatPrice(i)"
+                          placeholder="29,90"
+                        />
+                        @if (err('products.' + i + '.price'); as m) {
+                          <span class="text-destructive" role="alert">{{ m }}</span>
+                        }
+                      </label>
+                      <label class="grid gap-1 text-xs sm:col-span-2">
+                        Categoria
+                        <input
+                          hlmInput
+                          class="h-11 text-sm"
+                          [value]="item.categoria"
+                          (input)="updateProduct(i, { categoria: val($event) })"
+                          placeholder="Destaques"
+                        />
+                      </label>
+                      <div class="flex items-end gap-2 sm:col-span-2">
+                        <label class="inline-flex h-11 cursor-pointer items-center gap-1 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent">
+                          <input
+                            type="file"
+                            class="sr-only"
+                            [accept]="accept"
+                            [disabled]="!!uploading()"
+                            (change)="onUpload($event, $any('product-' + i))"
+                          />
+                          <ng-icon name="lucideUpload" />
+                          {{ uploading() === 'product-' + i ? '…' : 'Foto' }}
+                        </label>
+                        <app-confirm-action
+                          title="Remover item"
+                          [effect]="'O item ' + (item.nome || i + 1) + ' sai do catálogo.'"
+                          verb="Remover"
+                          [ariaLabel]="'Remover item ' + (item.nome || i + 1)"
+                          triggerVariant="outline"
+                          [destructive]="true"
+                          (confirm)="removeProduct(i)"
+                        >
+                          <ng-icon name="lucideTrash2" />
+                        </app-confirm-action>
+                      </div>
+                      <label class="grid gap-1 text-xs sm:col-span-6">
+                        Descrição (opcional)
+                        <input
+                          hlmInput
+                          class="h-11 text-sm"
+                          [value]="item.descricao"
+                          (input)="updateProduct(i, { descricao: val($event) })"
+                          placeholder="Ex.: Pão brioche, 180 g, cheddar"
+                        />
+                      </label>
+                      @if (item.fotoUrl) {
+                        <label class="grid gap-1 text-xs sm:col-span-6">
+                          Texto alternativo da foto
+                          <input
+                            hlmInput
+                            class="h-11 text-sm"
+                            [value]="item.fotoAlt"
+                            (input)="updateProduct(i, { fotoAlt: val($event) })"
+                            [placeholder]="item.nome || 'Foto do item'"
+                          />
+                        </label>
+                      }
+                    </div>
+                  }
+                  @if (err('products'); as m) {
+                    <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+                  }
+                  <button
+                    hlmBtn
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-fit gap-1"
+                    data-action="add-product"
+                    aria-label="Adicionar item ao catálogo"
+                    (click)="addProduct()"
+                  >
+                    <ng-icon name="lucidePlus" />
+                    Adicionar item
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Pix -->
+            <div class="rounded-lg border border-border p-3 md:p-4" data-module="pix">
+              <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                <span>
+                  <span class="block font-medium">Pix</span>
+                  <span class="block text-xs text-muted-foreground">Mostra a chave com botão de copiar.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  class="size-6 shrink-0"
+                  data-toggle-pix
+                  [checked]="d().pix"
+                  (change)="patch('pix', checked($event))"
+                />
+              </label>
+              @if (d().pix) {
+                <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label class="grid gap-1 text-xs">
+                    Chave Pix (CPF, CNPJ, e-mail, telefone ou aleatória)
+                    <input
+                      hlmInput
+                      class="h-11 text-sm"
+                      data-field="pixKey"
+                      [value]="d().pixKey"
+                      (input)="patch('pixKey', val($event))"
+                      (blur)="touch('pixKey')"
+                      placeholder="Ex.: contato@seunegocio.com.br"
+                    />
+                    @if (err('pixKey'); as m) {
+                      <span class="text-destructive" role="alert">{{ m }}</span>
+                    }
+                  </label>
+                  <label class="grid gap-1 text-xs">
+                    Nome de quem recebe
+                    <input
+                      hlmInput
+                      class="h-11 text-sm"
+                      data-field="pixName"
+                      [value]="d().pixName"
+                      (input)="patch('pixName', val($event))"
+                      [placeholder]="d().businessName || 'Nome do recebedor'"
+                    />
+                  </label>
+                </div>
+              }
+            </div>
+
+            <!-- Galeria -->
+            <div class="rounded-lg border border-border p-3 md:p-4" data-module="gallery">
+              <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                <span>
+                  <span class="block font-medium">Galeria de fotos</span>
+                  <span class="block text-xs text-muted-foreground">Fotos do espaço, trabalhos ou pratos.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  class="size-6 shrink-0"
+                  data-toggle-gallery
+                  [checked]="d().gallery"
+                  (change)="patch('gallery', checked($event))"
+                />
+              </label>
+              @if (d().gallery) {
+                <div class="mt-3 grid gap-3">
+                  @for (photo of d().photos; track $index; let i = $index) {
+                    <div class="flex items-center gap-2" data-gallery-item>
+                      <img [src]="photo.url" [alt]="photo.alt || 'Foto da galeria'" class="size-14 shrink-0 rounded object-cover" />
+                      <label class="grid min-w-0 flex-1 gap-1 text-xs">
+                        Descrição da foto (alt)
+                        <input
+                          hlmInput
+                          class="h-11 text-sm"
+                          [value]="photo.alt || ''"
+                          (input)="updatePhoto(i, { alt: val($event) })"
+                          placeholder="Ex.: Fachada da loja"
+                        />
+                      </label>
+                      <app-confirm-action
+                        title="Remover foto"
+                        effect="A foto sai da galeria do site."
+                        verb="Remover"
+                        [ariaLabel]="'Remover foto ' + (i + 1)"
+                        triggerVariant="outline"
+                        [destructive]="true"
+                        (confirm)="removePhoto(i)"
+                      >
+                        <ng-icon name="lucideTrash2" />
+                      </app-confirm-action>
+                    </div>
+                  }
+                  @if (err('photos'); as m) {
+                    <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+                  }
+                  <label class="inline-flex h-11 w-fit cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent">
+                    <input
+                      type="file"
+                      class="sr-only"
+                      data-upload="gallery"
+                      [accept]="accept"
+                      [disabled]="!!uploading()"
+                      (change)="onUpload($event, 'gallery')"
+                    />
+                    <ng-icon name="lucideImagePlus" />
+                    {{ uploading() === 'gallery' ? 'Enviando…' : 'Adicionar foto' }}
+                  </label>
+                </div>
+              }
+            </div>
+
+            <!-- Links -->
+            <div class="rounded-lg border border-border p-3 md:p-4" data-module="links">
+              <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                <span>
+                  <span class="block font-medium">Links extras</span>
+                  <span class="block text-xs text-muted-foreground">Agendamento, cardápio em PDF, delivery…</span>
+                </span>
+                <input
+                  type="checkbox"
+                  class="size-6 shrink-0"
+                  data-toggle-links
+                  [checked]="d().links"
+                  (change)="patch('links', checked($event))"
+                />
+              </label>
+              @if (d().links) {
+                <div class="mt-3 grid gap-3">
+                  @for (link of d().linkItems; track $index; let i = $index) {
+                    <div class="grid gap-2 rounded-md border border-border p-2 sm:grid-cols-[1fr_2fr_auto] sm:items-start" data-link-item>
+                      <label class="grid gap-1 text-xs">
+                        Título
+                        <input
+                          hlmInput
+                          class="h-11 text-sm"
+                          [value]="link.titulo"
+                          (input)="updateLink(i, { titulo: val($event) })"
+                          (blur)="touch('linkItems')"
+                          placeholder="Agende seu horário"
+                        />
+                        @if (err('linkItems.' + i + '.titulo'); as m) {
+                          <span class="text-destructive" role="alert">{{ m }}</span>
+                        }
+                      </label>
+                      <label class="grid gap-1 text-xs">
+                        Link
+                        <input
+                          hlmInput
+                          class="h-11 text-sm"
+                          type="url"
+                          [value]="link.url"
+                          (input)="updateLink(i, { url: val($event) })"
+                          (blur)="touch('linkItems')"
+                          placeholder="https://..."
+                        />
+                        @if (err('linkItems.' + i + '.url'); as m) {
+                          <span class="text-destructive" role="alert">{{ m }}</span>
+                        }
+                      </label>
+                      <div class="sm:pt-5">
+                        <app-confirm-action
+                          title="Remover link"
+                          effect="O link sai do site."
+                          verb="Remover"
+                          [ariaLabel]="'Remover link ' + (link.titulo || i + 1)"
+                          triggerVariant="outline"
+                          [destructive]="true"
+                          (confirm)="removeLink(i)"
+                        >
+                          <ng-icon name="lucideTrash2" />
+                        </app-confirm-action>
+                      </div>
+                    </div>
+                  }
+                  <button
+                    hlmBtn
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-fit gap-1"
+                    aria-label="Adicionar link extra"
+                    (click)="addLink()"
+                  >
+                    <ng-icon name="lucidePlus" />
+                    Adicionar link
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Depoimentos -->
+            <div class="rounded-lg border border-border p-3 md:p-4" data-module="testimonials">
+              <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                <span>
+                  <span class="block font-medium">Depoimentos</span>
+                  <span class="block text-xs text-muted-foreground">O que os clientes dizem do negócio.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  class="size-6 shrink-0"
+                  data-toggle-testimonials
+                  [checked]="d().testimonials"
+                  (change)="patch('testimonials', checked($event))"
+                />
+              </label>
+              @if (d().testimonials) {
+                <div class="mt-3 grid gap-3">
+                  @for (t of d().testimonialItems; track $index; let i = $index) {
+                    <div class="grid gap-2 rounded-md border border-border p-2" data-testimonial-item>
+                      <div class="flex items-end gap-2">
+                        <label class="grid min-w-0 flex-1 gap-1 text-xs">
+                          Nome
+                          <input
+                            hlmInput
+                            class="h-11 text-sm"
+                            [value]="t.name"
+                            (input)="updateTestimonial(i, { name: val($event) })"
+                            (blur)="touch('testimonialItems')"
+                            placeholder="Maria S."
+                          />
+                        </label>
+                        <app-confirm-action
+                          title="Remover depoimento"
+                          effect="O depoimento sai do site."
+                          verb="Remover"
+                          [ariaLabel]="'Remover depoimento ' + (t.name || i + 1)"
+                          triggerVariant="outline"
+                          [destructive]="true"
+                          (confirm)="removeTestimonial(i)"
+                        >
+                          <ng-icon name="lucideTrash2" />
+                        </app-confirm-action>
+                      </div>
+                      @if (err('testimonialItems.' + i + '.name'); as m) {
+                        <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+                      }
+                      <label class="grid gap-1 text-xs">
+                        Depoimento
+                        <textarea
+                          hlmInput
+                          class="min-h-20 py-2 text-sm"
+                          maxlength="400"
+                          [value]="t.text"
+                          (input)="updateTestimonial(i, { text: val($event) })"
+                          (blur)="touch('testimonialItems')"
+                          placeholder="Atendimento excelente, recomendo!"
+                        ></textarea>
+                      </label>
+                      @if (err('testimonialItems.' + i + '.text'); as m) {
+                        <span class="text-xs text-destructive" role="alert">{{ m }}</span>
+                      }
+                    </div>
+                  }
+                  <button
+                    hlmBtn
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-fit gap-1"
+                    aria-label="Adicionar depoimento"
+                    (click)="addTestimonial()"
+                  >
+                    <ng-icon name="lucidePlus" />
+                    Adicionar depoimento
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- AVANÇADO (admin) -->
+        @if (tab() === 'avancado' && showAdvanced()) {
+          <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" data-advanced-panel>
+            <label class="grid gap-2 text-sm">
+              Slug
+              <input
+                hlmInput
+                class="h-11"
+                data-field="advSlug"
+                [value]="advSlug()"
+                (input)="advSlug.set(val($event))"
+              />
+            </label>
+            <label class="grid gap-2 text-sm">
+              Status
+              <select
+                class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                data-field="advStatus"
+                [value]="advStatus()"
+                (change)="advStatus.set($any(val($event)))"
+              >
+                <option value="DRAFT">Rascunho</option>
+                <option value="PUBLISHED">Publicado</option>
+                <option value="READ_ONLY">Somente leitura</option>
+                <option value="SUSPENDED">Suspenso</option>
+                <option value="ARCHIVED">Arquivado</option>
+              </select>
+            </label>
+            <label class="grid gap-2 text-sm">
+              Plano
+              <select
+                class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                data-field="advPlanId"
+                [value]="advPlanId()"
+                (change)="advPlanId.set(val($event))"
+              >
+                @for (plan of plans(); track plan.id) {
+                  <option [value]="plan.id">{{ plan.nome }}</option>
+                }
+              </select>
+            </label>
+            <label class="grid gap-2 text-sm">
+              Cliente
+              <select
+                class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                data-field="advCustomerId"
+                [value]="advCustomerId()"
+                (change)="advCustomerId.set(val($event))"
+              >
+                @for (c of customers(); track c.id) {
+                  <option [value]="c.id">{{ c.nome }}</option>
+                }
+              </select>
+            </label>
+            <label class="grid gap-2 text-sm md:col-span-2">
+              Revendedor dono
+              <select
+                class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                data-field="advResellerId"
+                [value]="advResellerId()"
+                (change)="advResellerId.set(val($event))"
+              >
+                @for (r of resellers(); track r.id) {
+                  <option [value]="r.id">{{ r.nome }}</option>
+                }
+              </select>
+            </label>
+          </div>
+        }
+
+        @if (notice()) {
+          <p class="mt-4 text-sm font-medium text-primary" role="status" aria-live="polite">{{ notice() }}</p>
+        }
+
+        <div class="mt-6 flex flex-wrap gap-2 border-t border-border pt-4">
+          @if (mode() === 'wizard') {
+            <button
+              hlmBtn
+              type="button"
+              variant="outline"
+              class="h-11 gap-1"
+              data-action="wizard-prev"
+              aria-label="Voltar"
+              [disabled]="busy()"
+              (click)="prev()"
+            >
+              <ng-icon name="lucideArrowLeft" />
+              Voltar
+            </button>
+            <button
+              hlmBtn
+              type="button"
+              class="h-11 flex-1 gap-1 font-semibold sm:flex-none"
+              data-action="wizard-next"
+              [attr.aria-label]="isLastTab() ? 'Salvar e ir para o endereço do site' : 'Salvar e continuar'"
+              [disabled]="busy() || !!uploading()"
+              (click)="next()"
+            >
+              Salvar e continuar
+              <ng-icon name="lucideArrowRight" />
+            </button>
+          } @else if (tab() === 'avancado' && showAdvanced()) {
+            <app-confirm-action
+              title="Salvar metadados avançados"
+              effect="Slug, plano, status, cliente ou dono serão alterados. O endereço público pode mudar."
+              verb="Salvar avançado"
+              undoHint="Dá para corrigir de novo nesta aba."
+              action="save-advanced"
+              ariaLabel="Salvar metadados avançados"
+              [disabled]="busy()"
+              (confirm)="saveAdvanced()"
+            >
+              <ng-icon name="lucideSave" />
+            </app-confirm-action>
+          } @else {
+            <button
+              hlmBtn
+              type="button"
+              class="h-11 gap-1 font-semibold"
+              data-action="save"
+              aria-label="Salvar alterações"
+              [disabled]="busy() || !!uploading()"
+              (click)="save()"
+            >
+              <ng-icon name="lucideSave" />
+              Salvar
+            </button>
+          }
+
+          @if (mode() === 'edit' && canPublish()) {
+            <app-confirm-action
+              title="Publicar site"
+              [effect]="'Salvamos as alterações e o site fica no ar em ' + site().slug + '.sejaengajado.com.br'"
+              verb="Publicar"
+              undoHint="Você pode despublicar depois."
+              action="publish"
+              ariaLabel="Salvar e publicar site"
+              [disabled]="busy() || !!uploading()"
+              (confirm)="publish()"
+            >
+              <ng-icon name="lucideEye" />
+            </app-confirm-action>
+          }
+
+          @if (mode() === 'edit' && canUnpublish()) {
+            <app-confirm-action
+              title="Despublicar site"
+              [effect]="'O site sai do ar em ' + site().slug + '.sejaengajado.com.br'"
+              verb="Despublicar"
+              undoHint="O conteúdo permanece; você pode publicar de novo."
+              action="unpublish"
+              ariaLabel="Despublicar site"
+              triggerVariant="outline"
+              [disabled]="busy()"
+              (confirm)="unpublished.emit()"
+            >
+              <ng-icon name="lucideEyeOff" />
+            </app-confirm-action>
+          }
+
+          @if (mode() === 'edit' && canArchive()) {
+            <app-confirm-action
+              title="Arquivar site"
+              [effect]="'O endereço ' + site().slug + '.sejaengajado.com.br deixa de responder.'"
+              verb="Arquivar"
+              undoHint="Não dá para desfazer pelo painel sem suporte."
+              action="archive"
+              ariaLabel="Arquivar site"
+              triggerVariant="destructive"
+              [destructive]="true"
+              [disabled]="busy()"
+              (confirm)="archived.emit()"
+            >
+              <ng-icon name="lucideArchive" />
+            </app-confirm-action>
+          }
+        </div>
+      </div>
     </div>
 
-    @if (tab() === 'conteudo') {
-      <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel">
-        <label class="grid gap-2 text-sm">
-          Nome do negócio
-          <input
-            hlmInput
-            class="h-11"
-            name="businessName"
-            data-field="businessName"
-            [value]="businessName()"
-            (input)="businessName.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm">
-          WhatsApp
-          <input
-            hlmInput
-            class="h-11"
-            name="whatsapp"
-            data-field="whatsapp"
-            [value]="whatsapp()"
-            (input)="whatsapp.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm">
-          Telefone
-          <input
-            hlmInput
-            class="h-11"
-            name="phone"
-            data-field="phone"
-            [value]="phone()"
-            (input)="phone.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm md:col-span-2">
-          Descrição
-          <textarea
-            hlmInput
-            class="min-h-24 py-2"
-            name="description"
-            data-field="description"
-            [value]="description()"
-            (input)="description.set($any($event.target).value)"
-          ></textarea>
-        </label>
-        <label class="grid gap-2 text-sm md:col-span-2">
-          URL da imagem (logo ou capa)
-          <input
-            hlmInput
-            class="h-11"
-            name="logoUrl"
-            data-field="logoUrl"
-            placeholder="https://…"
-            [value]="logoUrl()"
-            (input)="logoUrl.set($any($event.target).value)"
-          />
-        </label>
+    <!-- PRÉVIA AO VIVO -->
+    @if (showPreview()) {
+      <div class="min-w-0 lg:col-span-5">
+        <div class="sticky top-6 flex flex-col items-center">
+          <div class="mb-2 flex w-full max-w-[360px] items-center justify-between text-xs text-muted-foreground">
+            <span>Prévia ao vivo</span>
+            <span class="rounded bg-muted px-1.5 py-0.5 font-mono">{{ site().slug }}</span>
+          </div>
+          <div
+            class="relative max-h-[78vh] w-full max-w-[360px] overflow-y-auto rounded-[2rem] border-[8px] border-zinc-900 bg-background shadow-2xl"
+            data-editor-live-preview
+          >
+            <app-site-page [site]="previewSite()" [embed]="true" />
+          </div>
+        </div>
       </div>
     }
-
-    @if (tab() === 'formula') {
-      <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" data-formula-panel>
-        <label class="grid gap-2 text-sm">
-          Chave Pix
-          <input
-            hlmInput
-            class="h-11"
-            data-field="pixKey"
-            [value]="pixKey()"
-            (input)="pixKey.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm">
-          Nome no Pix
-          <input
-            hlmInput
-            class="h-11"
-            data-field="pixName"
-            [value]="pixName()"
-            (input)="pixName.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm md:col-span-2">
-          YouTube (id do vídeo)
-          <input
-            hlmInput
-            class="h-11"
-            data-field="videoId"
-            placeholder="dQw4w9WgXcQ"
-            [value]="videoId()"
-            (input)="videoId.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm md:col-span-2">
-          Serviços (um por linha)
-          <textarea
-            hlmInput
-            class="min-h-28 py-2"
-            data-field="servicos"
-            [value]="servicosText()"
-            (input)="servicosText.set($any($event.target).value)"
-          ></textarea>
-        </label>
-      </div>
-    }
-
-    @if (tab() === 'avancado' && showAdvanced()) {
-      <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" data-advanced-panel>
-        <label class="grid gap-2 text-sm">
-          Slug
-          <input
-            hlmInput
-            class="h-11"
-            data-field="advSlug"
-            [value]="advSlug()"
-            (input)="advSlug.set($any($event.target).value)"
-          />
-        </label>
-        <label class="grid gap-2 text-sm">
-          Status
-          <select
-            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            data-field="advStatus"
-            [value]="advStatus()"
-            (change)="advStatus.set($any($event.target).value)"
-          >
-            <option value="DRAFT">Rascunho</option>
-            <option value="PUBLISHED">Publicado</option>
-            <option value="READ_ONLY">Somente leitura</option>
-            <option value="SUSPENDED">Suspenso</option>
-            <option value="ARCHIVED">Arquivado</option>
-          </select>
-        </label>
-        <label class="grid gap-2 text-sm">
-          Plano
-          <select
-            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            data-field="advPlanId"
-            [value]="advPlanId()"
-            (change)="advPlanId.set($any($event.target).value)"
-          >
-            @for (plan of plans(); track plan.id) {
-              <option [value]="plan.id">{{ plan.nome }}</option>
-            }
-          </select>
-        </label>
-        <label class="grid gap-2 text-sm">
-          Cliente
-          <select
-            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            data-field="advCustomerId"
-            [value]="advCustomerId()"
-            (change)="advCustomerId.set($any($event.target).value)"
-          >
-            @for (c of customers(); track c.id) {
-              <option [value]="c.id">{{ c.nome }}</option>
-            }
-          </select>
-        </label>
-        <label class="grid gap-2 text-sm md:col-span-2">
-          Revendedor dono
-          <select
-            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            data-field="advResellerId"
-            [value]="advResellerId()"
-            (change)="advResellerId.set($any($event.target).value)"
-          >
-            @for (r of resellers(); track r.id) {
-              <option [value]="r.id">{{ r.nome }}</option>
-            }
-          </select>
-        </label>
-      </div>
-    }
-
-    @if (notice()) {
-      <p class="mt-3 text-sm text-muted-foreground" role="status">{{ notice() }}</p>
-    }
-
-    <div class="mt-6 flex flex-wrap gap-2">
-      @if (tab() === 'avancado' && showAdvanced()) {
-        <app-confirm-action
-          title="Salvar metadados avançados"
-          effect="Slug, plano, status, cliente ou dono serão alterados. O endereço público pode mudar."
-          verb="Salvar avançado"
-          undoHint="Dá para corrigir de novo nesta aba."
-          action="save-advanced"
-          ariaLabel="Salvar metadados avançados"
-          [disabled]="busy()"
-          (confirm)="saveAdvanced()"
-        >
-          <ng-icon name="lucideSave" />
-        </app-confirm-action>
-      } @else {
-        <button
-          hlmBtn
-          type="button"
-          class="h-11"
-          data-action="save"
-          [disabled]="busy()"
-          (click)="save()"
-          aria-label="Salvar alterações"
-        >
-          <ng-icon name="lucideSave" />
-          Salvar
-        </button>
-      }
-
-      @if (canPublish()) {
-        <app-confirm-action
-          title="Publicar site"
-          [effect]="'O site fica no ar em ' + site().slug + '.sejaengajado.com.br'"
-          verb="Publicar"
-          undoHint="Você pode despublicar depois."
-          action="publish"
-          ariaLabel="Publicar site"
-          [disabled]="busy()"
-          (confirm)="published.emit()"
-        >
-          <ng-icon name="lucideEye" />
-        </app-confirm-action>
-      }
-
-      @if (canUnpublish()) {
-        <app-confirm-action
-          title="Despublicar site"
-          [effect]="'O site sai do ar em ' + site().slug + '.sejaengajado.com.br'"
-          verb="Despublicar"
-          undoHint="O conteúdo permanece; você pode publicar de novo."
-          action="unpublish"
-          ariaLabel="Despublicar site"
-          triggerVariant="outline"
-          [disabled]="busy()"
-          (confirm)="unpublished.emit()"
-        >
-          <ng-icon name="lucideEyeOff" />
-        </app-confirm-action>
-      }
-
-      @if (canArchive()) {
-        <app-confirm-action
-          title="Arquivar site"
-          [effect]="'O endereço ' + site().slug + '.sejaengajado.com.br deixa de responder.'"
-          verb="Arquivar"
-          undoHint="Não dá para desfazer pelo painel sem suporte."
-          action="archive"
-          ariaLabel="Arquivar site"
-          triggerVariant="destructive"
-          [destructive]="true"
-          [disabled]="busy()"
-          (confirm)="archived.emit()"
-        >
-          <ng-icon name="lucideArchive" />
-        </app-confirm-action>
-      }
-    </div>
   </div>
 </section>

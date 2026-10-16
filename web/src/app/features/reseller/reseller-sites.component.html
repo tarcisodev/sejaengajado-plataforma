@@ -19,29 +19,44 @@
   </div>
   <app-site-editor
     [site]="site"
+    uploadScope="reseller"
     [busy]="editorBusy()"
     [canPublish]="operable() && site.status !== 'PUBLISHED' && site.status !== 'ARCHIVED'"
     [canUnpublish]="site.status === 'PUBLISHED'"
     [canArchive]="site.status !== 'ARCHIVED'"
     (saved)="onEditorSave($event)"
-    (published)="onEditorPublish()"
+    (published)="onEditorPublish($event)"
     (unpublished)="onEditorUnpublish()"
     (archived)="onEditorArchive()"
   />
 } @else if (wizardOpen()) {
   <section hlmCard class="p-4 md:p-6" data-site-wizard>
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h2 class="font-display text-xl">Novo site</h2>
-      <button hlmBtn type="button" variant="outline" class="h-11" (click)="closeWizard()">
+      <div>
+        <h2 class="font-display text-xl">Novo site</h2>
+        @if (draft(); as d) {
+          <p class="text-xs text-muted-foreground" data-wizard-draft>
+            Rascunho salvo · {{ d.slug }}.sejaengajado.com.br
+          </p>
+        }
+      </div>
+      <button
+        hlmBtn
+        type="button"
+        variant="outline"
+        class="h-11"
+        aria-label="Fechar o assistente (o rascunho fica salvo)"
+        (click)="closeWizard()"
+      >
         Fechar
       </button>
     </div>
-    <ol class="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground" data-wizard-steps>
-      <li [class.text-foreground]="step() === 'cliente'">1. Cliente</li>
-      <li [class.text-foreground]="step() === 'template'">2. Template</li>
-      <li [class.text-foreground]="step() === 'conteudo'">3. Conteúdo</li>
-      <li [class.text-foreground]="step() === 'slug'">4. Slug</li>
-      <li [class.text-foreground]="step() === 'previa'">5. Prévia</li>
+    <ol class="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" data-wizard-steps>
+      <li [class.font-semibold]="step() === 'cliente'" [class.text-foreground]="step() === 'cliente'">1. Cliente</li>
+      <li [class.font-semibold]="step() === 'template'" [class.text-foreground]="step() === 'template'">2. Template</li>
+      <li [class.font-semibold]="step() === 'conteudo'" [class.text-foreground]="step() === 'conteudo'">3. Conteúdo</li>
+      <li [class.font-semibold]="step() === 'slug'" [class.text-foreground]="step() === 'slug'">4. Endereço</li>
+      <li [class.font-semibold]="step() === 'previa'" [class.text-foreground]="step() === 'previa'">5. Prévia</li>
     </ol>
 
     @switch (step()) {
@@ -127,136 +142,169 @@
           </label>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-          <button hlmBtn class="h-11" type="button" variant="outline" (click)="step.set('cliente')">
+          <button
+            hlmBtn
+            class="h-11 gap-1"
+            type="button"
+            variant="outline"
+            aria-label="Voltar para Cliente"
+            [disabled]="!!draft()"
+            (click)="step.set('cliente')"
+          >
+            <ng-icon name="lucideArrowLeft" />
             Voltar
           </button>
-          <button hlmBtn class="h-11" type="button" (click)="nextFromTemplate()">Continuar</button>
+          <button
+            hlmBtn
+            class="h-11 gap-1 font-semibold"
+            type="button"
+            data-wizard-template-next
+            aria-label="Criar rascunho e preencher o conteúdo"
+            [disabled]="busy() || !operable()"
+            (click)="nextFromTemplate()"
+          >
+            {{ draft() ? 'Continuar' : 'Criar rascunho e continuar' }}
+            <ng-icon name="lucideArrowRight" />
+          </button>
         </div>
       }
       @case ('conteudo') {
-        <div class="mt-4 grid gap-3 sm:grid-cols-2">
-          <label class="grid gap-1 text-sm">
-            Chave Pix (exemplo)
-            <input
-              hlmInput
-              class="h-11"
-              data-wizard-pix
-              [value]="pixKey()"
-              (input)="pixKey.set($any($event.target).value)"
-              placeholder="exemplo"
+        @if (draftSite(); as site) {
+          <div class="mt-4" data-wizard-content>
+            <app-site-editor
+              mode="wizard"
+              uploadScope="reseller"
+              [site]="site"
+              [busy]="busy()"
+              (saved)="onWizardContentSave($event)"
+              (completed)="onWizardContentSave($event, 'slug')"
+              (back)="step.set('template')"
             />
-          </label>
-          <label class="grid gap-1 text-sm">
-            Link avaliação Google (opcional)
-            <input
-              hlmInput
-              class="h-11"
-              [value]="googleReviewUrl()"
-              (input)="googleReviewUrl.set($any($event.target).value)"
-            />
-          </label>
-        </div>
-        <p class="mt-2 text-xs text-muted-foreground">
-          Valores fictícios devem ficar rotulados como exemplo até a configuração real.
-        </p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button
-            hlmBtn
-            class="h-11"
-            type="button"
-            variant="outline"
-            (click)="step.set('template')"
-          >
-            Voltar
-          </button>
-          <button hlmBtn class="h-11" type="button" (click)="nextFromConteudo()">Continuar</button>
-        </div>
+          </div>
+        }
       }
       @case ('slug') {
-        <label class="mt-4 grid max-w-md gap-1 text-sm">
-          Slug do subdomínio
-          <input
-            hlmInput
-            class="h-11"
-            data-wizard-slug
-            [value]="slug()"
-            (input)="onSlugInput($event)"
-            (blur)="checkSlug()"
-            autocomplete="off"
-          />
-          @if (slugHint()) {
-            <span
-              class="text-xs"
-              data-slug-hint
-              [class.text-destructive]="!slugOk()"
-              [class.text-muted-foreground]="slugOk()"
-            >
-              {{ slugHint() }}
+        <div class="mt-4 grid max-w-lg gap-3">
+          <p class="text-sm text-muted-foreground">
+            Sugerimos um endereço com o nome do negócio. Pode manter ou trocar.
+          </p>
+          <label class="grid gap-1 text-sm">
+            Endereço do site
+            <span class="flex items-center gap-1">
+              <input
+                hlmInput
+                class="h-11 min-w-0 flex-1"
+                data-wizard-slug
+                inputmode="url"
+                autocomplete="off"
+                [value]="slug()"
+                (input)="onSlugInput($event)"
+                (blur)="checkSlug()"
+              />
+              <span class="shrink-0 text-sm text-muted-foreground">.sejaengajado.com.br</span>
             </span>
-          }
-        </label>
+            @if (slugHint()) {
+              <span
+                class="text-xs"
+                data-slug-hint
+                role="status"
+                [class.text-destructive]="!slugOk()"
+                [class.text-muted-foreground]="slugOk()"
+              >
+                {{ slugHint() }}
+              </span>
+            }
+          </label>
+        </div>
         <div class="mt-4 flex flex-wrap gap-2">
           <button
             hlmBtn
-            class="h-11"
+            class="h-11 gap-1"
             type="button"
             variant="outline"
+            aria-label="Voltar para o conteúdo"
             (click)="step.set('conteudo')"
           >
+            <ng-icon name="lucideArrowLeft" />
             Voltar
           </button>
           <button
             hlmBtn
-            class="h-11"
+            class="h-11 gap-1 font-semibold"
             type="button"
             data-wizard-create
-            [disabled]="!slugOk() || busy()"
-            (click)="createDraft()"
+            aria-label="Salvar endereço e ver a prévia"
+            [disabled]="busy() || !slug()"
+            (click)="confirmSlug()"
           >
-            Criar rascunho
+            Ver prévia
+            <ng-icon name="lucideArrowRight" />
           </button>
         </div>
       }
       @case ('previa') {
         @if (draft(); as site) {
-          <div class="mt-4 grid gap-6 lg:grid-cols-2" data-wizard-preview>
-            <div class="grid gap-2 text-sm">
-              <p>
-                Endereço:
-                <a class="underline" [href]="publicUrl(site.slug)" target="_blank" rel="noopener">
-                  {{ publicUrl(site.slug) }}
-                </a>
-              </p>
-              <p>Status: {{ site.status }}</p>
-              <p>Cliente: {{ site.customer?.name ?? site.customerId }}</p>
-              <div class="mt-2 flex flex-wrap gap-2">
-                <button
-                  hlmBtn
-                  class="h-11"
-                  type="button"
-                  variant="outline"
-                  (click)="step.set('slug')"
-                >
-                  Voltar
-                </button>
-                <button
-                  hlmBtn
-                  class="h-11"
-                  type="button"
-                  data-wizard-publish
-                  [disabled]="busy() || !operable()"
-                  (click)="publishDraft()"
-                >
-                  Publicar
-                </button>
+          <div class="mt-4 grid gap-6 lg:grid-cols-12" data-wizard-preview>
+            <div class="grid content-start gap-4 lg:col-span-5">
+              <div class="rounded-lg border border-border bg-muted/20 p-4">
+                <h3 class="font-display text-lg font-semibold">Tudo pronto para publicar</h3>
+                <p class="mt-1 text-sm text-muted-foreground">
+                  A prévia ao lado é igual ao que o cliente vai ver no celular.
+                </p>
+                <div class="mt-4 rounded-md border border-border bg-background p-3 text-sm">
+                  <span class="text-xs text-muted-foreground">Endereço público</span>
+                  <span class="mt-1 block break-all font-mono font-medium">{{ publicUrl(site.slug) }}</span>
+                </div>
+                <p class="mt-3 text-sm">
+                  <span class="text-muted-foreground">Cliente:</span>
+                  <span class="ml-1 font-medium">{{ site.customer?.name ?? site.customerId }}</span>
+                </p>
+                <div class="mt-5 flex flex-wrap gap-2">
+                  <app-confirm-action
+                    title="Publicar site"
+                    [effect]="'O site fica no ar em ' + publicUrl(site.slug) + '.'"
+                    verb="Publicar"
+                    undoHint="Você pode despublicar depois na lista de sites."
+                    action="wizard-publish"
+                    ariaLabel="Publicar site agora"
+                    triggerLabel="Publicar agora"
+                    [disabled]="busy() || !operable()"
+                    (confirm)="publishDraft()"
+                  >
+                    <ng-icon name="lucideEye" />
+                  </app-confirm-action>
+                  <button
+                    hlmBtn
+                    class="h-11 gap-1"
+                    type="button"
+                    variant="outline"
+                    data-wizard-edit-content
+                    aria-label="Voltar e editar o conteúdo"
+                    (click)="step.set('conteudo')"
+                  >
+                    <ng-icon name="lucidePencil" />
+                    Editar conteúdo
+                  </button>
+                  <button
+                    hlmBtn
+                    class="h-11"
+                    type="button"
+                    variant="outline"
+                    data-wizard-save-exit
+                    aria-label="Salvar rascunho e sair"
+                    (click)="saveDraftAndExit()"
+                  >
+                    Salvar rascunho e sair
+                  </button>
+                </div>
               </div>
             </div>
+
             @if (previewSite(); as preview) {
-              <div
-                class="min-w-0 overflow-x-auto rounded-lg border border-border bg-background"
-                data-wizard-live-preview
-              >
-                <app-site-page [site]="preview" [embed]="true" />
+              <div class="flex justify-center lg:col-span-7" data-wizard-live-preview>
+                <div class="max-h-[80vh] w-full max-w-[360px] overflow-y-auto rounded-[2rem] border-[8px] border-zinc-900 bg-background shadow-2xl">
+                  <app-site-page [site]="preview" [embed]="true" />
+                </div>
               </div>
             }
           </div>

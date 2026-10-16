@@ -14,8 +14,37 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideClock,
+  lucideCopy,
+  lucideFacebook,
+  lucideGlobe,
+  lucideInstagram,
+  lucideMail,
+  lucideMapPin,
+  lucideMessageCircle,
+  lucidePhone,
+  lucideQuote,
+  lucideStar,
+  lucideYoutube,
+} from '@ng-icons/lucide';
 
-import { Site } from '../../core/models/domain';
+import { Site, SiteGalleryImage, SiteHours, SiteModules, SiteProduct } from '../../core/models/domain';
+import {
+  galleryImages,
+  legacyHoursOf,
+  mapsUrlOf,
+  moduleOn,
+  pixKeyOf,
+  pixNameOf,
+  productAlt,
+  productPriceLabel,
+  testimonialsOf,
+  socialLabel,
+  weeklyHourLines,
+  weeklyHoursOf,
+} from '../../core/site/site-content';
 import { resolveTheme, themeToCssVars } from '../../core/theme/niche-themes';
 import {
   ClockParts,
@@ -41,7 +70,23 @@ import { SectionDividerComponent } from './ui/section-divider.component';
 
 @Component({
   selector: 'app-site-page',
-  imports: [NgStyle, SectionDividerComponent, AnimatedStripComponent],
+  imports: [NgStyle, NgIcon, SectionDividerComponent, AnimatedStripComponent],
+  providers: [
+    provideIcons({
+      lucideMessageCircle,
+      lucidePhone,
+      lucideMail,
+      lucideMapPin,
+      lucideInstagram,
+      lucideFacebook,
+      lucideYoutube,
+      lucideGlobe,
+      lucideStar,
+      lucideCopy,
+      lucideClock,
+      lucideQuote,
+    }),
+  ],
   templateUrl: './site-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-page.component.scss',
@@ -111,23 +156,126 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     }
     this.openNow.set(
       openNowStatus(
-        this.site.content.weeklyHours,
+        weeklyHoursOf(this.site.content),
         this.site.content.timezone ?? 'America/Sao_Paulo',
       ),
     );
   }
 
   loadMap(): void {
-    if (!this.site?.content.address) {
+    if (!this.site?.content.address?.logradouro) {
       return;
     }
     this.mapSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(mapsEmbedUrl(this.site.content)));
     this.mapLoaded.set(true);
   }
 
+  on(key: keyof SiteModules): boolean {
+    return moduleOn(this.site?.content, key);
+  }
+
+  products(): SiteProduct[] {
+    return this.on('catalog') ? (this.site.content.products ?? []) : [];
+  }
+
+  price(item: SiteProduct): string {
+    return productPriceLabel(item);
+  }
+
+  alt(item: SiteProduct): string {
+    return productAlt(item);
+  }
+
+  photos(): SiteGalleryImage[] {
+    return this.on('gallery') ? galleryImages(this.site.content) : [];
+  }
+
+  links() {
+    return this.on('links') ? (this.site.content.links ?? []) : [];
+  }
+
+  testimonials() {
+    return this.on('testimonials') ? testimonialsOf(this.site.content) : [];
+  }
+
+  pixKey(): string {
+    return this.on('pix') ? pixKeyOf(this.site.content) : '';
+  }
+
+  pixName(): string {
+    return pixNameOf(this.site.content);
+  }
+
+  weeklyLines(): string[] {
+    return weeklyHourLines(weeklyHoursOf(this.site.content));
+  }
+
+  legacyHours(): SiteHours[] {
+    return legacyHoursOf(this.site.content);
+  }
+
+  hasHours(): boolean {
+    return this.on('hours') && (this.weeklyLines().length > 0 || this.legacyHours().length > 0);
+  }
+
+  phone(): string {
+    return (this.site.content.phone || this.site.content.telefone || '').trim();
+  }
+
+  telHref(value: string): string {
+    return `tel:${value.replace(/[^\d+]/g, '')}`;
+  }
+
+  socials() {
+    return (this.site.content.redes ?? [])
+      .filter((rede) => !!rede?.url)
+      .map((rede) => ({ ...rede, label: socialLabel(rede.tipo), icon: this.socialIcon(rede.tipo) }));
+  }
+
+  private socialIcon(tipo: string): string {
+    switch (tipo) {
+      case 'instagram':
+        return 'lucideInstagram';
+      case 'facebook':
+        return 'lucideFacebook';
+      case 'youtube':
+        return 'lucideYoutube';
+      default:
+        return 'lucideGlobe';
+    }
+  }
+
+  hasLocation(): boolean {
+    return (
+      this.on('map') && (!!this.site.content.address?.logradouro || !!mapsUrlOf(this.site.content))
+    );
+  }
+
+  showReviews(): boolean {
+    return this.on('reviews') && (this.hasRating() || !!this.reviewHref());
+  }
+
+  /** No site público passa por /avaliar (conta o scan); na prévia vai direto. */
+  reviewHref(): string {
+    const url = this.site.content.googleReviewUrl?.trim();
+    if (url) {
+      return this.embed ? url : '/avaliar';
+    }
+    const placeId = this.site.content.google?.placeId;
+    return placeId
+      ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`
+      : '';
+  }
+
+  hasRating(): boolean {
+    const google = this.site.content.google;
+    const rating = google?.rating ?? google?.nota;
+    return typeof rating === 'number' && Number.isFinite(rating);
+  }
+
   categories(): string[] {
     const tags = new Set<string>();
-    for (const product of this.site.content.products ?? []) {
+    for (const product of this.products()) {
       if (product.categoria) {
         tags.add(product.categoria);
       }
@@ -136,7 +284,7 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   filteredProducts() {
-    const products = this.site.content.products ?? [];
+    const products = this.products();
     const filter = this.categoryFilter();
     if (!filter) {
       return products;
@@ -159,8 +307,8 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   pixIsExample(): boolean {
-    const chave = this.site.content.pix?.chave?.toLowerCase() ?? '';
-    const nome = this.site.content.pix?.nome?.toLowerCase() ?? '';
+    const chave = pixKeyOf(this.site.content).toLowerCase();
+    const nome = pixNameOf(this.site.content).toLowerCase();
     return chave.includes('exemplo') || nome.includes('exemplo') || !chave;
   }
 
@@ -170,6 +318,10 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     }
     this.jsonLd?.remove();
     this.document.head.querySelector('link[data-site-canonical]')?.remove();
+  }
+
+  coverUrl(): string {
+    return this.site?.content?.profile?.coverUrl || this.site?.content?.theme?.bgImg || '';
   }
 
   nome(): string {
@@ -193,6 +345,10 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   mapsLink(): string {
+    const url = mapsUrlOf(this.site.content);
+    if (url) {
+      return url;
+    }
     return mapsLinkUrl(this.site.content);
   }
 
@@ -213,17 +369,19 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     );
   }
 
-  interestHref(nome: string): string {
+  interestHref(nome: string, preco?: string): string {
+    preco = preco?.trim() || undefined;
     const whatsapp = this.site.content.whatsapp;
     if (!whatsapp) {
       return '';
     }
-    return whatsappHref(whatsapp.numero, `Tenho interesse em: ${nome}`);
+    const text = preco ? `Olá! Tenho interesse em: ${nome} (${preco})` : `Olá! Tenho interesse em: ${nome}`;
+    return whatsappHref(whatsapp.numero, text);
   }
 
   async copyPix(): Promise<void> {
-    const chave = this.site.content.pix?.chave;
-    if (!chave) {
+    const chave = pixKeyOf(this.site.content);
+    if (!chave || typeof navigator === 'undefined') {
       return;
     }
     try {
@@ -241,6 +399,7 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
         input.remove();
       }
       this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2500);
     } catch {
       this.copied.set(false);
     }
