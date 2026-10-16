@@ -33,6 +33,25 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     });
   }
 
+  test('SSR survives 20 consecutive GETs per demo (no false 404) @smoke', async ({
+    request,
+  }) => {
+    const rounds = 20;
+    for (const demo of demos) {
+      for (let i = 1; i <= rounds; i++) {
+        const url = prodSmoke
+          ? `https://${demo.slug}.sejaengajado.com.br/`
+          : `${apex}/?tenant=${demo.slug}`;
+        const res = await request.get(url, { maxRedirects: 0 });
+        const body = await res.text();
+        expect(res.status(), `${demo.slug} #${i}`).toBe(200);
+        expect(body, `${demo.slug} #${i}`).toMatch(demo.name);
+        expect(body, `${demo.slug} #${i}`).not.toMatch(/Negócio não encontrado/i);
+        expect(body, `${demo.slug} #${i}`).not.toMatch(/Não encontramos esse negócio/i);
+      }
+    }
+  });
+
   test('unknown subdomain returns a clean 404 @smoke', async ({ request }) => {
     const url = prodSmoke
       ? 'https://slug-inexistente-fluxo-feliz.sejaengajado.com.br/'
