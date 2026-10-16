@@ -2,7 +2,7 @@ import { PLATFORM_ID, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { GuardResult, provideRouter, RedirectCommand, Router, UrlTree } from '@angular/router';
 
-import { aal2Guard, authGuard, roleGuard } from './auth.guards';
+import { aal2Guard, authGuard, homeRedirectGuard, roleGuard } from './auth.guards';
 import { AuthService } from './auth.service';
 import type { AuthMe } from './auth.types';
 
@@ -52,6 +52,11 @@ describe('AUTH-WEB flows (e2e-style)', () => {
             ready: signal(true),
             ensureReady: async () => undefined,
             getAuthenticatorAssuranceLevel: async () => mfaLevel,
+            homePathForRole: (role: AuthMe['role']) => {
+              if (role === 'ADMIN') return '/admin';
+              if (role === 'RESELLER') return '/revenda';
+              return '/conta';
+            },
             signOut: async () => {
               me.set(null);
               try {
@@ -99,6 +104,22 @@ describe('AUTH-WEB flows (e2e-style)', () => {
     configure({ platform: 'browser', role: 'ADMIN', mfaLevel: 'aal1' });
     const result = await TestBed.runInInjectionContext(() => aal2Guard({} as never, {} as never));
     expect(asTree(result)).toBe('/mfa');
+  });
+
+  it('anonymous / on SSR → /entrar (homeRedirectGuard)', async () => {
+    configure({ platform: 'server', role: null });
+    const result = await TestBed.runInInjectionContext(() =>
+      homeRedirectGuard({} as never, {} as never),
+    );
+    expect(asTree(result)).toBe('/entrar');
+  });
+
+  it('RESELLER / on browser → /revenda (homeRedirectGuard)', async () => {
+    configure({ platform: 'browser', role: 'RESELLER' });
+    const result = await TestBed.runInInjectionContext(() =>
+      homeRedirectGuard({} as never, {} as never),
+    );
+    expect(asTree(result)).toBe('/revenda');
   });
 
   it('logout removes sb-*-auth-token from storage', async () => {

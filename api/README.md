@@ -14,7 +14,7 @@ Na raiz do monorepo:
 docker compose -f docker-compose.dev.yml up
 ```
 
-Em `api/.env`, `DATABASE_URL=postgres://sejaengajado:local-dev-only@localhost:5432/sejaengajado` e `ADMIN_DATABASE_URL` com o role admin de desenvolvimento.
+Auth local (GoTrue + Mailpit): ver `docs/DEV.md`. Em `api/.env` (gerado por `node scripts/dev-auth.mjs init`), roles `se_app` / `se_admin`. A 1ª `migrate deploy` usa o superuser do compose: `postgres://postgres:local-dev-only@localhost:5432/sejaengajado`.
 
 ```bash
 npm ci

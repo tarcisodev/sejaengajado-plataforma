@@ -13,6 +13,7 @@ import {
   PAYMENT_GATEWAY,
   type PaymentGateway,
 } from '../payments/domain/payment-gateway.port';
+import { ShippingService } from '../shipping/shipping.service';
 import { getTenantActor } from '../tenant/tenant.context';
 import {
   ADMIN_PRISMA,
@@ -34,6 +35,7 @@ export class DirectBillingService {
     @Inject(ADMIN_PRISMA) private readonly adminDb: AdminPrisma,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly ledger: LedgerService,
+    private readonly shipping: ShippingService,
   ) {}
 
   /** HTTP path: never SYSTEM_PRISMA (BYPASSRLS). */
@@ -47,6 +49,9 @@ export class DirectBillingService {
     customerName: string;
     customerEmail: string;
     method?: 'PIX' | 'BOLETO' | 'CARD';
+    /** Destination CEP for placa frete (Melhor Envio). */
+    destinationCep?: string;
+    shippingServiceId?: string;
   }) {
     const { site, platform } = await this.requirePlatformSite(input.siteId);
     if (site.plan.type !== 'ONE_TIME' && site.plan.type !== 'ANNUAL_HOSTING') {
@@ -59,6 +64,23 @@ export class DirectBillingService {
     let amountCents = site.plan.priceCents;
     if (input.couponCode) {
       amountCents = await this.applyCoupon(amountCents, input.couponCode);
+    }
+
+    let shippingCents = 0;
+    let shippingServiceId: string | null = null;
+    if (input.destinationCep?.trim() && input.shippingServiceId?.trim()) {
+      const quote = await this.shipping.resolveSelected(
+        input.destinationCep.trim(),
+        input.shippingServiceId.trim(),
+      );
+      shippingCents = quote.priceCents;
+      shippingServiceId = quote.serviceId;
+      amountCents += shippingCents;
+    } else if (input.destinationCep?.trim() || input.shippingServiceId?.trim()) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Informe CEP e opção de frete juntos',
+      });
     }
 
     const customer = await this.gateway.createCustomer({
@@ -108,6 +130,8 @@ export class DirectBillingService {
       paymentId: order.payment!.id,
       gatewayPaymentId: charge.gatewayPaymentId,
       amountCents: finalCents,
+      shippingCents,
+      shippingServiceId,
       method: input.method ?? 'PIX',
       status: charge.status,
       pixQrCode: charge.pixQrCode ?? null,

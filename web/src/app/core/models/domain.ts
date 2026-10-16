@@ -275,12 +275,29 @@ export interface Payment {
   paidAt: string | null;
 }
 
+/** Melhor Envio quote option — priceCents from API only. */
+export interface ShippingQuoteOption {
+  serviceId: string;
+  name: string;
+  company: string;
+  priceCents: number;
+  deliveryDays: number;
+}
+
+export interface ShippingQuoteResult {
+  originCep: string;
+  options: ShippingQuoteOption[];
+}
+
 /** Checkout response from API — amounts in centavos only. */
 export interface CheckoutResult {
   orderId: string;
   paymentId: string;
   gatewayPaymentId: string;
   amountCents: number;
+  /** Frete Melhor Envio incluído no total (0 se sem envio). */
+  shippingCents?: number;
+  shippingServiceId?: string | null;
   method: PaymentMethod;
   status: GatewayPaymentStatus;
   pixQrCode: string | null;

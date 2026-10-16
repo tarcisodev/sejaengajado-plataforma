@@ -91,10 +91,13 @@ services:
       SUPABASE_JWT_AUD: authenticated
       SUPABASE_JWT_SECRET_FILE: /run/secrets/se_supabase_jwt_secret
       SUPABASE_SERVICE_ROLE_KEY_FILE: /run/secrets/se_supabase_service_role_key
-      # Sandbox por padrão; produção: ASAAS_BASE_URL=https://api.asaas.com/v3 no deploy.
+      # Sandbox por padrão; virar produção: ASAAS_BASE_URL=https://api.asaas.com/v3 (env do deploy).
       ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}
       ASAAS_API_KEY_FILE: /run/secrets/se_asaas_api_key
       ASAAS_WEBHOOK_TOKEN_FILE: /run/secrets/se_asaas_webhook_token
+      # Melhor Envio — cotação de frete (token só via *_FILE).
+      MELHORENVIO_BASE_URL: ${MELHORENVIO_BASE_URL:-https://melhorenvio.com.br}
+      MELHORENVIO_TOKEN_FILE: /run/secrets/se_melhorenvio_token
       # Conta R2: https://<ACCOUNT_ID>.r2.cloudflarestorage.com (env do deploy).
       S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT required}
       S3_REGION: auto
@@ -114,6 +117,7 @@ services:
       - se_supabase_service_role_key
       - se_asaas_api_key
       - se_asaas_webhook_token
+      - se_melhorenvio_token
       - se_s3_access_key
       - se_s3_secret_key
       - se_smtp_url
@@ -214,8 +218,9 @@ secrets:
   se_supabase_jwt_secret: { external: true, name: se_auth_jwt_secret_v1 }
   se_supabase_service_role_key: { external: true, name: se_auth_service_role_key_v1 }
   se_smtp_url: { external: true, name: se_smtp_url_v1 }
-  se_asaas_api_key: { external: true, name: se_asaas_api_key_v1 }
+  se_asaas_api_key: { external: true, name: se_asaas_api_key_v2 }
   se_asaas_webhook_token: { external: true, name: se_asaas_webhook_token_v1 }
+  se_melhorenvio_token: { external: true, name: se_melhorenvio_token_v1 }
   se_s3_access_key: { external: true, name: se_s3_access_key_v1 }
   se_s3_secret_key: { external: true, name: se_s3_secret_key_v1 }
   se_backup_age_pubkey: { external: true, name: se_backup_age_pubkey_v1 }

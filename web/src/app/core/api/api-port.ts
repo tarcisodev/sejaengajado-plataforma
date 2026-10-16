@@ -45,6 +45,7 @@ import {
   Reseller,
   ResellerInvoice,
   ResellerPlan,
+  ShippingQuoteResult,
   Site,
   SiteAddress,
   SiteContent,
@@ -134,6 +135,8 @@ export interface ApiPort {
   requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog>;
   requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog>;
   listAuditLogs(): Observable<AuditLog[]>;
+  /** Cotação Melhor Envio (placa) — priceCents da API. */
+  quoteShipping(destinationCep: string, quantity?: number): Observable<ShippingQuoteResult>;
   /** Direct Pronto checkout — amountCents comes from API only. */
   checkoutPronto(
     command: {
@@ -142,6 +145,8 @@ export interface ApiPort {
       customerEmail: string;
       couponCode?: string;
       method: PaymentMethod;
+      destinationCep?: string;
+      shippingServiceId?: string;
     },
     idempotencyKey: string,
   ): Observable<CheckoutResult>;

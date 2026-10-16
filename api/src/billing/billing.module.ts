@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { LedgerModule } from '../ledger/ledger.module';
+import { ShippingModule } from '../shipping/shipping.module';
 import { BillingController } from './billing.controller';
 import { BillingQueryService } from './billing-query.service';
 import { BillingScheduler } from './billing.scheduler';
@@ -11,7 +12,7 @@ import { ResellerInvoicesController } from './reseller-invoices.controller';
 
 /** Relies on global PaymentsModule for PAYMENT_GATEWAY. */
 @Module({
-  imports: [LedgerModule],
+  imports: [LedgerModule, ShippingModule.register()],
   controllers: [BillingController, ResellerInvoicesController],
   providers: [
     ResellerInvoiceJob,

@@ -3,7 +3,7 @@
 Checklist **ordenado**. Marque com evidência (link/print) em cada item.  
 Deploy na VPS: **Tarciso** (Cursor não aplica).
 
-Referências: Fase 0 (`infra/runbooks/fase0/`), auth dedicado (`infra/runbooks/se-auth.md`), wildcard (`infra/runbooks/06-cert-producao.md`), restore (`docs/runbooks/restore.md`), monitoramento (`docs/runbooks/monitoring.md`), secrets (`infra/secrets.md`), CI (`.github/workflows/deploy.yml`).
+Referências: Fase 0 (`infra/runbooks/fase0/`), auth dedicado (`infra/runbooks/se-auth.md`), wildcard (`infra/runbooks/06-cert-producao.md`), restore (`docs/runbooks/restore.md`), monitoramento (`docs/runbooks/monitoring.md`), secrets (`infra/secrets.md`), virar Asaas (`infra/runbooks/virar-asaas-producao.md`), CI (`.github/workflows/deploy.yml`).
 
 ---
 
@@ -23,7 +23,8 @@ Referências: Fase 0 (`infra/runbooks/fase0/`), auth dedicado (`infra/runbooks/s
 - [ ] Healthchecks.io: `se-pg-backup-daily`, `se-restore-monthly`, `se-jobs`, `vps-host`.
 - [ ] Sentry project + DSN em `se_sentry_dsn_v1`.
 - [ ] UptimeRobot: raiz, `app.`, `auth.`, `app./api/health/ready` + alerta de certificado (sem `teste.*` até haver site).
-- [ ] Asaas: sandbox e2e (05-B7) verde → conta produção aprovada; secrets trocados; URL webhook cadastrada.
+- [ ] Asaas: sandbox e2e (05-B7) verde → conta produção aprovada; `se_asaas_api_key_v2` + runbook `virar-asaas-producao.md` (BASE_URL + webhook `/api/webhooks/asaas`).
+- [ ] Melhor Envio: `se_melhorenvio_token_v1` montado; cotação no checkout sem mock.
 
 ## 3. Runner e CI
 

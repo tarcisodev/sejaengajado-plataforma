@@ -38,13 +38,23 @@ describe('DirectBillingService', () => {
         }),
       ),
     };
+    const shipping = {
+      resolveSelected: jest.fn().mockResolvedValue({
+        serviceId: '1',
+        name: 'PAC',
+        company: 'Correios',
+        priceCents: 2490,
+        deliveryDays: 8,
+      }),
+    };
     const service = new DirectBillingService(
       db as never,
       db as never,
       gateway,
       ledger as never,
+      shipping as never,
     );
-    return { db, gateway, ledger, service };
+    return { db, gateway, ledger, shipping, service };
   }
 
   it('charges Pronto with Idempotency-Key and cents', async () => {
@@ -64,8 +74,39 @@ describe('DirectBillingService', () => {
       customerEmail: 'c@example.com',
     });
     expect(result.amountCents).toBe(29700);
+    expect(result.shippingCents).toBe(0);
     expect(gateway.charges[0]!.idempotencyKey).toMatch(/^direct:pronto:/);
     expect(gateway.charges[0]!.amountCents).toBe(29700);
+  });
+
+  it('adds Melhor Envio frete (re-quoted cents) to Pronto charge', async () => {
+    const { db, gateway, shipping, service } = setup();
+    db.site.findUnique.mockResolvedValue({
+      id: siteId,
+      slug: 'bar',
+      resellerId: platformId,
+      customerId: 'cust-1',
+      planId: 'plan-1',
+      plan: { type: 'ONE_TIME', priceCents: 29700, code: 'PRONTO' },
+    });
+    db.order.create.mockResolvedValue({
+      id: 'o1',
+      payment: { id: 'p1' },
+      amountCents: 32190,
+    });
+
+    const result = await service.chargePronto({
+      siteId,
+      customerName: 'Cliente',
+      customerEmail: 'c@example.com',
+      destinationCep: '01310-100',
+      shippingServiceId: '1',
+    });
+
+    expect(shipping.resolveSelected).toHaveBeenCalledWith('01310-100', '1');
+    expect(result.shippingCents).toBe(2490);
+    expect(result.amountCents).toBe(32190);
+    expect(gateway.charges[0]!.amountCents).toBe(32190);
   });
 
   it('A↔B: site of another reseller is NOT_FOUND', async () => {

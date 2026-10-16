@@ -10,6 +10,7 @@ const fileBacked = [
   'SMTP_URL',
   'ASAAS_API_KEY',
   'ASAAS_WEBHOOK_TOKEN',
+  'MELHORENVIO_TOKEN',
   'S3_ACCESS_KEY',
   'S3_SECRET_KEY',
   'GOOGLE_PLACES_API_KEY',
@@ -33,6 +34,9 @@ const schema = z.object({
   ASAAS_BASE_URL: z.string().url().optional(),
   ASAAS_API_KEY: z.string().min(1).optional(),
   ASAAS_WEBHOOK_TOKEN: z.string().min(1).optional(),
+  /** Melhor Envio — token só via MELHORENVIO_TOKEN_FILE. */
+  MELHORENVIO_BASE_URL: z.string().url().optional(),
+  MELHORENVIO_TOKEN: z.string().min(1).optional(),
   /** Cloudflare R2 endpoint (placeholder in .env.example). */
   S3_ENDPOINT: z.string().min(1).optional(),
   S3_BUCKET: z.string().min(1).optional(),

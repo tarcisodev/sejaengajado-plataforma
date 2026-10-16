@@ -25,8 +25,10 @@ export const redact = {
     'req.body.webhook',
     'asaasApiKey',
     'apiKey',
+    'melhorenvioToken',
     '*.asaasApiKey',
     '*.apiKey',
+    '*.melhorenvioToken',
   ],
   censor: '[Redacted]',
 };

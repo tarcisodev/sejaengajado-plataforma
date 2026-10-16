@@ -10,28 +10,29 @@ Monorepo local.
 
 As versões estão em `docs/versions.md`. Node 22, conforme `.nvmrc`.
 
-## Desenvolvimento local
+## Desenvolvimento local (auth real)
 
-O `ng serve` sobe o frontend. Com `apiUrl` vazio ele usa o mock em memória. A build de produção troca esse mock pelo cliente HTTP e não inclui a semente. O Postgres local sobe à parte, com `docker compose -f docker-compose.dev.yml up`.
+Para `/entrar` com OTP local (GoTrue + Mailpit), siga **[docs/DEV.md](docs/DEV.md)**.
 
-## Subir
-
-Na raiz:
+Resumo:
 
 ```bash
-docker compose up
+cp .env.local.example .env.local
+node scripts/dev-auth.mjs init
+docker compose -f docker-compose.dev.yml --env-file .env.local up -d
+# migrate + seed + seed-admin (ver DEV.md)
+cd api && npm start   # :3000
+cd web && npx ng serve --host 127.0.0.1 --port 4200
 ```
 
-O painel e a landing ficam em `http://127.0.0.1:4200/`. O admin local é `http://app.localhost:4200/`.
+- Painel: http://app.localhost:4200/entrar  
+- OTP no Mailpit: http://localhost:8025  
+- **Nunca** apontar o localhost para `auth.sejaengajado.com.br`.
 
-## Apontar o web para uma API
+## Mock (sem API / sem auth)
 
-Em `web/src/environments/environment.development.ts`, defina `apiUrl` com a base da API, por exemplo `http://localhost:3000`. Reinicie o `ng serve`. O cliente chama essa origem; os caminhos estão em `HttpApiService`.
+Com `apiUrl` vazio o web usa `MockApiService`. O fluxo documentado em `DEV.md` usa `apiUrl: '/api'` + GoTrue local.
 
-Sem `apiUrl`, o desenvolvimento continua no mock. A chave do Google Places fica só na API (`GOOGLE_PLACES_API_KEY` ou `GOOGLE_PLACES_API_KEY_FILE` em `api/.env`). O web chama `GET /api/places/search`.
+## Apontar o web para a API
 
-Fora do Docker, na pasta `web`:
-
-```bash
-npx ng serve --host 127.0.0.1 --port 4200
-```
+`web/proxy.conf.json` encaminha `/api` → `http://127.0.0.1:3000`. A chave do Google Places fica só na API. O web chama `GET /api/places/search`.

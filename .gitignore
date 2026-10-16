@@ -2,6 +2,11 @@
 .env
 .env.*
 !.env.example
+!.env.local.example
+api/.env
+.local/
+web/public/se-public-config.json
+web/test-results/
 dist
 coverage
 nourbiosite-assets/

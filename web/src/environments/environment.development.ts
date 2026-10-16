@@ -1,6 +1,9 @@
 export const environment = {
-  /** Empty → mock ApiPort. Set to `http://localhost:3000/api` to hit the Nest API. */
-  apiUrl: '',
+  /**
+   * Same-origin `/api` → proxy.conf.json → Nest local.
+   * Auth (Supabase/GoTrue) vem de `/se-public-config.json` (gerado por scripts/dev-auth.mjs).
+   */
+  apiUrl: '/api',
   supabaseUrl: '',
   supabaseAnonKey: '',
   googlePlacesApiKey: '',

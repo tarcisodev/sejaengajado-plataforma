@@ -9,7 +9,7 @@ import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { interval, switchMap, takeWhile } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
-import { CheckoutResult, PaymentMethod } from '../../core/models/domain';
+import { CheckoutResult, PaymentMethod, ShippingQuoteOption } from '../../core/models/domain';
 import { formatBrl } from '../landing/landing-seo';
 
 @Component({
@@ -26,6 +26,10 @@ export class CheckoutComponent {
   readonly siteId = signal('');
   readonly customerName = signal('');
   readonly customerEmail = signal('');
+  readonly destinationCep = signal('');
+  readonly shippingOptions = signal<ShippingQuoteOption[]>([]);
+  readonly shippingServiceId = signal<string | null>(null);
+  readonly quoting = signal(false);
   readonly method = signal<PaymentMethod>('PIX');
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
@@ -39,8 +43,51 @@ export class CheckoutComponent {
     }
   }
 
+  setShippingService(value: string | null | undefined): void {
+    this.shippingServiceId.set(value?.trim() || null);
+  }
+
+  quoteShipping(): void {
+    this.error.set(null);
+    this.shippingOptions.set([]);
+    this.shippingServiceId.set(null);
+    const cep = this.destinationCep().trim();
+    if (!cep) {
+      this.error.set('Informe o CEP de entrega da placa.');
+      return;
+    }
+    this.quoting.set(true);
+    this.api.quoteShipping(cep).subscribe({
+      next: (quote) => {
+        this.quoting.set(false);
+        this.shippingOptions.set(quote.options);
+        if (quote.options[0]) {
+          this.shippingServiceId.set(quote.options[0].serviceId);
+        }
+        if (quote.options.length === 0) {
+          this.error.set('Nenhuma opção de frete para este CEP.');
+        }
+      },
+      error: () => {
+        this.quoting.set(false);
+        this.error.set('Não foi possível cotar o frete. Tente de novo.');
+      },
+    });
+  }
+
+  selectedShipping(): ShippingQuoteOption | null {
+    const id = this.shippingServiceId();
+    return this.shippingOptions().find((opt) => opt.serviceId === id) ?? null;
+  }
+
   start(): void {
     this.error.set(null);
+    const cep = this.destinationCep().trim();
+    const serviceId = this.shippingServiceId();
+    if (cep && !serviceId) {
+      this.error.set('Selecione uma opção de frete ou limpe o CEP.');
+      return;
+    }
     this.busy.set(true);
     this.api
       .checkoutPronto(
@@ -49,6 +96,8 @@ export class CheckoutComponent {
           customerName: this.customerName().trim(),
           customerEmail: this.customerEmail().trim(),
           method: this.method(),
+          destinationCep: cep || undefined,
+          shippingServiceId: serviceId ?? undefined,
         },
         crypto.randomUUID(),
       )

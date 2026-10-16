@@ -2,8 +2,8 @@
   <div>
     <h2 id="checkout-title" class="font-display text-xl md:text-2xl">Checkout</h2>
     <p class="mt-1 text-sm text-muted-foreground">
-      Valor e status vêm da API (centavos). Cartão só no Asaas hospedado — nenhum dado de cartão
-      passa por aqui.
+      Valor e status vêm da API (centavos). Frete da placa via Melhor Envio. Cartão só no Asaas
+      hospedado — nenhum dado de cartão passa por aqui.
     </p>
   </div>
 
@@ -48,6 +48,65 @@
           />
         </div>
         <div hlmField>
+          <label hlmFieldLabel for="destinationCep">CEP de entrega da placa</label>
+          <div class="flex flex-wrap gap-2">
+            <input
+              hlmInput
+              id="destinationCep"
+              class="h-11 min-w-0 flex-1"
+              name="destinationCep"
+              inputmode="numeric"
+              autocomplete="postal-code"
+              placeholder="00000-000"
+              data-checkout-cep
+              [value]="destinationCep()"
+              (input)="destinationCep.set(inputValue($event))"
+            />
+            <button
+              hlmBtn
+              type="button"
+              variant="outline"
+              data-checkout-quote-shipping
+              [disabled]="quoting()"
+              (click)="quoteShipping()"
+            >
+              {{ quoting() ? 'Cotando…' : 'Cotar frete' }}
+            </button>
+          </div>
+        </div>
+        @if (shippingOptions().length > 0) {
+          <div hlmField>
+            <span id="checkout-shipping" hlmFieldLabel>Frete</span>
+            <hlm-select
+              [value]="shippingServiceId() ?? ''"
+              (valueChange)="setShippingService($event)"
+            >
+              <hlm-select-trigger
+                class="h-11! w-full"
+                aria-labelledby="checkout-shipping"
+                data-checkout-shipping
+              >
+                <hlm-select-value />
+              </hlm-select-trigger>
+              <ng-template hlmSelectPortal>
+                <hlm-select-content>
+                  @for (opt of shippingOptions(); track opt.serviceId) {
+                    <hlm-select-item [value]="opt.serviceId">
+                      {{ opt.company }} — {{ opt.name }} · {{ formatBrl(opt.priceCents) }} ·
+                      {{ opt.deliveryDays }} dias
+                    </hlm-select-item>
+                  }
+                </hlm-select-content>
+              </ng-template>
+            </hlm-select>
+            @if (selectedShipping(); as ship) {
+              <p class="mt-1 text-sm text-muted-foreground" data-checkout-shipping-amount>
+                Frete: {{ formatBrl(ship.priceCents) }}
+              </p>
+            }
+          </div>
+        }
+        <div hlmField>
           <span id="checkout-method" hlmFieldLabel>Método</span>
           <hlm-select [value]="method()" (valueChange)="setMethod($event)">
             <hlm-select-trigger class="h-11! w-full" aria-labelledby="checkout-method">
@@ -79,6 +138,11 @@
           formatBrl(checkout.amountCents)
         }}</strong>
       </p>
+      @if (checkout.shippingCents) {
+        <p class="text-sm text-muted-foreground" data-checkout-shipping-included>
+          Inclui frete {{ formatBrl(checkout.shippingCents) }}
+        </p>
+      }
       <p>
         Status:
         <strong data-checkout-status>{{ liveStatus() ?? checkout.status }}</strong>

@@ -20,6 +20,7 @@ import {
   Reseller,
   ResellerInvoice,
   ResellerPlan,
+  ShippingQuoteResult,
   Site,
   SiteContent,
   Template,
@@ -343,6 +344,13 @@ export class HttpApiService implements ApiPort {
       .pipe(map((body) => (body.items ?? []).map(mapAuditLog)));
   }
 
+  quoteShipping(destinationCep: string, quantity?: number): Observable<ShippingQuoteResult> {
+    return this.http.post<ShippingQuoteResult>(this.url('/billing/shipping/quote'), {
+      destinationCep,
+      quantity,
+    });
+  }
+
   checkoutPronto(
     command: {
       siteId: string;
@@ -350,6 +358,8 @@ export class HttpApiService implements ApiPort {
       customerEmail: string;
       couponCode?: string;
       method: PaymentMethod;
+      destinationCep?: string;
+      shippingServiceId?: string;
     },
     idempotencyKey: string,
   ): Observable<CheckoutResult> {

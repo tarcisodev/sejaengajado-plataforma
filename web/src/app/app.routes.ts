@@ -25,6 +25,13 @@ export const routes: Routes = [
         path: '',
         component: AuthShellComponent,
         children: [
+          // Precisa ser filho do shell: senão `/` casa o AuthShell vazio e nunca chega ao redirect.
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [homeRedirectGuard],
+            component: RouteRedirectComponent,
+          },
           { path: 'entrar', component: LoginComponent },
           { path: 'auth/callback', component: AuthCallbackComponent },
           { path: 'mfa', canActivate: [authGuard], component: MfaComponent },
@@ -46,12 +53,6 @@ export const routes: Routes = [
         canActivate: [authGuard, roleGuard('CUSTOMER')],
         loadChildren: () =>
           import('./features/customer/customer.routes').then((m) => m.customerRoutes),
-      },
-      {
-        path: '',
-        pathMatch: 'full',
-        canActivate: [homeRedirectGuard],
-        component: RouteRedirectComponent,
       },
       {
         path: '**',

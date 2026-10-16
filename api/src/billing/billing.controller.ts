@@ -10,6 +10,7 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/auth-user';
 import { Roles } from '../auth/roles.decorator';
+import { ShippingService } from '../shipping/shipping.service';
 import { BillingQueryService } from './billing-query.service';
 import { DirectBillingService } from './direct-billing.service';
 
@@ -21,6 +22,13 @@ interface CheckoutProntoBody {
   customerEmail?: string;
   couponCode?: string;
   method?: CheckoutMethod;
+  destinationCep?: string;
+  shippingServiceId?: string;
+}
+
+interface ShippingQuoteBody {
+  destinationCep?: string;
+  quantity?: number;
 }
 
 /**
@@ -32,7 +40,24 @@ export class BillingController {
   constructor(
     private readonly direct: DirectBillingService,
     private readonly queries: BillingQueryService,
+    private readonly shipping: ShippingService,
   ) {}
+
+  /** Cotação Melhor Envio (placa). Preços em centavos; origem fixa. */
+  @Post('shipping/quote')
+  @Roles('ADMIN', 'CUSTOMER')
+  quoteShipping(@Body() body: ShippingQuoteBody) {
+    if (!body.destinationCep?.trim()) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'destinationCep é obrigatório',
+      });
+    }
+    return this.shipping.quoteDestination(
+      body.destinationCep.trim(),
+      body.quantity && body.quantity > 0 ? Math.trunc(body.quantity) : 1,
+    );
+  }
 
   @Post('checkout/pronto')
   @Roles('ADMIN', 'CUSTOMER')
@@ -56,6 +81,8 @@ export class BillingController {
       customerEmail: body.customerEmail.trim(),
       couponCode: body.couponCode,
       method,
+      destinationCep: body.destinationCep,
+      shippingServiceId: body.shippingServiceId,
     });
   }
 

@@ -4,6 +4,7 @@
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
     "lint": "tsc --noEmit -p tsconfig.json && node scripts/lint-payments-boundary.mjs && node scripts/lint-system-prisma.mjs",
     "lint:money": "node scripts/lint-money.mjs",
     "lint:payments-boundary": "node scripts/lint-payments-boundary.mjs",
@@ -17,7 +18,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
-    "seed:demo": "tsx prisma/seed-demo.ts"
+    "seed:demo": "tsx prisma/seed-demo.ts",
+    "dev:seed-admin": "tsx scripts/seed-dev-admin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

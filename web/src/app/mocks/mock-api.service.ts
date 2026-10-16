@@ -60,6 +60,7 @@ import {
   Reseller,
   ResellerInvoice,
   ResellerPlan,
+  ShippingQuoteResult,
   Site,
   SiteContent,
   SiteTheme,
@@ -596,6 +597,32 @@ export class MockApiService implements ApiPort {
     return structuredClone(log);
   }
 
+  quoteShipping(destinationCep: string, _quantity?: number): Observable<ShippingQuoteResult> {
+    const digits = destinationCep.replace(/\D/g, '');
+    if (digits.length !== 8) {
+      return of({ originCep: '38035-080', options: [] });
+    }
+    return of({
+      originCep: '38035-080',
+      options: [
+        {
+          serviceId: '1',
+          name: 'PAC (exemplo)',
+          company: 'Correios',
+          priceCents: 2_490,
+          deliveryDays: 8,
+        },
+        {
+          serviceId: '2',
+          name: 'SEDEX (exemplo)',
+          company: 'Correios',
+          priceCents: 4_190,
+          deliveryDays: 3,
+        },
+      ],
+    });
+  }
+
   checkoutPronto(
     command: {
       siteId: string;
@@ -603,18 +630,27 @@ export class MockApiService implements ApiPort {
       customerEmail: string;
       couponCode?: string;
       method: PaymentMethod;
+      destinationCep?: string;
+      shippingServiceId?: string;
     },
     _idempotencyKey: string,
   ): Observable<CheckoutResult> {
     const site = this.state.sites.find((item) => item.id === command.siteId);
     const plan = this.state.plans.find((item) => item.id === (site?.planId ?? ''));
-    const amountCents = plan?.precoCentavos ?? 34_700;
+    let amountCents = plan?.precoCentavos ?? 34_700;
+    let shippingCents = 0;
+    if (command.destinationCep && command.shippingServiceId) {
+      shippingCents = command.shippingServiceId === '2' ? 4_190 : 2_490;
+      amountCents += shippingCents;
+    }
     const gatewayPaymentId = `pay_checkout_${this.checkoutByGateway.size + 1}`;
     const result: CheckoutResult = {
       orderId: `order_${gatewayPaymentId}`,
       paymentId: `payment_${gatewayPaymentId}`,
       gatewayPaymentId,
       amountCents,
+      shippingCents,
+      shippingServiceId: command.shippingServiceId ?? null,
       method: command.method,
       status: 'PENDING',
       pixQrCode: command.method === 'PIX' ? 'mock-qr' : null,

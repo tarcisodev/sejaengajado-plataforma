@@ -20,15 +20,18 @@ Os mounts internos do stack `sejaengajado` continuam `se_supabase_jwt_secret` / 
 | --- | --- |
 | `se_supabase_jwt_secret_v1` | `se_auth_jwt_secret_v1` |
 | `se_supabase_service_role_key_v1` | `se_auth_service_role_key_v1` |
+| `se_asaas_api_key_v1` | `se_asaas_api_key_v2` (Asaas produção) |
 
 Após o cutover, `docker secret rm` dos nomes aposentados quando nenhum stack os referenciar.
 
-## Já existentes na VPS (outros)
+## Já existentes na VPS
 
 | Nome Docker | Uso |
 | --- | --- |
 | `se_s3_access_key_v1` | R2 access key → `S3_ACCESS_KEY_FILE` |
 | `se_s3_secret_key_v1` | R2 secret key → `S3_SECRET_KEY_FILE` |
+| `se_asaas_api_key_v2` | Asaas **produção** → mount interno `se_asaas_api_key` → `ASAAS_API_KEY_FILE` |
+| `se_melhorenvio_token_v1` | Melhor Envio → mount interno `se_melhorenvio_token` → `MELHORENVIO_TOKEN_FILE` |
 
 ## A criar (quando for deployar — não agora)
 
@@ -49,7 +52,6 @@ read -rs V && printf '%s' "$V" | docker secret create <nome> - && unset V
 | `se_auth_service_role_key_v1` | Ver tabela Auth | API Nest |
 | `se_auth_anon_key_v1` | Ver tabela Auth | Env/Passbolt; browser via `/se-public-config.json` |
 | `se_smtp_url_v1` | Avisos/jobs + GoTrue SMTP → `SMTP_URL_FILE` / parse no `se-auth` | |
-| `se_asaas_api_key_v1` | Asaas (produção no go-live) → `ASAAS_API_KEY_FILE` | Sandbox só local via arquivo |
 | `se_asaas_webhook_token_v1` | Header `asaas-access-token` → `ASAAS_WEBHOOK_TOKEN_FILE` | |
 | `se_backup_age_pubkey_v1` | age recipient do dump | Privkey só fora da VPS / GitHub restore |
 | `se_rclone_conf_v1` | rclone → R2 `se-backup` (lifecycle 30d no bucket) | |
@@ -67,7 +69,8 @@ read -rs V && printf '%s' "$V" | docker secret create <nome> - && unset V
 | `HC_RESTORE_URL` | (opcional) ping Healthchecks do restore-test |
 
 Deploy (`.github/workflows/deploy.yml`) usa **apenas** `secrets.GITHUB_TOKEN` para login GHCR.  
-`SUPABASE_ANON_KEY` (se usado) vem de **GitHub Environment variable** / Passbolt (`se_auth_anon_key_v1`), não de Docker secret no workflow.
+`SUPABASE_ANON_KEY` (se usado) vem de **GitHub Environment variable** / Passbolt (`se_auth_anon_key_v1`), não de Docker secret no workflow.  
+`ASAAS_BASE_URL` e `MELHORENVIO_BASE_URL` são **variables** (não secrets) — ver `infra/runbooks/virar-asaas-producao.md`.
 
 ## Rotação `_vN`
 
@@ -80,6 +83,6 @@ Deploy (`.github/workflows/deploy.yml`) usa **apenas** `secrets.GITHUB_TOKEN` pa
 
 ## O que NÃO é secret
 
-- `SUPABASE_URL` (`https://auth.sejaengajado.com.br`), `ASAAS_BASE_URL` (env deploy; default sandbox), `S3_ENDPOINT` (env deploy com account id R2), `S3_BUCKET`, `S3_BACKUP_BUCKET`, `S3_REGION`, `ENABLE_DOCS` — não são Docker secrets.
+- `SUPABASE_URL` (`https://auth.sejaengajado.com.br`), `ASAAS_BASE_URL` (env deploy; default sandbox), `MELHORENVIO_BASE_URL` (env deploy; default `https://melhorenvio.com.br`), `S3_ENDPOINT` (env deploy com account id R2), `S3_BUCKET`, `S3_BACKUP_BUCKET`, `S3_REGION`, `ENABLE_DOCS` — não são Docker secrets.
 - Certresolver Traefik: **`cfdns`** (DNS Cloudflare, wildcard/produção). **`letsencryptresolver`** = HTTP challenge (outros stacks; não usar neste).
 - Roles BYPASSRLS: passo único `infra/runbooks/db-bootstrap-roles.md` (não nas migrations).
