@@ -12,7 +12,7 @@
 | M1 | DONE | 4df0f08 | 2026-10-16 |
 | AW6 | DONE | 379005c | 2026-10-16 |
 | AW7 | DONE | 6c4db08 | 2026-10-16 |
-| BR1 | TODO | — | — |
+| BR1 | DONE | 7cfff66 | 2026-10-16 |
 | LU2 | TODO | — | — |
 | LU3 | TODO | — | — |
 | LU1+ | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-#7 — Páginas jurídicas públicas + aceite (208e23d, Closes #7).
+BR1 — Brand pack C (7cfff66).
 
 ## Proximo
-BR1 — Brand pack (aplicar assets já em web/public).
+LU2 — Divisores de seção configuráveis (Lumen B2 / 03-B3).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
