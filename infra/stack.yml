@@ -37,7 +37,8 @@ services:
       PORT: "4000"
       API_INTERNAL_URL: http://api:3000
       API_PUBLIC_URL: /api
-      NODE_OPTIONS: --max-old-space-size=192
+      # Angular SSR + Node baseline needs headroom; 192 MB heap OOMd under Beasties.
+      NODE_OPTIONS: --max-old-space-size=512
       SUPABASE_URL: https://auth.sejaengajado.com.br
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SENTRY_DSN_FILE: /run/secrets/se_sentry_dsn
@@ -50,13 +51,13 @@ services:
       interval: 15s
       timeout: 3s
       retries: 3
-      start_period: 20s
+      start_period: 40s
     deploy:
       <<: *deploy_common
       replicas: 1
       resources:
-        reservations: { memory: 96M }
-        limits: { memory: 256M, cpus: "0.50" }
+        reservations: { memory: 256M }
+        limits: { memory: 768M, cpus: "0.75" }
       labels:
         - traefik.enable=true
         - traefik.swarm.network=TarcisoDevNet

@@ -132,10 +132,7 @@ app.get('**', async (req, res, next) => {
   const search = originalUrl.includes('?') ? originalUrl.slice(originalUrl.indexOf('?')) : '';
   const decision = resolveHost(host, search);
 
-  // app.* — panel host: SSR without tenant by-host (P19).
-  if (decision.kind === 'app') {
-    // fall through to Angular
-  } else if (decision.kind === 'tenant') {
+  if (decision.kind === 'tenant') {
     const pathOnly = originalUrl.split('?')[0] ?? '/';
     if (pathOnly === '/avaliar' || pathOnly === '/avaliar/') {
       const target = `${apiInternalBase()}/api/public/r/${encodeURIComponent(decision.slug)}/avaliar`;
@@ -183,19 +180,20 @@ app.get('**', async (req, res, next) => {
           .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
         return;
       }
-      // PUBLISHED / READ_ONLY → Angular SSR (client also calls by-host).
     } catch (err) {
       Sentry.captureException(err);
-      // Continue to Angular; TenantResolver may still resolve via HttpApi.
     }
   }
 
+  // Beasties off: evitava path /server/*.css e picos de heap no container.
+  // publicPath só no apex (SSG); em tenant `/` colidiria com index da landing.
   commonEngine
     .render({
       bootstrap,
       documentFilePath: indexHtml,
       url: `${protocol}://${host}${originalUrl}`,
       publicPath: decision.kind === 'landing' ? browserDistFolder : undefined,
+      inlineCriticalCss: false,
       providers: [
         { provide: APP_BASE_HREF, useValue: baseUrl },
         { provide: RESPONSE_INIT, useValue: responseInit },

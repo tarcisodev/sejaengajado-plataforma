@@ -5,8 +5,10 @@ export interface CachedByHost {
 }
 
 const TTL_MS = 60_000;
+/** Cap so wildcard traffic cannot grow the SSR process without bound. */
+const MAX_ENTRIES = 500;
 
-/** In-memory by-host cache for the SSR Node process (60s). */
+/** In-memory by-host cache for the SSR Node process (60s TTL, max 500 hosts). */
 export class ByHostMemoryCache {
   private readonly map = new Map<string, CachedByHost>();
 
@@ -20,15 +22,42 @@ export class ByHostMemoryCache {
       this.map.delete(key);
       return null;
     }
+    // Refresh insertion order for LRU eviction on set.
+    this.map.delete(key);
+    this.map.set(key, hit);
     return hit;
   }
 
   set(host: string, status: number, body: Record<string, unknown> | null): void {
-    this.map.set(normalizeHost(host), { status, body, storedAt: Date.now() });
+    const key = normalizeHost(host);
+    this.map.delete(key);
+    this.map.set(key, { status, body, storedAt: Date.now() });
+    this.evictExpired();
+    while (this.map.size > MAX_ENTRIES) {
+      const oldest = this.map.keys().next().value;
+      if (oldest === undefined) {
+        break;
+      }
+      this.map.delete(oldest);
+    }
   }
 
   clear(): void {
     this.map.clear();
+  }
+
+  /** Test helper. */
+  get size(): number {
+    return this.map.size;
+  }
+
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.map) {
+      if (now - entry.storedAt > TTL_MS) {
+        this.map.delete(key);
+      }
+    }
   }
 }
 

@@ -143,16 +143,61 @@ jobs:
 
       - name: Gate de saúde
         run: |
-          for i in $(seq 1 36); do
-            # Não usar teste.* — 404 sem site publicado. Ready = DB + R2.
-            if curl -fsS "https://app.sejaengajado.com.br/api/health/ready"; then
-              echo "health ok"
-              exit 0
+          set -euo pipefail
+          IMAGE_TAG="${IMAGE_TAG:?}"
+          ok=0
+          for i in $(seq 1 48); do
+            api_img=$(docker service inspect sejaengajado_api --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || true)
+            web_img=$(docker service inspect sejaengajado_web-ssr --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || true)
+            api_upd=$(docker service inspect sejaengajado_api --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}' 2>/dev/null || true)
+            web_upd=$(docker service inspect sejaengajado_web-ssr --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}' 2>/dev/null || true)
+
+            if echo "$api_upd$web_upd" | grep -Eiq 'rollback'; then
+              echo "serviço em rollback (api=$api_upd web=$web_upd)" >&2
+              exit 1
+            fi
+
+            # Image tag must match the deployed SHA (digest-only is not enough).
+            api_sha_ok=0
+            web_sha_ok=0
+            [[ "$api_img" == *":${IMAGE_TAG}"* ]] && api_sha_ok=1
+            [[ "$web_img" == *":${IMAGE_TAG}"* ]] && web_sha_ok=1
+
+            api_ready=0
+            web_ready=0
+            front_ok=0
+            web_hz=0
+            if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/api/health/ready" >/dev/null; then
+              api_ready=1
+            fi
+            if curl -fsS --max-time 5 -o /dev/null -w "%{http_code}" "https://app.sejaengajado.com.br/entrar" | grep -Eq '200|301|302'; then
+              front_ok=1
+            fi
+            if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/healthz" | grep -qx 'ok'; then
+              web_hz=1
+            fi
+            # Running task count for web-ssr
+            web_running=$(docker service ps sejaengajado_web-ssr --filter desired-state=running --format '{{.CurrentState}}' 2>/dev/null | grep -c '^Running' || true)
+            [[ "${web_running:-0}" -ge 1 ]] && web_ready=1 || web_ready=0
+
+            echo "gate try=$i api_tag=$api_sha_ok web_tag=$web_sha_ok api_ready=$api_ready front=$front_ok healthz=$web_hz web_run=$web_ready upd=api:$api_upd/web:$web_upd"
+
+            if [[ "$api_sha_ok" -eq 1 && "$web_sha_ok" -eq 1 && "$api_ready" -eq 1 && "$front_ok" -eq 1 && "$web_hz" -eq 1 && "$web_ready" -eq 1 ]]; then
+              # Update finished (or first deploy with empty UpdateStatus)
+              if [[ -z "$api_upd" || "$api_upd" == "completed" ]] && [[ -z "$web_upd" || "$web_upd" == "completed" ]]; then
+                echo "health ok (api + web-ssr no SHA ${IMAGE_TAG})"
+                ok=1
+                break
+              fi
             fi
             sleep 5
           done
-          echo "healthcheck falhou" >&2
-          exit 1
+          if [[ "$ok" -ne 1 ]]; then
+            echo "healthcheck falhou — serviços não convergiram no SHA ${IMAGE_TAG}" >&2
+            docker service ps sejaengajado_api --no-trunc 2>/dev/null | head -20 || true
+            docker service ps sejaengajado_web-ssr --no-trunc 2>/dev/null | head -20 || true
+            exit 1
+          fi
 
       - name: Rollback automático (redeploy implícito via Swarm + aviso de SHA)
         if: failure() && env.PREV_TAG != ''
