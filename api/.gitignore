@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-seed
 coverage
 .env
 test/setup/.container-state.json
