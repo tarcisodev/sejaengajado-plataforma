@@ -6,8 +6,8 @@ export interface CachedByHost {
   ttlMs: number;
 }
 
-/** Successful by-host payloads. */
-export const BY_HOST_TTL_OK_MS = 60_000;
+/** Successful by-host payloads — short so reseller edits show within seconds. */
+export const BY_HOST_TTL_OK_MS = 5_000;
 /** 404/410/5xx/empty — keep brief (seconds), not a minute. */
 export const BY_HOST_TTL_NEGATIVE_MS = 3_000;
 /** Cap so wildcard traffic cannot grow the SSR process without bound. */

@@ -147,14 +147,23 @@ export class ImageUploadService {
     if (presign.uploadUrl.includes('.example.local')) {
       return blobToDataUrl(blob);
     }
-    const form = new FormData();
-    for (const [key, value] of Object.entries(presign.fields ?? {})) {
-      form.append(key, value);
-    }
-    form.append('file', blob, body.filename);
     let ok = false;
     try {
-      const response = await fetch(presign.uploadUrl, { method: 'POST', body: form });
+      let response: Response;
+      if (presign.method === 'POST') {
+        const form = new FormData();
+        for (const [key, value] of Object.entries(presign.fields ?? {})) {
+          form.append(key, value);
+        }
+        form.append('file', blob, body.filename);
+        response = await fetch(presign.uploadUrl, { method: 'POST', body: form });
+      } else {
+        response = await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: presign.headers ?? { 'Content-Type': contentType },
+          body: blob,
+        });
+      }
       ok = response.ok;
     } catch {
       ok = false;

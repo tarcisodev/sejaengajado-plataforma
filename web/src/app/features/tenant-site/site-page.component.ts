@@ -176,7 +176,11 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   products(): SiteProduct[] {
-    return this.on('catalog') ? (this.site.content.products ?? []) : [];
+    if (!this.on('catalog')) {
+      return [];
+    }
+    const products = this.site.content.products ?? [];
+    return products.length ? products : (this.site.content.catalog?.items ?? []);
   }
 
   price(item: SiteProduct): string {

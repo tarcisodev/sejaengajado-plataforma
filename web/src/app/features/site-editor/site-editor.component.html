@@ -470,16 +470,27 @@
 
             <fieldset class="grid gap-3 rounded-lg border border-border p-3 md:col-span-2 md:grid-cols-6">
               <legend class="px-1 text-sm font-medium">Endereço</legend>
-              <label class="grid gap-1 text-xs md:col-span-4">
-                Rua e número
+              <label class="grid gap-1 text-xs md:col-span-3">
+                Rua
                 <input
                   hlmInput
                   class="h-11 text-sm"
                   data-field="logradouro"
-                  autocomplete="street-address"
+                  autocomplete="address-line1"
                   [value]="d().logradouro"
                   (input)="patch('logradouro', val($event))"
-                  placeholder="Av. Leopoldino de Oliveira, 1000"
+                  placeholder="Av. Leopoldino de Oliveira"
+                />
+              </label>
+              <label class="grid gap-1 text-xs md:col-span-1">
+                Número
+                <input
+                  hlmInput
+                  class="h-11 text-sm"
+                  data-field="numero"
+                  [value]="d().numero"
+                  (input)="patch('numero', val($event))"
+                  placeholder="1000"
                 />
               </label>
               <label class="grid gap-1 text-xs md:col-span-2">

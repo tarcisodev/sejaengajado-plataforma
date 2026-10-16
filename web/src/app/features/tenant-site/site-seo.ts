@@ -206,7 +206,14 @@ export function siteJsonLd(content: SiteContent, slug: string, schemaType: strin
       addressLocality: content.profile.cidade,
       addressRegion: content.profile.uf,
       addressCountry: 'BR',
-      ...(content.address?.logradouro ? { streetAddress: content.address.logradouro } : {}),
+      ...(content.address?.logradouro
+        ? {
+            streetAddress: [content.address.logradouro, content.address.numero, content.address.complemento]
+              .map((part) => part?.trim())
+              .filter(Boolean)
+              .join(', '),
+          }
+        : {}),
       ...(content.address?.cep ? { postalCode: content.address.cep } : {}),
     },
   };

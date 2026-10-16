@@ -4,8 +4,8 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { S3Client } from '@aws-sdk/client-s3';
-import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -89,7 +89,7 @@ export class UploadService {
   constructor(@Inject(ENV) private readonly env: Env) {}
 
   /**
-   * Presigned S3 POST (JPEG/PNG/WebP, ≤ 5 MB, 5 min).
+   * Presigned S3 PUT (JPEG/PNG/WebP, ≤ 5 MB, 5 min).
    * @param scope owner of the upload (reseller / admin / customer).
    */
   async createPresignedUpload(body: unknown, scope: UploadScope) {
@@ -146,24 +146,32 @@ export class UploadService {
     }
 
     const key = buildScopedUploadKey(scope, contentType);
-    const { url, fields } = await createPresignedPost(this.getClient(), {
-      Bucket: bucket,
-      Key: key,
-      Conditions: uploadPostConditions(contentType, UPLOAD_MAX_BYTES),
-      Fields: {
-        'Content-Type': contentType,
+    // Presigned PUT (R2 does not implement presigned POST). Content-Type and
+    // Content-Length are signed, so the storage rejects a different type or a body
+    // whose size differs from the declared (already ≤ UPLOAD_MAX_BYTES) length.
+    const uploadUrl = await getSignedUrl(
+      this.getClient(),
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: contentType,
+        ContentLength: contentLength,
+      }),
+      {
+        expiresIn: UPLOAD_EXPIRES_SECONDS,
+        signableHeaders: new Set(['content-type', 'content-length']),
       },
-      Expires: UPLOAD_EXPIRES_SECONDS,
-    });
+    );
 
-    const publicBase = endpoint.replace(/\/$/, '');
     return {
-      method: 'POST' as const,
-      uploadUrl: url,
-      fields,
-      publicUrl: `${publicBase}/${bucket}/${key}`,
+      method: 'PUT' as const,
+      uploadUrl,
+      /** Headers the client must send with the PUT (Content-Length is set by the browser). */
+      headers: { 'Content-Type': contentType },
+      publicUrl: buildPublicUrl(this.env, bucket, key),
       key,
       contentType,
+      contentLength,
       maxBytes: UPLOAD_MAX_BYTES,
       expiresIn: UPLOAD_EXPIRES_SECONDS,
     };
@@ -197,4 +205,21 @@ function extFor(contentType: string): string {
     default:
       return '';
   }
+}
+
+/**
+ * Public URL of an uploaded object. Uses S3_PUBLIC_BASE_URL (R2 public bucket
+ * domain / r2.dev, already bound to the bucket → `<base>/<key>`); falls back to the
+ * path-style API endpoint (`<endpoint>/<bucket>/<key>`, not publicly readable on R2).
+ */
+export function buildPublicUrl(
+  env: Pick<Env, 'S3_PUBLIC_BASE_URL' | 'S3_ENDPOINT'>,
+  bucket: string,
+  key: string,
+): string {
+  const publicBase = env.S3_PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
+  if (publicBase) {
+    return `${publicBase}/${key}`;
+  }
+  return `${(env.S3_ENDPOINT ?? '').replace(/\/$/, '')}/${bucket}/${key}`;
 }

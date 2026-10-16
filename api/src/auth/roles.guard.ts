@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 
 import type { UserRole } from '../common/roles';
 import type { AuthUser } from './auth-user';
-import { ROLES_KEY } from './roles.decorator';
+import { ALLOW_AAL1_KEY, ROLES_KEY } from './roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -45,6 +45,19 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException({
         code: 'AUTH_MFA_REQUIRED',
         message: 'MFA do admin obrigatório',
+      });
+    }
+
+    // Revendedor: toda rota exige aal2 (TOTP), exceto as marcadas @AllowAal1 (ex.: /auth/me).
+    // MFA enroll/challenge/verify vão direto ao Supabase Auth, fora desta API.
+    const allowAal1 = this.reflector.getAllAndOverride<boolean | undefined>(ALLOW_AAL1_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (user.role === 'RESELLER' && !allowAal1 && user.aal !== 'aal2') {
+      throw new ForbiddenException({
+        code: 'MFA_REQUIRED',
+        message: 'Confirme o código do autenticador (MFA) para continuar.',
       });
     }
 

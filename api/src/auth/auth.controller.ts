@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { ADMIN_PRISMA, type AdminPrisma } from '../tenant/prisma.module';
 import type { AuthUser } from './auth-user';
 import { CurrentUser } from './current-user.decorator';
-import { Roles } from './roles.decorator';
+import { AllowAal1, Roles } from './roles.decorator';
 import { SUPABASE_ADMIN, type SupabaseAdminClient } from './supabase-admin';
 
 const inviteSchema = z
@@ -45,6 +45,7 @@ export class AuthController {
 
   @Get('auth/me')
   @Roles('ADMIN', 'RESELLER', 'CUSTOMER')
+  @AllowAal1()
   me(@CurrentUser() user: AuthUser) {
     return {
       id: user.id,

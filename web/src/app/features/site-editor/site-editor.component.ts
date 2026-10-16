@@ -144,6 +144,7 @@ interface EditorDraft {
   youtube: string;
   website: string;
   logradouro: string;
+  numero: string;
   bairro: string;
   cep: string;
   mapsUrl: string;
@@ -399,6 +400,7 @@ export class SiteEditorComponent implements OnChanges {
       youtube: '',
       website: '',
       logradouro: '',
+      numero: '',
       bairro: '',
       cep: '',
       mapsUrl: '',
@@ -453,6 +455,7 @@ export class SiteEditorComponent implements OnChanges {
     draft.website = rede('site');
 
     draft.logradouro = c.address?.logradouro || '';
+    draft.numero = c.address?.numero || '';
     draft.bairro = c.address?.bairro || '';
     draft.cep = c.address?.cep || '';
     draft.mapsUrl = mapsUrlOf(c);
@@ -477,7 +480,7 @@ export class SiteEditorComponent implements OnChanges {
         ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(c.google.placeId)}`
         : '');
 
-    const products = c.products ?? [];
+    const products = c.products?.length ? c.products : (c.catalog?.items ?? []);
     draft.products = products.map((item) => ({
       base: item,
       categoria: item.categoria || '',
@@ -583,7 +586,8 @@ export class SiteEditorComponent implements OnChanges {
 
   addressQuery(): string {
     const draft = this.d();
-    return [draft.logradouro, draft.bairro, draft.cidade, draft.uf, draft.cep]
+    const street = [draft.logradouro, draft.numero].filter((part) => part.trim()).join(', ');
+    return [street, draft.bairro, draft.cidade, draft.uf, draft.cep]
       .map((part) => part.trim())
       .filter(Boolean)
       .join(', ');
@@ -1001,6 +1005,7 @@ export class SiteEditorComponent implements OnChanges {
         ? {
             ...base.address,
             logradouro: draft.logradouro.trim(),
+            numero: t(draft.numero),
             bairro: t(draft.bairro),
             cidade: draft.cidade.trim(),
             uf: draft.uf.trim().toUpperCase(),
