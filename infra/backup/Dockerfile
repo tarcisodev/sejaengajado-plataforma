@@ -2,7 +2,7 @@
 # Backup image: pg_dump (Postgres 16 client) + age + rclone + supercronic.
 # Runs as non-root. Secrets mounted at /run/secrets — never baked in.
 
-FROM postgres:16-alpine
+FROM postgres:18-alpine
 
 RUN apk add --no-cache \
       age \
