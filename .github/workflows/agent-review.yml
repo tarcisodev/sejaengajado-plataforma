@@ -1,4 +1,5 @@
 # Revisor em modo sombra — ADR-003 etapa 2. Não aprova nem faz merge.
+# PR code entra só como diff (mitiga pwn request em workflow_run).
 name: agent-review
 
 on:
@@ -14,12 +15,13 @@ permissions:
 
 jobs:
   review:
-    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled' }}
-    runs-on: [self-hosted, linux, vps]
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Resolver PR
         id: pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const run = context.payload.workflow_run;
@@ -43,43 +45,38 @@ jobs:
             const closes = (pr.body || '').match(/Closes\s+#(\d+)/i);
             core.setOutput('issue', closes ? closes[1] : '');
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ steps.pr.outputs.sha }}
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Diff + CI summary
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           RUN_ID: ${{ github.event.workflow_run.id }}
+          BASE: ${{ steps.pr.outputs.base }}
+          SHA: ${{ steps.pr.outputs.sha }}
+          REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           mkdir -p artifacts/review
-          git fetch origin "${{ steps.pr.outputs.base }}" --depth=50 || true
-          git diff --unified=3 "origin/${{ steps.pr.outputs.base }}...${{ steps.pr.outputs.sha }}" > artifacts/review/diff.patch || true
-          gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" --jq '.jobs[] | {name, conclusion, steps: [.steps[] | {name, conclusion}]}' > artifacts/review/ci.json || echo '[]' > artifacts/review/ci.json
-          node scripts/ci/risk-tier.mjs --base "origin/${{ steps.pr.outputs.base }}" --head HEAD --json > artifacts/review/risk.json
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git fetch origin "refs/pull/${PR_NUMBER}/head"
+          git diff "origin/${BASE}...${SHA}" > artifacts/review/diff.patch
+          gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs" --jq '.jobs[] | {name, conclusion, steps: [.steps[] | {name, conclusion}]}' > artifacts/review/ci.json || echo '[]' > artifacts/review/ci.json
+          node scripts/ci/risk-tier.mjs --base "origin/${BASE}" --head "${SHA}" --json > artifacts/review/risk.json
           echo "RISK_TIER=$(node -e "console.log(JSON.parse(require('fs').readFileSync('artifacts/review/risk.json','utf8')).tier)")" >> "$GITHUB_ENV"
 
       - name: Issue vinculada (Closes #N)
         if: ${{ steps.pr.outputs.issue != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ steps.pr.outputs.issue }}
         run: |
-          gh api "repos/${{ github.repository }}/issues/${{ steps.pr.outputs.issue }}" --jq '{title, body, labels: [.labels[].name]}' > artifacts/review/issue.json || echo '{}' > artifacts/review/issue.json
-
-      - name: Token App (opcional se-reviewer)
-        id: app
-        env:
-          APP_ID: ${{ secrets.APP_ID }}
-          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
-        run: |
-          if [ -n "$APP_ID" ] && [ -n "$APP_PRIVATE_KEY" ]; then
-            echo "Usando GitHub App (token via gh-app) — placeholder: GITHUB_TOKEN neste momento"
-            echo "token_source=github_token" >> "$GITHUB_OUTPUT"
-          else
-            echo "token_source=github_token" >> "$GITHUB_OUTPUT"
-          fi
+          gh api "repos/${REPO}/issues/${ISSUE}" --jq '{title, body, labels: [.labels[].name]}' > artifacts/review/issue.json || echo '{}' > artifacts/review/issue.json
 
       - name: Rodar revisor
         env:
@@ -95,7 +92,9 @@ jobs:
           RISK_TIER: ${{ env.RISK_TIER }}
           REVIEW_OUT_DIR: artifacts/review
           TOKEN_USAGE_PATH: artifacts/review/token-usage.json
-        run: node scripts/ci/agent-review.mjs
+        run: |
+          if [ ! -f artifacts/review/issue.json ]; then echo '{}' > artifacts/review/issue.json; fi
+          node scripts/ci/agent-review.mjs
 
       - name: Comentar PR + labels
         env:
@@ -106,7 +105,7 @@ jobs:
           REVIEW_PATH: artifacts/review/review.json
         run: node scripts/ci/post-review-comment.mjs
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: agent-review-pr-${{ steps.pr.outputs.number }}
           path: artifacts/review
