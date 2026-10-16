@@ -327,17 +327,15 @@ export class HttpApiService implements ApiPort {
       .pipe(
         map((body) => {
           const rows = Array.isArray(body) ? body : (body.items ?? []);
-          return rows.map(
-            (row): Template => ({
-              id: row.id,
-              key: row.key,
-              nome: row.name,
-              ramo: row.niche,
-              schemaType: 'LocalBusiness',
-              schema: {},
-              ativo: true,
-            }),
-          );
+          return rows.map((row): Template => ({
+            id: row.id,
+            key: row.key,
+            nome: row.name,
+            ramo: row.niche,
+            schemaType: 'LocalBusiness',
+            schema: {},
+            ativo: true,
+          }));
         }),
       );
   }
@@ -674,9 +672,7 @@ function asItems(
   return Array.isArray(body) ? body : (body.items ?? []);
 }
 
-function asSiteRows(
-  body: ResellerSiteDto[] | { items?: ResellerSiteDto[] },
-): ResellerSiteDto[] {
+function asSiteRows(body: ResellerSiteDto[] | { items?: ResellerSiteDto[] }): ResellerSiteDto[] {
   return Array.isArray(body) ? body : (body.items ?? []);
 }
 

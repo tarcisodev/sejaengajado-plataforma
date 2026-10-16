@@ -7,7 +7,11 @@
   padding: 2rem clamp(1rem, 5vw, 3rem) 4rem;
   color: var(--ink);
   background:
-    radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, #3d5a4c 12%, transparent), transparent),
+    radial-gradient(
+      ellipse 80% 50% at 10% 0%,
+      color-mix(in oklab, #3d5a4c 12%, transparent),
+      transparent
+    ),
     var(--paper);
   font-family: 'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
 }
@@ -20,11 +24,10 @@
 }
 
 .legal__brand a {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.35rem;
-  font-weight: 600;
+  display: inline-flex;
   color: var(--ink);
   text-decoration: none;
+  line-height: 0;
 }
 
 .legal__nav {

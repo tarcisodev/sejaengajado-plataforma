@@ -5,6 +5,9 @@ export const LANDING_DESCRIPTION =
 
 export const LANDING_URL = 'https://sejaengajado.com.br/';
 
+/** Absolute OG image (brand pack C). */
+export const LANDING_OG_IMAGE = 'https://sejaengajado.com.br/og-image.png';
+
 export const PLATFORM_WHATSAPP_E164 = '5534999990000';
 
 export const WHATSAPP_HREF =

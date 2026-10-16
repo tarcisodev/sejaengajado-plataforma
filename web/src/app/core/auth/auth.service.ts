@@ -38,7 +38,7 @@ export class AuthService {
   async signInWithOtp(email: string): Promise<void> {
     const sb = await this.requireClient();
     const { error } = await sb.auth.signInWithOtp({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       options: { shouldCreateUser: false },
     });
     if (error) {
@@ -49,8 +49,8 @@ export class AuthService {
   async verifyOtp(email: string, token: string): Promise<AuthMe> {
     const sb = await this.requireClient();
     const { error } = await sb.auth.verifyOtp({
-      email: email.trim(),
-      token: token.trim(),
+      email: email.trim().toLowerCase(),
+      token: token.replace(/\D/g, ''),
       type: 'email',
     });
     if (error) {

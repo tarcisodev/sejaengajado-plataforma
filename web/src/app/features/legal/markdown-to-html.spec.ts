@@ -10,9 +10,7 @@ describe('markdownToHtml', () => {
   });
 
   it('renders lists and tables', () => {
-    const html = markdownToHtml(
-      '- um\n- dois\n\n| A | B |\n| --- | --- |\n| 1 | 2 |',
-    );
+    const html = markdownToHtml('- um\n- dois\n\n| A | B |\n| --- | --- |\n| 1 | 2 |');
     expect(html).toContain('<ul>');
     expect(html).toContain('<li>um</li>');
     expect(html).toContain('<th>A</th>');

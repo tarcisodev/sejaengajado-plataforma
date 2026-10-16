@@ -1,7 +1,9 @@
 <article class="legal" data-legal-page>
   <header class="legal__header">
     <p class="legal__brand">
-      <a routerLink="/">Seja Engajado</a>
+      <a routerLink="/" aria-label="Seja Engajado, início">
+        <app-brand-mark heightClass="h-9" />
+      </a>
     </p>
     <nav class="legal__nav" aria-label="Documentos jurídicos">
       @for (link of nav; track link.slug) {

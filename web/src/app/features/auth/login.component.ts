@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, isDevMode, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMoon, lucideSun, lucideTriangleAlert } from '@ng-icons/lucide';
@@ -9,6 +10,7 @@ import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { BrandMarkComponent } from '../../core/brand/brand-mark.component';
 import { ThemeService } from '../../core/theme/theme.service';
 import { LegalAcceptComponent } from '../legal/legal-accept.component';
 
@@ -16,6 +18,7 @@ import { LegalAcceptComponent } from '../legal/legal-accept.component';
   selector: 'app-login',
   imports: [
     NgIcon,
+    BrandMarkComponent,
     HlmAlertImports,
     HlmButton,
     HlmCardImports,
@@ -33,6 +36,7 @@ export class LoginComponent {
   private readonly router = inject(Router);
   readonly theme = inject(ThemeService);
 
+  readonly devMailpit = isDevMode();
   readonly email = signal('');
   readonly code = signal('');
   readonly codeSent = signal(false);
@@ -74,19 +78,36 @@ export class LoginComponent {
       this.error.set('Aceite os termos e políticas para continuar.');
       return;
     }
-    if (!this.code().trim()) {
-      this.error.set('Informe o código.');
+    const code = this.code().replace(/\D/g, '');
+    if (code.length !== 6) {
+      this.error.set('Informe o código de 6 dígitos.');
       return;
     }
     this.pending.set(true);
     this.error.set('');
     try {
-      const me = await this.auth.verifyOtp(this.email(), this.code());
+      const me = await this.auth.verifyOtp(this.email(), code);
       await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
-    } catch {
-      this.error.set('Código inválido.');
+    } catch (err) {
+      this.error.set(verifyFailureMessage(err));
     } finally {
       this.pending.set(false);
     }
   }
+}
+
+function verifyFailureMessage(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    const body = err.error as { code?: string; message?: string } | null;
+    if (body?.code === 'AUTH_NOT_INVITED') {
+      return 'O código foi aceito, mas esta conta não está cadastrada na API. Rode o seed do admin local.';
+    }
+    if (err.status === 0) {
+      return 'O código foi aceito, mas a API local não respondeu.';
+    }
+    if (body?.message) {
+      return body.message;
+    }
+  }
+  return 'Código inválido ou expirado. Peça outro e use só o e-mail mais recente.';
 }

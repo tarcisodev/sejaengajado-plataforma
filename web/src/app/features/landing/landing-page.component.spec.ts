@@ -4,7 +4,7 @@ import { provideRouter } from '@angular/router';
 import { API_PORT } from '../../core/api/api-port';
 import { MockApiService } from '../../mocks/mock-api.service';
 import { LandingPageComponent } from './landing-page.component';
-import { LANDING_DESCRIPTION, LANDING_TITLE, formatBrl } from './landing-seo';
+import { LANDING_DESCRIPTION, LANDING_OG_IMAGE, LANDING_TITLE, formatBrl } from './landing-seo';
 
 describe('LandingPageComponent', () => {
   let fixture: ComponentFixture<LandingPageComponent>;
@@ -44,8 +44,8 @@ describe('LandingPageComponent', () => {
   });
 
   it('links legal documents in the footer', () => {
-    const hrefs = [...fixture.nativeElement.querySelectorAll('footer .legal-links a')].map(
-      (el) => (el as HTMLAnchorElement).getAttribute('href'),
+    const hrefs = [...fixture.nativeElement.querySelectorAll('footer .legal-links a')].map((el) =>
+      (el as HTMLAnchorElement).getAttribute('href'),
     );
     expect(hrefs).toEqual(
       jasmine.arrayContaining([
@@ -74,6 +74,12 @@ describe('LandingPageComponent', () => {
     expect(document.title).toBe(LANDING_TITLE);
     expect(description).toBe(LANDING_DESCRIPTION);
     expect(canonical).toBe('https://sejaengajado.com.br/');
+    expect(document.head.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      LANDING_OG_IMAGE,
+    );
+    expect(fixture.nativeElement.querySelector('[data-brand-mark]')?.getAttribute('src')).toContain(
+      '/brand/logo-lockup',
+    );
     expect(jsonLd).toContain('Uberaba');
     expect(fixture.nativeElement.querySelectorAll('#faq details').length).toBe(5);
   });

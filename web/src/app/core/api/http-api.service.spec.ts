@@ -242,7 +242,11 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
         planId: 'p1',
         status: 'PUBLISHED',
         editable: true,
-        content: { businessName: 'Loja Nova', profile: { nome: 'Loja Nova', cidade: '', uf: '' }, theme: {} },
+        content: {
+          businessName: 'Loja Nova',
+          profile: { nome: 'Loja Nova', cidade: '', uf: '' },
+          theme: {},
+        },
         publishedAt: '2026-10-16',
         hostingRenewsAt: null,
         plaqueFidelityEndsAt: null,

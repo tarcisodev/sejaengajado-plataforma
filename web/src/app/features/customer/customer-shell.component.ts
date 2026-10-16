@@ -10,6 +10,7 @@ import { HlmToaster } from '@spartan-ng/helm/sonner';
 import { filter } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { BrandMarkComponent } from '../../core/brand/brand-mark.component';
 import { ThemeService } from '../../core/theme/theme.service';
 import { CheckoutComponent } from '../billing/checkout.component';
 import { CustomerStudioComponent } from './customer-studio.component';
@@ -19,6 +20,7 @@ import { CustomerStudioComponent } from './customer-studio.component';
   imports: [
     RouterLink,
     NgIcon,
+    BrandMarkComponent,
     HlmAvatarImports,
     HlmButton,
     HlmDropdownMenuImports,

@@ -540,9 +540,7 @@ export class MockApiService implements ApiPort {
     if (!customer) {
       return of([]);
     }
-    return of(
-      structuredClone(this.state.sites.filter((site) => site.customerId === customer.id)),
-    );
+    return of(structuredClone(this.state.sites.filter((site) => site.customerId === customer.id)));
   }
 
   listSitesByCustomer(customerId: string): Observable<Site[]> {

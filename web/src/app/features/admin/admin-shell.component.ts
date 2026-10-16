@@ -30,6 +30,7 @@ import { filter } from 'rxjs';
 
 import { featureFlags } from '../../core/api/feature-flags';
 import { AuthService } from '../../core/auth/auth.service';
+import { BrandMarkComponent } from '../../core/brand/brand-mark.component';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AdminSection, adminSection } from './admin-section';
 import { AdminConfigComponent } from './admin-config.component';
@@ -49,6 +50,7 @@ import { AdminSitesComponent } from './admin-sites.component';
   imports: [
     RouterLink,
     NgIcon,
+    BrandMarkComponent,
     HlmAvatarImports,
     HlmButton,
     HlmDropdownMenuImports,

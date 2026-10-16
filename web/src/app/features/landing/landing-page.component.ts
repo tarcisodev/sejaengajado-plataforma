@@ -14,9 +14,11 @@ import { Observable, catchError, combineLatest, map, of } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { Plan } from '../../core/models/domain';
+import { BrandMarkComponent } from '../../core/brand/brand-mark.component';
 import { LEGAL_NAV } from '../legal/legal-links';
 import {
   LANDING_DESCRIPTION,
+  LANDING_OG_IMAGE,
   LANDING_TITLE,
   LANDING_URL,
   WHATSAPP_HREF,
@@ -31,7 +33,7 @@ interface LandingOffer {
 
 @Component({
   selector: 'app-landing-page',
-  imports: [AsyncPipe, RouterLink],
+  imports: [AsyncPipe, RouterLink, BrandMarkComponent],
   templateUrl: './landing-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './landing-page.component.scss',
@@ -108,6 +110,9 @@ export class LandingPageComponent implements OnInit, OnDestroy {
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ property: 'og:url', content: LANDING_URL });
     this.meta.updateTag({ property: 'og:locale', content: 'pt_BR' });
+    this.meta.updateTag({ property: 'og:image', content: LANDING_OG_IMAGE });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:image', content: LANDING_OG_IMAGE });
     this.upsertCanonical();
     this.upsertJsonLd();
   }
