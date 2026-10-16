@@ -6,6 +6,7 @@
  */
 import request from 'supertest';
 
+import { runWithAuthUser } from '../../src/auth/auth.context';
 import { DirectBillingService } from '../../src/billing/direct-billing.service';
 import { ResellerDelinquencyJob } from '../../src/billing/reseller-delinquency.job';
 import { ResellerInvoiceJob } from '../../src/billing/reseller-invoice.job';
@@ -155,13 +156,26 @@ async function processWebhook(
       resellerId: seeded.reseller.id,
     });
 
-    // --- PIX pago ---
-    const pix = await direct.chargePronto({
-      siteId: seeded.siteDirect.id,
-      customerName: 'Cliente',
-      customerEmail: 'cliente@example.com',
-      method: 'PIX',
-    });
+    // --- PIX pago (ALS admin aal2 for ADMIN_PRISMA on platform site) ---
+    const pix = await runWithAuthUser(
+      {
+        id: seeded.admin.id,
+        supabaseId: seeded.admin.supabaseId,
+        email: seeded.admin.email,
+        role: 'ADMIN',
+        resellerId: null,
+        status: 'ACTIVE',
+        aal: 'aal2',
+        resellerStatus: null,
+      },
+      async () =>
+        direct.chargePronto({
+          siteId: seeded.siteDirect.id,
+          customerName: 'Cliente',
+          customerEmail: 'cliente@example.com',
+          method: 'PIX',
+        }),
+    );
     expect(pix.amountCents).toBe(29700);
     expect(pix.pixCopyPaste).toBeTruthy();
 
