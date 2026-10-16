@@ -77,7 +77,9 @@ export class HttpApiService implements ApiPort {
 
   listPlans(): Observable<Plan[]> {
     return this.http
-      .get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>(this.url('/admin/plans'))
+      .get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>(
+        this.url('/admin/plans'),
+      )
       .pipe(map((body) => asItems(body).map(mapPlan)));
   }
 
@@ -126,17 +128,15 @@ export class HttpApiService implements ApiPort {
       whatsapp: command.whatsapp,
       city: command.cidade,
     }).pipe(
-      map(
-        (row): Customer => ({
-          id: row.id,
-          userId: null,
-          resellerId: row.resellerId,
-          nome: row.name,
-          doc: row.doc,
-          whatsapp: row.whatsapp,
-          cidade: row.city,
-        }),
-      ),
+      map((row): Customer => ({
+        id: row.id,
+        userId: null,
+        resellerId: row.resellerId,
+        nome: row.name,
+        doc: row.doc,
+        whatsapp: row.whatsapp,
+        cidade: row.city,
+      })),
     );
   }
 
@@ -205,7 +205,11 @@ export class HttpApiService implements ApiPort {
       .pipe(map(mapReseller));
   }
 
-  unblockReseller(resellerId: string, _actorId: string, _unblockedAt: string): Observable<Reseller> {
+  unblockReseller(
+    resellerId: string,
+    _actorId: string,
+    _unblockedAt: string,
+  ): Observable<Reseller> {
     return this.http
       .post<Record<string, unknown>>(this.url(`/admin/resellers/${resellerId}/unblock`), {})
       .pipe(map(mapReseller));
@@ -213,19 +217,14 @@ export class HttpApiService implements ApiPort {
 
   offerMigration(resellerId: string, _actorId: string, _today: Date): Observable<AuditLog> {
     return this.http
-      .post<Record<string, unknown>>(
-        this.url(`/admin/resellers/${resellerId}/offer-migration`),
-        {},
-      )
+      .post<Record<string, unknown>>(this.url(`/admin/resellers/${resellerId}/offer-migration`), {})
       .pipe(
-        map(
-          (): AuditLog => ({
-            actor: 'admin',
-            acao: 'reseller.offer-migration',
-            entidade: `Reseller:${resellerId}`,
-            diff: {},
-          }),
-        ),
+        map((): AuditLog => ({
+          actor: 'admin',
+          acao: 'reseller.offer-migration',
+          entidade: `Reseller:${resellerId}`,
+          diff: {},
+        })),
       );
   }
 
@@ -319,14 +318,19 @@ export class HttpApiService implements ApiPort {
       .pipe(map((body) => (body.items ?? []).map(mapAuditLog)));
   }
 
-  checkoutPronto(command: {
-    siteId: string;
-    customerName: string;
-    customerEmail: string;
-    couponCode?: string;
-    method: PaymentMethod;
-  }): Observable<CheckoutResult> {
-    return this.http.post<CheckoutResult>(this.url('/billing/checkout/pronto'), command);
+  checkoutPronto(
+    command: {
+      siteId: string;
+      customerName: string;
+      customerEmail: string;
+      couponCode?: string;
+      method: PaymentMethod;
+    },
+    idempotencyKey: string,
+  ): Observable<CheckoutResult> {
+    return this.http.post<CheckoutResult>(this.url('/billing/checkout/pronto'), command, {
+      headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+    });
   }
 
   getPaymentStatus(gatewayPaymentId: string): Observable<PaymentStatusView> {
@@ -446,10 +450,9 @@ function cursorParams(cursor?: string | null): HttpParams {
   return new HttpParams().set('cursor', cursor);
 }
 
-function asItems(body: { items?: Record<string, unknown>[] } | Record<string, unknown>[]): Record<
-  string,
-  unknown
->[] {
+function asItems(
+  body: { items?: Record<string, unknown>[] } | Record<string, unknown>[],
+): Record<string, unknown>[] {
   return Array.isArray(body) ? body : (body.items ?? []);
 }
 

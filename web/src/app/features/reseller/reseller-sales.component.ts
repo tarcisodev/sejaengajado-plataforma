@@ -100,9 +100,7 @@ export class ResellerSalesComponent {
   readonly qty = signal(1);
   readonly unitPriceCents = signal(0);
   readonly unitCostCents = signal(0);
-  readonly margin = computed(
-    () => this.qty() * (this.unitPriceCents() - this.unitCostCents()),
-  );
+  readonly margin = computed(() => this.qty() * (this.unitPriceCents() - this.unitCostCents()));
 
   constructor() {
     this.reload();

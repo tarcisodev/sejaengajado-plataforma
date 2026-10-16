@@ -39,7 +39,9 @@ describe('GooglePlacesService', () => {
 
     const req = http.expectOne(`${base}/places/search?q=Padaria`);
     expect(req.request.method).toBe('GET');
-    req.flush([{ nome: 'Padaria Central', telefone: '', address: { logradouro: '', cidade: '', uf: '' } }]);
+    req.flush([
+      { nome: 'Padaria Central', telefone: '', address: { logradouro: '', cidade: '', uf: '' } },
+    ]);
     expect(rows?.length).toBe(1);
   });
 });

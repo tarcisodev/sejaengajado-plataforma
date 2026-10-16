@@ -5,7 +5,7 @@ import { accessTokenFromSupabase } from './supabase-browser';
 
 /** Attaches Supabase access token to Nest API calls when a session exists. */
 export const authTokenInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.includes('/api')) {
+  if (!isNestApiUrl(req.url)) {
     return next(req);
   }
   return from(accessTokenFromSupabase()).pipe(
@@ -21,3 +21,7 @@ export const authTokenInterceptor: HttpInterceptorFn = (req, next) => {
     }),
   );
 };
+
+function isNestApiUrl(url: string): boolean {
+  return url.includes('/api') || /\/(admin|reseller|billing|auth|public)\b/.test(url);
+}

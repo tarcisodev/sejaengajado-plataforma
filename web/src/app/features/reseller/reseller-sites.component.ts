@@ -57,9 +57,7 @@ import { formatBrl } from '../landing/landing-seo';
             required
           >
             @for (plan of options()?.plans ?? []; track plan.id) {
-              <option [value]="plan.id">
-                {{ plan.name }} ({{ formatBrl(plan.priceCents) }})
-              </option>
+              <option [value]="plan.id">{{ plan.name }} ({{ formatBrl(plan.priceCents) }})</option>
             }
           </select>
         </label>

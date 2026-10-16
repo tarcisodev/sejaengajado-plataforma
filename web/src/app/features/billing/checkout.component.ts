@@ -43,12 +43,15 @@ export class CheckoutComponent {
     this.error.set(null);
     this.busy.set(true);
     this.api
-      .checkoutPronto({
-        siteId: this.siteId().trim(),
-        customerName: this.customerName().trim(),
-        customerEmail: this.customerEmail().trim(),
-        method: this.method(),
-      })
+      .checkoutPronto(
+        {
+          siteId: this.siteId().trim(),
+          customerName: this.customerName().trim(),
+          customerEmail: this.customerEmail().trim(),
+          method: this.method(),
+        },
+        crypto.randomUUID(),
+      )
       .subscribe({
         next: (checkout) => {
           this.busy.set(false);

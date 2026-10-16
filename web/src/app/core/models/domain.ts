@@ -256,14 +256,7 @@ export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED';
 
 /** Gateway/API payment status for polling (never derive from redirect). */
 export type GatewayPaymentStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'RECEIVED'
-  | 'OVERDUE'
-  | 'REFUNDED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | string;
+  'PENDING' | 'CONFIRMED' | 'RECEIVED' | 'OVERDUE' | 'REFUNDED' | 'FAILED' | 'CANCELLED' | string;
 
 export interface Payment {
   id: string;

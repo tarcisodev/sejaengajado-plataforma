@@ -115,13 +115,16 @@ export interface ApiPort {
   requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog>;
   listAuditLogs(): Observable<AuditLog[]>;
   /** Direct Pronto checkout — amountCents comes from API only. */
-  checkoutPronto(command: {
-    siteId: string;
-    customerName: string;
-    customerEmail: string;
-    couponCode?: string;
-    method: PaymentMethod;
-  }): Observable<CheckoutResult>;
+  checkoutPronto(
+    command: {
+      siteId: string;
+      customerName: string;
+      customerEmail: string;
+      couponCode?: string;
+      method: PaymentMethod;
+    },
+    idempotencyKey: string,
+  ): Observable<CheckoutResult>;
   /** Poll payment status from API/gateway — never trust redirect. */
   getPaymentStatus(gatewayPaymentId: string): Observable<PaymentStatusView>;
   listMyInvoices(): Observable<MyResellerInvoice[]>;

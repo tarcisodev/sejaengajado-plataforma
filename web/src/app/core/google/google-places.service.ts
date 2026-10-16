@@ -17,24 +17,20 @@ export class GooglePlacesService {
 
     const base = environment.apiUrl.replace(/\/$/, '');
     if (!base) {
-      return throwError(
-        () => new Error('Busca do Google indisponível: aponte o web para a API.'),
-      );
+      return throwError(() => new Error('Busca do Google indisponível: aponte o web para a API.'));
     }
 
-    return this.http
-      .get<PlaceMatch[]>(`${base}/places/search`, { params: { q: text } })
-      .pipe(
-        catchError((error: unknown) => {
-          if (error instanceof HttpErrorResponse) {
-            const message =
-              typeof error.error?.message === 'string'
-                ? error.error.message
-                : 'A busca do Google falhou.';
-            return throwError(() => new Error(message));
-          }
-          return throwError(() => new Error('A busca do Google falhou.'));
-        }),
-      );
+    return this.http.get<PlaceMatch[]>(`${base}/places/search`, { params: { q: text } }).pipe(
+      catchError((error: unknown) => {
+        if (error instanceof HttpErrorResponse) {
+          const message =
+            typeof error.error?.message === 'string'
+              ? error.error.message
+              : 'A busca do Google falhou.';
+          return throwError(() => new Error(message));
+        }
+        return throwError(() => new Error('A busca do Google falhou.'));
+      }),
+    );
   }
 }

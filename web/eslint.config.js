@@ -15,6 +15,14 @@ module.exports = tseslint.config(
     ],
     processor: angular.processInlineTemplates,
     rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       "@angular-eslint/prefer-on-push-component-change-detection": "off",
       "@angular-eslint/directive-selector": [
         "error",

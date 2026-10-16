@@ -10,9 +10,14 @@ function scrubString(value: string): string {
 }
 
 /** Shared beforeSend scrub for SSR + browser (no e-mail / IP / tokens). */
-export function scrubSentryEvent<T extends { message?: string; user?: Record<string, unknown>; request?: { headers?: Record<string, string>; cookies?: unknown; data?: unknown }; server_name?: string }>(
-  event: T,
-): T | null {
+export function scrubSentryEvent<
+  T extends {
+    message?: string;
+    user?: Record<string, unknown>;
+    request?: { headers?: Record<string, string>; cookies?: unknown; data?: unknown };
+    server_name?: string;
+  },
+>(event: T): T | null {
   if (event.request) {
     delete event.request.cookies;
     if (event.request.headers) {

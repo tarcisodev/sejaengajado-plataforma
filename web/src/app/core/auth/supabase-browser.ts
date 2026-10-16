@@ -26,8 +26,17 @@ export function getSupabaseBrowser(): SupabaseClient | null {
   return client;
 }
 
+type EnsureFn = () => Promise<SupabaseClient | null>;
+type AccessTokenFn = () => Promise<string | null>;
+
+let ensureImpl: EnsureFn | null = null;
+let accessTokenImpl: AccessTokenFn | null = null;
+
 /** Ensure the browser client exists (runtime config may load async). */
 export async function ensureSupabaseBrowser(): Promise<SupabaseClient | null> {
+  if (ensureImpl) {
+    return ensureImpl();
+  }
   if (client) {
     return client;
   }
@@ -53,10 +62,27 @@ export async function ensureSupabaseBrowser(): Promise<SupabaseClient | null> {
 }
 
 export async function accessTokenFromSupabase(): Promise<string | null> {
+  if (accessTokenImpl) {
+    return accessTokenImpl();
+  }
   const sb = await ensureSupabaseBrowser();
   if (!sb) {
     return null;
   }
   const { data } = await sb.auth.getSession();
   return data.session?.access_token ?? null;
+}
+
+/** Test-only seams (ESM exports are not spyable in Karma). */
+export function setSupabaseBrowserTestHooks(hooks: {
+  ensure?: EnsureFn | null;
+  accessToken?: AccessTokenFn | null;
+}): void {
+  ensureImpl = hooks.ensure === undefined ? ensureImpl : hooks.ensure;
+  accessTokenImpl = hooks.accessToken === undefined ? accessTokenImpl : hooks.accessToken;
+}
+
+export function resetSupabaseBrowserTestHooks(): void {
+  ensureImpl = null;
+  accessTokenImpl = null;
 }

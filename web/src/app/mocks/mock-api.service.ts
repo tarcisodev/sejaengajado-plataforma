@@ -562,13 +562,16 @@ export class MockApiService implements ApiPort {
     return structuredClone(log);
   }
 
-  checkoutPronto(command: {
-    siteId: string;
-    customerName: string;
-    customerEmail: string;
-    couponCode?: string;
-    method: PaymentMethod;
-  }): Observable<CheckoutResult> {
+  checkoutPronto(
+    command: {
+      siteId: string;
+      customerName: string;
+      customerEmail: string;
+      couponCode?: string;
+      method: PaymentMethod;
+    },
+    _idempotencyKey: string,
+  ): Observable<CheckoutResult> {
     const site = this.state.sites.find((item) => item.id === command.siteId);
     const plan = this.state.plans.find((item) => item.id === (site?.planId ?? ''));
     const amountCents = plan?.precoCentavos ?? 34_700;
@@ -587,9 +590,7 @@ export class MockApiService implements ApiPort {
           ? `https://sandbox.asaas.com/i/${gatewayPaymentId}`
           : `https://sandbox.asaas.com/i/${gatewayPaymentId}`,
       bankSlipUrl:
-        command.method === 'BOLETO'
-          ? `https://sandbox.asaas.com/b/${gatewayPaymentId}`
-          : null,
+        command.method === 'BOLETO' ? `https://sandbox.asaas.com/b/${gatewayPaymentId}` : null,
     };
     this.checkoutByGateway.set(gatewayPaymentId, result);
     return of(structuredClone(result));
@@ -673,16 +674,14 @@ export class MockApiService implements ApiPort {
   listResellerCustomers(_cursor?: string | null): Observable<CursorPage<ResellerCustomerDto>> {
     const items = this.state.customers
       .filter((customer) => customer.resellerId === RESELLER_TRIANGULO)
-      .map(
-        (customer): ResellerCustomerDto => ({
-          id: customer.id,
-          resellerId: customer.resellerId ?? RESELLER_TRIANGULO,
-          name: customer.nome,
-          doc: customer.doc,
-          whatsapp: customer.whatsapp,
-          city: customer.cidade,
-        }),
-      );
+      .map((customer): ResellerCustomerDto => ({
+        id: customer.id,
+        resellerId: customer.resellerId ?? RESELLER_TRIANGULO,
+        name: customer.nome,
+        doc: customer.doc,
+        whatsapp: customer.whatsapp,
+        city: customer.cidade,
+      }));
     return of({ items: structuredClone(items), nextCursor: null });
   }
 
@@ -836,7 +835,9 @@ export class MockApiService implements ApiPort {
   }
 
   getResellerLedgerBalance(): Observable<{ balanceCents: number }> {
-    return this.getResellerLedger().pipe(map((statement) => ({ balanceCents: statement.closingCents })));
+    return this.getResellerLedger().pipe(
+      map((statement) => ({ balanceCents: statement.closingCents })),
+    );
   }
 
   listResellerWholesale(): Observable<{ items: WholesaleItemDto[] }> {
@@ -891,9 +892,7 @@ export class MockApiService implements ApiPort {
             priceCents: plan.precoCentavos,
           }
         : undefined,
-      template: template
-        ? { id: template.id, key: template.key, name: template.nome }
-        : undefined,
+      template: template ? { id: template.id, key: template.key, name: template.nome } : undefined,
     };
   }
 

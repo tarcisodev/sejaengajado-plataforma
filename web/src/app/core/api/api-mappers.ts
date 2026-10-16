@@ -1,11 +1,4 @@
-import {
-  AuditLog,
-  Coupon,
-  Plan,
-  PlatformConfig,
-  Reseller,
-  ResellerPlan,
-} from '../models/domain';
+import { AuditLog, Coupon, Plan, PlatformConfig, Reseller, ResellerPlan } from '../models/domain';
 
 /** API platform config (*Days / *Cents) → domain pt-BR. */
 export function mapPlatformConfig(row: Record<string, unknown>): PlatformConfig {

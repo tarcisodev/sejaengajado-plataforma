@@ -1,8 +1,5 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -39,25 +36,27 @@ describe('Reseller AUTH-WEB part 2 (e2e-style)', () => {
     const api = TestBed.inject(API_PORT);
     const http = TestBed.inject(HttpTestingController);
     const pending = firstValueFrom(api.listResellerSites());
-    http.expectOne((r) => r.url.includes('/reseller/sites')).flush({
-      items: [
-        {
-          id: 'site-a',
-          resellerId: 'reseller-a',
-          customerId: 'cust-a',
-          slug: 'loja-a',
-          templateId: 't1',
-          planId: 'p1',
-          status: 'PUBLISHED',
-          editable: true,
-          content: {},
-          publishedAt: null,
-          hostingRenewsAt: null,
-          plaqueFidelityEndsAt: null,
-        },
-      ],
-      nextCursor: null,
-    });
+    http
+      .expectOne((r) => r.url.includes('/reseller/sites'))
+      .flush({
+        items: [
+          {
+            id: 'site-a',
+            resellerId: 'reseller-a',
+            customerId: 'cust-a',
+            slug: 'loja-a',
+            templateId: 't1',
+            planId: 'p1',
+            status: 'PUBLISHED',
+            editable: true,
+            content: {},
+            publishedAt: null,
+            hostingRenewsAt: null,
+            plaqueFidelityEndsAt: null,
+          },
+        ],
+        nextCursor: null,
+      });
     const page = await pending;
     expect(page.items.every((site) => site.resellerId === 'reseller-a')).toBeTrue();
     expect(page.items.some((site) => site.resellerId === 'reseller-b')).toBeFalse();
@@ -102,19 +101,17 @@ describe('Reseller AUTH-WEB part 2 (e2e-style)', () => {
     const http = TestBed.inject(HttpTestingController);
 
     const first = firstValueFrom(api.getResellerDashboard()).catch((error) => error);
-    http.expectOne((r) => r.url.includes('/reseller/dashboard')).flush(
-      { message: 'unauthorized' },
-      { status: 401, statusText: 'Unauthorized' },
-    );
+    http
+      .expectOne((r) => r.url.includes('/reseller/dashboard'))
+      .flush({ message: 'unauthorized' }, { status: 401, statusText: 'Unauthorized' });
     await first;
     expect(signOutCalls).toBe(1);
     expect(currentUrl).toBe('/entrar');
 
     const second = firstValueFrom(api.getResellerDashboard()).catch((error) => error);
-    http.expectOne((r) => r.url.includes('/reseller/dashboard')).flush(
-      { message: 'unauthorized' },
-      { status: 401, statusText: 'Unauthorized' },
-    );
+    http
+      .expectOne((r) => r.url.includes('/reseller/dashboard'))
+      .flush({ message: 'unauthorized' }, { status: 401, statusText: 'Unauthorized' });
     await second;
     expect(signOutCalls).toBe(1);
     http.verify();
@@ -146,10 +143,9 @@ describe('Reseller AUTH-WEB part 2 (e2e-style)', () => {
     const before = router.url;
 
     const pending = firstValueFrom(api.publishResellerSite('site-b')).catch((error) => error);
-    http.expectOne((r) => r.url.includes('/reseller/sites/site-b/publish')).flush(
-      { message: 'Recurso de outro revendedor' },
-      { status: 403, statusText: 'Forbidden' },
-    );
+    http
+      .expectOne((r) => r.url.includes('/reseller/sites/site-b/publish'))
+      .flush({ message: 'Recurso de outro revendedor' }, { status: 403, statusText: 'Forbidden' });
     await pending;
     expect(signOutCalls).toBe(0);
     expect(router.url).toBe(before);
