@@ -37,10 +37,11 @@ export class LoginComponent {
   readonly theme = inject(ThemeService);
 
   readonly devMailpit = isDevMode();
+  readonly mode = signal<'login' | 'forgot'>('login');
   readonly email = signal('');
-  readonly code = signal('');
-  readonly codeSent = signal(false);
+  readonly password = signal('');
   readonly error = signal('');
+  readonly notice = signal('');
   readonly pending = signal(false);
   readonly legalAccepted = signal(false);
 
@@ -48,66 +49,75 @@ export class LoginComponent {
     return (event.target as HTMLInputElement).value;
   }
 
-  async request(event: Event): Promise<void> {
+  async signIn(event: Event): Promise<void> {
+    event.preventDefault();
+    const email = this.email().trim();
+    const password = this.password();
+    if (!email || !password) {
+      this.error.set('Informe e-mail e senha.');
+      return;
+    }
+    if (!this.legalAccepted()) {
+      this.error.set('Aceite os termos e políticas para continuar.');
+      return;
+    }
+    this.pending.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      await this.auth.ensureReady();
+      const me = await this.auth.signInWithPassword(email, password);
+      const aal = await this.auth.getAuthenticatorAssuranceLevel();
+      if (aal === 'aal1') {
+        await this.router.navigateByUrl('/mfa');
+        return;
+      }
+      await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
+    } catch (err) {
+      this.error.set(signInFailureMessage(err));
+    } finally {
+      this.pending.set(false);
+    }
+  }
+
+  async requestReset(event: Event): Promise<void> {
     event.preventDefault();
     const email = this.email().trim();
     if (!email) {
       this.error.set('Informe o e-mail.');
       return;
     }
-    if (!this.legalAccepted()) {
-      this.error.set('Aceite os termos e políticas para continuar.');
-      return;
-    }
     this.pending.set(true);
     this.error.set('');
+    this.notice.set('');
     try {
       await this.auth.ensureReady();
-      await this.auth.signInWithOtp(email);
-      this.codeSent.set(true);
+      await this.auth.requestPasswordReset(email);
+      this.notice.set('Se a conta existir, enviamos um link para redefinir a senha.');
+      this.mode.set('login');
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Não foi possível enviar o código.');
-    } finally {
-      this.pending.set(false);
-    }
-  }
-
-  async verify(event: Event): Promise<void> {
-    event.preventDefault();
-    if (!this.legalAccepted()) {
-      this.error.set('Aceite os termos e políticas para continuar.');
-      return;
-    }
-    const code = this.code().replace(/\D/g, '');
-    if (code.length !== 6) {
-      this.error.set('Informe o código de 6 dígitos.');
-      return;
-    }
-    this.pending.set(true);
-    this.error.set('');
-    try {
-      const me = await this.auth.verifyOtp(this.email(), code);
-      await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
-    } catch (err) {
-      this.error.set(verifyFailureMessage(err));
+      this.error.set(err instanceof Error ? err.message : 'Não foi possível enviar o link.');
     } finally {
       this.pending.set(false);
     }
   }
 }
 
-function verifyFailureMessage(err: unknown): string {
+function signInFailureMessage(err: unknown): string {
   if (err instanceof HttpErrorResponse) {
     const body = err.error as { code?: string; message?: string } | null;
     if (body?.code === 'AUTH_NOT_INVITED') {
-      return 'O código foi aceito, mas esta conta não está cadastrada na API. Rode o seed do admin local.';
-    }
-    if (err.status === 0) {
-      return 'O código foi aceito, mas a API local não respondeu.';
+      return 'Conta autenticada, mas não cadastrada na API. Peça um novo convite.';
     }
     if (body?.message) {
       return body.message;
     }
   }
-  return 'Código inválido ou expirado. Peça outro e use só o e-mail mais recente.';
+  if (err instanceof Error && err.message) {
+    if (/invalid login credentials/i.test(err.message)) {
+      return 'E-mail ou senha inválidos.';
+    }
+    return err.message;
+  }
+  return 'Não foi possível entrar. Confira e-mail e senha.';
 }

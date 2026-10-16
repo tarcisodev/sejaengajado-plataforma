@@ -24,6 +24,7 @@ describe('admin resellers', () => {
         email,
       })),
       generateRecoveryLink: jest.fn(async () => ({ actionLink: 'https://example.com' })),
+      unenrollMfaFactors: jest.fn(async () => ({ removed: 0 })),
     };
 
     const { app } = await createTestApp({ supabaseAdmin });

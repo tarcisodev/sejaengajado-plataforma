@@ -11,6 +11,7 @@ import {
   lucideReceipt,
   lucideShoppingCart,
   lucideSun,
+  lucideUserRound,
   lucideUsers,
 } from '@ng-icons/lucide';
 import { HlmAlert } from '@spartan-ng/helm/alert';
@@ -27,6 +28,7 @@ import { ResellerDashboardComponent } from './reseller-dashboard.component';
 import { ResellerLedgerComponent } from './reseller-ledger.component';
 import { ResellerSalesComponent } from './reseller-sales.component';
 import { ResellerSection, resellerSection } from './reseller-section';
+import { ResellerProfileComponent } from './reseller-profile.component';
 import { ResellerSitesComponent } from './reseller-sites.component';
 import { ResellerStockComponent } from './reseller-stock.component';
 
@@ -45,6 +47,7 @@ import { ResellerStockComponent } from './reseller-stock.component';
     ResellerSalesComponent,
     ResellerStockComponent,
     ResellerLedgerComponent,
+    ResellerProfileComponent,
     MyInvoicesComponent,
   ],
   providers: [
@@ -57,6 +60,7 @@ import { ResellerStockComponent } from './reseller-stock.component';
       lucideReceipt,
       lucideShoppingCart,
       lucideSun,
+      lucideUserRound,
       lucideUsers,
     }),
   ],
@@ -96,6 +100,7 @@ export class ResellerShellComponent {
     { section: 'estoque', href: '/revenda/estoque', label: 'Estoque', icon: 'lucidePackage' },
     { section: 'extrato', href: '/revenda/extrato', label: 'Extrato', icon: 'lucideReceipt' },
     { section: 'faturas', href: '/revenda/faturas', label: 'Faturas', icon: 'lucideFileText' },
+    { section: 'perfil', href: '/revenda/perfil', label: 'Perfil', icon: 'lucideUserRound' },
   ];
 
   constructor() {

@@ -57,6 +57,7 @@ describe('reseller happy path (go-live)', () => {
       generateRecoveryLink: jest.fn(async () => ({
         actionLink: 'https://example.com/invite',
       })),
+      unenrollMfaFactors: jest.fn(async () => ({ removed: 0 })),
     };
 
     const { app } = await createTestApp({ supabaseAdmin });

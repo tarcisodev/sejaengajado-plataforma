@@ -202,6 +202,7 @@ describe('supabase auth guard', () => {
       generateRecoveryLink: jest.fn(async () => ({
         actionLink: 'https://example.com/reset',
       })),
+      unenrollMfaFactors: jest.fn(async () => ({ removed: 0 })),
     };
 
     const { app } = await createTestApp({ supabaseAdmin });

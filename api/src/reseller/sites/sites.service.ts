@@ -287,11 +287,16 @@ export class SitesService {
     }
   }
 
+  /** Soft-archive (FLUXO-FELIZ: excluir = arquivar). */
   async remove(id: string) {
     const existing = await this.get(id);
-    await this.db.site.delete({ where: { id } });
+    const updated = await this.db.site.update({
+      where: { id },
+      data: { status: 'ARCHIVED' },
+      include: { customer: true, plan: true, template: true },
+    });
     this.byHostCache.invalidateSlug(existing.slug);
-    return { ok: true };
+    return updated;
   }
 
   async publish(resellerId: string, id: string) {

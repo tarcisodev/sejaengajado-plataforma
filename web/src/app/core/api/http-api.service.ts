@@ -25,6 +25,7 @@ import {
   ShippingQuoteResult,
   Site,
   SiteContent,
+  SiteStatus,
   Template,
   User,
 } from '../models/domain';
@@ -204,6 +205,22 @@ export class HttpApiService implements ApiPort {
         slug: command.slug,
         templateId: command.templateId,
         planId: command.planId,
+        content: {
+          businessName: command.businessName,
+          phone: command.phone,
+          profile: {
+            nome: command.businessName,
+            cidade: command.address.cidade,
+            uf: command.address.uf,
+          },
+          address: {
+            logradouro: command.address.logradouro,
+            cidade: command.address.cidade,
+            uf: command.address.uf,
+            cep: command.address.cep,
+          },
+          theme: { niche: 'generico' },
+        },
       })
       .pipe(map((row) => siteFromResellerDto(row)));
   }
@@ -296,9 +313,65 @@ export class HttpApiService implements ApiPort {
       );
   }
 
-  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site> {
+  setSiteStatus(
+    siteId: string,
+    status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED',
+  ): Observable<Site> {
     return this.http
       .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/status`), { status })
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  getAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .get<ResellerSiteDto>(this.url(`/admin/sites/${siteId}`))
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  updateAdminSiteContent(
+    siteId: string,
+    content: SiteContent,
+    templateId?: string,
+  ): Observable<Site> {
+    const body: Record<string, unknown> = { content };
+    if (templateId) {
+      body['templateId'] = templateId;
+    }
+    return this.http
+      .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/content`), body)
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  patchAdminSiteMeta(
+    siteId: string,
+    body: {
+      slug?: string;
+      planId?: string;
+      status?: SiteStatus;
+      customerId?: string;
+      resellerId?: string;
+    },
+  ): Observable<Site> {
+    return this.http
+      .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}`), body)
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  publishAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/publish`), {})
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  unpublishAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/unpublish`), {})
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  archiveAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/archive`), {})
       .pipe(map((row) => siteFromResellerDto(row)));
   }
 
@@ -346,7 +419,7 @@ export class HttpApiService implements ApiPort {
   requestCustomerOtp(email: string): Observable<CustomerOtp> {
     return new Observable((subscriber) => {
       void this.auth
-        .signInWithOtp(email)
+        .requestPasswordReset(email)
         .then(() => {
           subscriber.next({ delivered: true, previewCode: null });
           subscriber.complete();
@@ -355,10 +428,10 @@ export class HttpApiService implements ApiPort {
     });
   }
 
-  verifyCustomerOtp(email: string, code: string): Observable<User> {
+  verifyCustomerOtp(email: string, password: string): Observable<User> {
     return new Observable((subscriber) => {
       void this.auth
-        .verifyOtp(email, code)
+        .signInWithPassword(email, password)
         .then((me) => {
           subscriber.next({
             id: me.id,
@@ -562,6 +635,10 @@ export class HttpApiService implements ApiPort {
     return this.http.post<ResellerSiteDto>(this.url(`/reseller/sites/${siteId}/unpublish`), {});
   }
 
+  deleteResellerSite(siteId: string): Observable<ResellerSiteDto | { ok: true }> {
+    return this.http.delete<ResellerSiteDto | { ok: true }>(this.url(`/reseller/sites/${siteId}`));
+  }
+
   checkResellerSlug(slug: string): Observable<SlugCheckDto> {
     return this.http.get<SlugCheckDto>(this.url('/reseller/slugs/check'), {
       params: new HttpParams().set('slug', slug),
@@ -651,6 +728,54 @@ export class HttpApiService implements ApiPort {
   getReseller(id: string): Observable<Reseller> {
     return this.http
       .get<Record<string, unknown>>(this.url(`/admin/resellers/${id}`))
+      .pipe(map(mapReseller));
+  }
+
+  patchReseller(
+    id: string,
+    body: {
+      name?: string;
+      resellerPlanId?: string;
+      document?: string;
+      phone?: string;
+      addressLine?: string;
+      addressCity?: string;
+      addressUf?: string;
+      addressCep?: string;
+      notes?: string;
+    },
+  ): Observable<Reseller> {
+    return this.http
+      .patch<Record<string, unknown>>(this.url(`/admin/resellers/${id}`), body)
+      .pipe(map(mapReseller));
+  }
+
+  sendResellerPasswordReset(id: string): Observable<{ inviteActionLink: string | null }> {
+    return this.http.post<{ inviteActionLink: string | null }>(
+      this.url(`/admin/resellers/${id}/password-reset`),
+      {},
+    );
+  }
+
+  resetResellerMfa(id: string): Observable<{ removed: number }> {
+    return this.http.post<{ removed: number }>(this.url(`/admin/resellers/${id}/mfa-reset`), {});
+  }
+
+  getMyResellerProfile(): Observable<Reseller> {
+    return this.http.get<Record<string, unknown>>(this.url('/reseller/me')).pipe(map(mapReseller));
+  }
+
+  patchMyResellerProfile(body: {
+    name?: string;
+    document?: string;
+    phone?: string;
+    addressLine?: string;
+    addressCity?: string;
+    addressUf?: string;
+    addressCep?: string;
+  }): Observable<Reseller> {
+    return this.http
+      .patch<Record<string, unknown>>(this.url('/reseller/me'), body)
       .pipe(map(mapReseller));
   }
 

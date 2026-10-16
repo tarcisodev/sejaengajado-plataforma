@@ -64,7 +64,7 @@ export class SectionDividerComponent {
   readonly height = input(48);
   readonly flip = input(false);
   readonly invert = input(false);
-  readonly fromColor = input('var(--t-primary, #6d28d9)');
+  readonly fromColor = input('var(--t-primary, #0f766e)');
   readonly toColor = input('var(--t-bg, #f4f7f6)');
 
   readonly resolvedHeight = computed(() => clampDividerHeight(this.height()));

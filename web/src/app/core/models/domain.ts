@@ -25,6 +25,14 @@ export interface Reseller {
   id: string;
   userId: string;
   nome: string;
+  email?: string;
+  document?: string;
+  phone?: string;
+  addressLine?: string;
+  addressCity?: string;
+  addressUf?: string;
+  addressCep?: string;
+  notes?: string;
   resellerPlanId: string;
   status: ResellerStatus;
   delinquentSince: string | null;
@@ -84,6 +92,8 @@ export interface SiteProfile {
   uf: string;
 }
 
+export type SiteThemeVariant = 'simple' | 'f3' | 'f4' | 'f7';
+
 export interface SiteTheme {
   /** Niche key for LU1+ tokens; legacy p1–hi still win when present. */
   niche?: 'barbearia' | 'restaurante' | 'moda' | 'beleza' | 'saude' | 'generico';
@@ -95,19 +105,43 @@ export interface SiteTheme {
   hi: string;
   fontHeading: string;
   fontBody: string;
+  /** Aliases FORMULA. */
+  fonteTitulo?: string;
+  fonteCorpo?: string;
   fontScale: number;
+  escalaTitulo?: number;
   italic: 'normal' | 'italic';
+  italico?: 'normal' | 'italic';
+  bgImg?: string;
+  bgIntensidade?: number;
+  variante?: SiteThemeVariant;
 }
 
 export interface SiteWhatsapp {
   numero: string;
   mensagem: string;
+  /** Prefixo do pedido no carrinho / FAB. */
+  mensagemPadrao?: string;
+  introPedido?: string;
 }
 
+export type SiteLinkTipo =
+  | SiteLinkType
+  | 'agenda'
+  | 'youtube'
+  | 'facebook'
+  | 'tiktok'
+  | 'outro';
+
 export interface SiteLink {
-  tipo: SiteLinkType;
+  tipo: SiteLinkTipo;
   titulo: string;
+  subtitulo?: string;
   url: string;
+  icone?: string;
+  destaque?: boolean;
+  badge?: string;
+  aoVivo?: boolean;
 }
 
 export interface SiteHours {
@@ -135,14 +169,24 @@ export interface SiteFaqItem {
 export interface SiteProduct {
   nome: string;
   precoTexto: string;
+  rotuloBotao?: string;
+  tag?: string;
   fotoUrl?: string;
   categoria?: string;
+}
+
+export interface SiteService {
+  nome: string;
+  fotoUrl?: string;
 }
 
 export interface SitePromo {
   titulo: string;
   texto: string;
+  item?: string;
+  precoTexto?: string;
   terminaEm: string;
+  cta?: string;
 }
 
 export interface SiteGoogle {
@@ -150,6 +194,9 @@ export interface SiteGoogle {
   /** Null/undefined → UI shows "—" (placeholder, never invent a score). */
   rating?: number | null;
   reviewCount?: number | null;
+  /** Aliases FORMULA (nota/total). */
+  nota?: number | null;
+  total?: number | null;
 }
 
 export interface SiteAddress {
@@ -157,6 +204,23 @@ export interface SiteAddress {
   cidade: string;
   uf: string;
   cep?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface SiteVideo {
+  youtubeId: string;
+  titulo?: string;
+}
+
+export interface SiteSocial {
+  tipo: string;
+  url: string;
+}
+
+export interface SiteAnalytics {
+  gaId?: string;
+  metaPixel?: string;
 }
 
 export interface SitePix {
@@ -191,11 +255,19 @@ export interface SiteContent {
   hours?: SiteHours[];
   gallery?: string[];
   products?: SiteProduct[];
+  /** Modo do carrossel de produtos (FORMULA). */
+  produtosModo?: 'unica' | 'auto';
+  servicos?: SiteService[];
   promo?: SitePromo;
   google?: SiteGoogle;
   address?: SiteAddress;
+  mapsUrl?: string;
   phone?: string;
+  telefone?: string;
   pix?: SitePix;
+  video?: SiteVideo;
+  redes?: SiteSocial[];
+  analytics?: SiteAnalytics;
   seo?: SiteSeo;
   /** Optional decorative motif strip (LU3). */
   strip?: SiteStrip;

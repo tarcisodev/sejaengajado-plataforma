@@ -49,6 +49,7 @@ import {
   Site,
   SiteAddress,
   SiteContent,
+  SiteStatus,
   Template,
   User,
 } from '../models/domain';
@@ -134,12 +135,36 @@ export interface ApiPort {
   blockReseller(resellerId: string, command: BlockResellerCommand): Observable<Reseller>;
   unblockReseller(resellerId: string, actorId: string, unblockedAt: string): Observable<Reseller>;
   offerMigration(resellerId: string, actorId: string, today: Date): Observable<AuditLog>;
-  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site>;
+  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED'): Observable<Site>;
+  /** Admin: GET /admin/sites/:id (includes content). */
+  getAdminSite(siteId: string): Observable<Site>;
+  /** Admin: PATCH /admin/sites/:id/content */
+  updateAdminSiteContent(
+    siteId: string,
+    content: SiteContent,
+    templateId?: string,
+  ): Observable<Site>;
+  /** Admin: PATCH /admin/sites/:id (slug, plan, status, customer, reseller). */
+  patchAdminSiteMeta(
+    siteId: string,
+    body: {
+      slug?: string;
+      planId?: string;
+      status?: SiteStatus;
+      customerId?: string;
+      resellerId?: string;
+    },
+  ): Observable<Site>;
+  publishAdminSite(siteId: string): Observable<Site>;
+  unpublishAdminSite(siteId: string): Observable<Site>;
+  archiveAdminSite(siteId: string): Observable<Site>;
   savePlan(plan: Plan): Observable<Plan>;
   saveCoupon(coupon: Coupon): Observable<Coupon>;
   deleteCoupon(couponId: string): Observable<void>;
+  /** Envia link de redefinição de senha (legado do nome OTP). */
   requestCustomerOtp(email: string): Observable<CustomerOtp>;
-  verifyCustomerOtp(email: string, code: string): Observable<User>;
+  /** Login com e-mail + senha (segundo argumento = senha). */
+  verifyCustomerOtp(email: string, password: string): Observable<User>;
   /** Sites do cliente autenticado (GET /customer/sites). */
   listMySites(): Observable<Site[]>;
   listSitesByCustomer(customerId: string): Observable<Site[]>;
@@ -205,6 +230,8 @@ export interface ApiPort {
   ): Observable<ResellerSiteDto>;
   publishResellerSite(siteId: string): Observable<ResellerSiteDto>;
   unpublishResellerSite(siteId: string): Observable<ResellerSiteDto>;
+  /** Soft-archive (DELETE /reseller/sites/:id). */
+  deleteResellerSite(siteId: string): Observable<ResellerSiteDto | { ok: true }>;
   checkResellerSlug(slug: string): Observable<SlugCheckDto>;
   listResellerSiteOptions(): Observable<SiteOptionsDto>;
   listResellerSales(cursor?: string | null): Observable<CursorPage<ResellerSaleDto>>;
@@ -243,9 +270,36 @@ export interface ApiPort {
 
   /** Admin — B2 */
   getReseller(id: string): Observable<Reseller>;
+  patchReseller(
+    id: string,
+    body: {
+      name?: string;
+      resellerPlanId?: string;
+      document?: string;
+      phone?: string;
+      addressLine?: string;
+      addressCity?: string;
+      addressUf?: string;
+      addressCep?: string;
+      notes?: string;
+    },
+  ): Observable<Reseller>;
+  sendResellerPasswordReset(id: string): Observable<{ inviteActionLink: string | null }>;
+  resetResellerMfa(id: string): Observable<{ removed: number }>;
   getResellerSummary(id: string): Observable<ResellerSummaryDto>;
   suspendResellerSites(id: string): Observable<{ count: number }>;
   impersonateReseller(id: string): Observable<ImpersonateResultDto>;
+  /** Revendedor — GET/PATCH /reseller/me */
+  getMyResellerProfile(): Observable<Reseller>;
+  patchMyResellerProfile(body: {
+    name?: string;
+    document?: string;
+    phone?: string;
+    addressLine?: string;
+    addressCity?: string;
+    addressUf?: string;
+    addressCep?: string;
+  }): Observable<Reseller>;
   listAdminProducts(): Observable<AdminProductDto[]>;
   listResellerWholesaleAdmin(resellerId: string): Observable<ResellerWholesaleAdminDto>;
   setResellerWholesale(

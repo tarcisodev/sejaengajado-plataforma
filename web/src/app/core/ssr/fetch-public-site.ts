@@ -58,7 +58,23 @@ export async function fetchPublicSiteBySlug(
   return fetchPublicSiteByHost(canonicalTenantHost(slug), fetchImpl, cache);
 }
 
-const FETCH_ATTEMPTS = 3;
+const FETCH_ATTEMPTS = 4;
+/** Brief pause before retrying a soft miss (Nest blip / rolling deploy). */
+const RETRY_PAUSE_MS = 40;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shouldRetryStatus(status: number, body: Record<string, unknown> | null): boolean {
+  if (status === 304 || status === 404 || status === 429) {
+    return true;
+  }
+  if (status >= 500) {
+    return true;
+  }
+  return status >= 200 && status < 300 && !body;
+}
 
 export async function fetchPublicSiteByHost(
   host: string,
@@ -87,22 +103,27 @@ export async function fetchPublicSiteByHost(
       // 304 without body must not be treated as "site missing".
       if (response.status === 304) {
         lastError = { kind: 'error', status: 502 };
-        continue;
+        if (attempt < FETCH_ATTEMPTS) {
+          await sleep(RETRY_PAUSE_MS * attempt);
+          continue;
+        }
+        return lastError;
       }
       let body: Record<string, unknown> | null = null;
-      if (response.status !== 404 && response.status !== 410) {
+      if (response.status !== 404 && response.status !== 410 && response.status !== 429) {
         try {
           body = (await response.json()) as Record<string, unknown>;
         } catch {
           body = null;
         }
       }
-      // Retry empty 2xx / 5xx once or twice — brief API blips must not 404 the biosite.
-      if (
-        (response.status >= 500 || (response.status >= 200 && response.status < 300 && !body)) &&
-        attempt < FETCH_ATTEMPTS
-      ) {
-        lastError = classifyPublicSite(response.status, body);
+      // Retry soft misses — brief Nest/DNS blips must not sticky-404 the biosite (CDN+UA).
+      if (shouldRetryStatus(response.status, body) && attempt < FETCH_ATTEMPTS) {
+        lastError =
+          response.status === 404
+            ? { kind: 'not-found' }
+            : classifyPublicSite(response.status === 429 ? 502 : response.status, body);
+        await sleep(RETRY_PAUSE_MS * attempt);
         continue;
       }
       cache.set(normalized, response.status, body);
@@ -110,6 +131,7 @@ export async function fetchPublicSiteByHost(
     } catch {
       lastError = { kind: 'error', status: 502 };
       if (attempt < FETCH_ATTEMPTS) {
+        await sleep(RETRY_PAUSE_MS * attempt);
         continue;
       }
     }

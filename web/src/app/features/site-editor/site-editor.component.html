@@ -1,0 +1,307 @@
+<section class="grid gap-6" data-site-editor>
+  <div hlmCard class="p-4 md:p-6">
+    <h2 class="font-display text-xl">Editor do site</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      {{ site().slug }}.sejaengajado.com.br · {{ site().status }}
+    </p>
+
+    <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Abas do editor">
+      <button
+        hlmBtn
+        type="button"
+        class="h-11"
+        role="tab"
+        [variant]="tab() === 'conteudo' ? 'default' : 'outline'"
+        [attr.aria-selected]="tab() === 'conteudo'"
+        data-tab="conteudo"
+        (click)="tab.set('conteudo')"
+      >
+        Conteúdo
+      </button>
+      <button
+        hlmBtn
+        type="button"
+        class="h-11"
+        role="tab"
+        [variant]="tab() === 'formula' ? 'default' : 'outline'"
+        [attr.aria-selected]="tab() === 'formula'"
+        data-tab="formula"
+        (click)="tab.set('formula')"
+      >
+        FORMULA
+      </button>
+      @if (showAdvanced()) {
+        <button
+          hlmBtn
+          type="button"
+          class="h-11"
+          role="tab"
+          [variant]="tab() === 'avancado' ? 'default' : 'outline'"
+          [attr.aria-selected]="tab() === 'avancado'"
+          data-tab="avancado"
+          (click)="tab.set('avancado')"
+        >
+          Avançado
+        </button>
+      }
+    </div>
+
+    @if (tab() === 'conteudo') {
+      <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel">
+        <label class="grid gap-2 text-sm">
+          Nome do negócio
+          <input
+            hlmInput
+            class="h-11"
+            name="businessName"
+            data-field="businessName"
+            [value]="businessName()"
+            (input)="businessName.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          WhatsApp
+          <input
+            hlmInput
+            class="h-11"
+            name="whatsapp"
+            data-field="whatsapp"
+            [value]="whatsapp()"
+            (input)="whatsapp.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Telefone
+          <input
+            hlmInput
+            class="h-11"
+            name="phone"
+            data-field="phone"
+            [value]="phone()"
+            (input)="phone.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm md:col-span-2">
+          Descrição
+          <textarea
+            hlmInput
+            class="min-h-24 py-2"
+            name="description"
+            data-field="description"
+            [value]="description()"
+            (input)="description.set($any($event.target).value)"
+          ></textarea>
+        </label>
+        <label class="grid gap-2 text-sm md:col-span-2">
+          URL da imagem (logo ou capa)
+          <input
+            hlmInput
+            class="h-11"
+            name="logoUrl"
+            data-field="logoUrl"
+            placeholder="https://…"
+            [value]="logoUrl()"
+            (input)="logoUrl.set($any($event.target).value)"
+          />
+        </label>
+      </div>
+    }
+
+    @if (tab() === 'formula') {
+      <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" data-formula-panel>
+        <label class="grid gap-2 text-sm">
+          Chave Pix
+          <input
+            hlmInput
+            class="h-11"
+            data-field="pixKey"
+            [value]="pixKey()"
+            (input)="pixKey.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Nome no Pix
+          <input
+            hlmInput
+            class="h-11"
+            data-field="pixName"
+            [value]="pixName()"
+            (input)="pixName.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm md:col-span-2">
+          YouTube (id do vídeo)
+          <input
+            hlmInput
+            class="h-11"
+            data-field="videoId"
+            placeholder="dQw4w9WgXcQ"
+            [value]="videoId()"
+            (input)="videoId.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm md:col-span-2">
+          Serviços (um por linha)
+          <textarea
+            hlmInput
+            class="min-h-28 py-2"
+            data-field="servicos"
+            [value]="servicosText()"
+            (input)="servicosText.set($any($event.target).value)"
+          ></textarea>
+        </label>
+      </div>
+    }
+
+    @if (tab() === 'avancado' && showAdvanced()) {
+      <div class="mt-6 grid gap-4 md:grid-cols-2" role="tabpanel" data-advanced-panel>
+        <label class="grid gap-2 text-sm">
+          Slug
+          <input
+            hlmInput
+            class="h-11"
+            data-field="advSlug"
+            [value]="advSlug()"
+            (input)="advSlug.set($any($event.target).value)"
+          />
+        </label>
+        <label class="grid gap-2 text-sm">
+          Status
+          <select
+            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+            data-field="advStatus"
+            [value]="advStatus()"
+            (change)="advStatus.set($any($event.target).value)"
+          >
+            <option value="DRAFT">Rascunho</option>
+            <option value="PUBLISHED">Publicado</option>
+            <option value="READ_ONLY">Somente leitura</option>
+            <option value="SUSPENDED">Suspenso</option>
+            <option value="ARCHIVED">Arquivado</option>
+          </select>
+        </label>
+        <label class="grid gap-2 text-sm">
+          Plano
+          <select
+            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+            data-field="advPlanId"
+            [value]="advPlanId()"
+            (change)="advPlanId.set($any($event.target).value)"
+          >
+            @for (plan of plans(); track plan.id) {
+              <option [value]="plan.id">{{ plan.nome }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-2 text-sm">
+          Cliente
+          <select
+            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+            data-field="advCustomerId"
+            [value]="advCustomerId()"
+            (change)="advCustomerId.set($any($event.target).value)"
+          >
+            @for (c of customers(); track c.id) {
+              <option [value]="c.id">{{ c.nome }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-2 text-sm md:col-span-2">
+          Revendedor dono
+          <select
+            class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+            data-field="advResellerId"
+            [value]="advResellerId()"
+            (change)="advResellerId.set($any($event.target).value)"
+          >
+            @for (r of resellers(); track r.id) {
+              <option [value]="r.id">{{ r.nome }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    }
+
+    @if (notice()) {
+      <p class="mt-3 text-sm text-muted-foreground" role="status">{{ notice() }}</p>
+    }
+
+    <div class="mt-6 flex flex-wrap gap-2">
+      @if (tab() === 'avancado' && showAdvanced()) {
+        <app-confirm-action
+          title="Salvar metadados avançados"
+          effect="Slug, plano, status, cliente ou dono serão alterados. O endereço público pode mudar."
+          verb="Salvar avançado"
+          undoHint="Dá para corrigir de novo nesta aba."
+          action="save-advanced"
+          ariaLabel="Salvar metadados avançados"
+          [disabled]="busy()"
+          (confirm)="saveAdvanced()"
+        >
+          <ng-icon name="lucideSave" />
+        </app-confirm-action>
+      } @else {
+        <button
+          hlmBtn
+          type="button"
+          class="h-11"
+          data-action="save"
+          [disabled]="busy()"
+          (click)="save()"
+          aria-label="Salvar alterações"
+        >
+          <ng-icon name="lucideSave" />
+          Salvar
+        </button>
+      }
+
+      @if (canPublish()) {
+        <app-confirm-action
+          title="Publicar site"
+          [effect]="'O site fica no ar em ' + site().slug + '.sejaengajado.com.br'"
+          verb="Publicar"
+          undoHint="Você pode despublicar depois."
+          action="publish"
+          ariaLabel="Publicar site"
+          [disabled]="busy()"
+          (confirm)="published.emit()"
+        >
+          <ng-icon name="lucideEye" />
+        </app-confirm-action>
+      }
+
+      @if (canUnpublish()) {
+        <app-confirm-action
+          title="Despublicar site"
+          [effect]="'O site sai do ar em ' + site().slug + '.sejaengajado.com.br'"
+          verb="Despublicar"
+          undoHint="O conteúdo permanece; você pode publicar de novo."
+          action="unpublish"
+          ariaLabel="Despublicar site"
+          triggerVariant="outline"
+          [disabled]="busy()"
+          (confirm)="unpublished.emit()"
+        >
+          <ng-icon name="lucideEyeOff" />
+        </app-confirm-action>
+      }
+
+      @if (canArchive()) {
+        <app-confirm-action
+          title="Arquivar site"
+          [effect]="'O endereço ' + site().slug + '.sejaengajado.com.br deixa de responder.'"
+          verb="Arquivar"
+          undoHint="Não dá para desfazer pelo painel sem suporte."
+          action="archive"
+          ariaLabel="Arquivar site"
+          triggerVariant="destructive"
+          [destructive]="true"
+          [disabled]="busy()"
+          (confirm)="archived.emit()"
+        >
+          <ng-icon name="lucideArchive" />
+        </app-confirm-action>
+      }
+    </div>
+  </div>
+</section>

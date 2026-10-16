@@ -18,53 +18,72 @@
     </button>
   </header>
   <div hlmCardContent class="grid gap-4">
-    <form class="grid gap-4" (submit)="request($event)">
-      <div hlmField>
-        <label hlmFieldLabel for="email">E-mail</label>
-        <input
-          hlmInput
-          id="email"
-          class="h-11"
-          type="email"
-          autocomplete="email"
-          [value]="email()"
-          (input)="email.set(inputValue($event))"
-          required
-        />
-      </div>
-      <app-legal-accept [(accepted)]="legalAccepted" />
-      <button
-        hlmBtn
-        class="h-11 w-full"
-        type="submit"
-        [disabled]="pending() || !legalAccepted()"
-        [attr.aria-busy]="pending()"
-      >
-        Receber código
-      </button>
-    </form>
-    <p class="text-sm text-muted-foreground">
-      Enviamos um código por e-mail. Só contas convidadas entram (sem auto-cadastro).
-    </p>
-    @if (devMailpit) {
-      <p class="text-sm text-muted-foreground">
-        Em desenvolvimento o código não chega no Gmail. Abra o
-        <a class="underline" href="http://localhost:8025" target="_blank" rel="noopener">Mailpit</a>
-        e use os 6 dígitos do e-mail mais recente.
-      </p>
-    }
-    @if (codeSent()) {
-      <form class="grid gap-4" (submit)="verify($event)">
+    @if (mode() === 'login') {
+      <form class="grid gap-4" (submit)="signIn($event)">
         <div hlmField>
-          <label hlmFieldLabel for="code">Código</label>
+          <label hlmFieldLabel for="email">E-mail</label>
           <input
             hlmInput
-            id="code"
+            id="email"
             class="h-11"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            [value]="code()"
-            (input)="code.set(inputValue($event))"
+            type="email"
+            autocomplete="username"
+            [value]="email()"
+            (input)="email.set(inputValue($event))"
+            required
+          />
+        </div>
+        <div hlmField>
+          <label hlmFieldLabel for="password">Senha</label>
+          <input
+            hlmInput
+            id="password"
+            class="h-11"
+            type="password"
+            autocomplete="current-password"
+            [value]="password()"
+            (input)="password.set(inputValue($event))"
+            required
+          />
+        </div>
+        <app-legal-accept [(accepted)]="legalAccepted" />
+        <button
+          hlmBtn
+          class="h-11 w-full"
+          type="submit"
+          [disabled]="pending() || !legalAccepted()"
+          [attr.aria-busy]="pending()"
+        >
+          Entrar
+        </button>
+      </form>
+      <button
+        hlmBtn
+        type="button"
+        variant="link"
+        class="h-auto justify-start px-0"
+        (click)="mode.set('forgot')"
+      >
+        Esqueci a senha
+      </button>
+      <p class="text-sm text-muted-foreground">
+        Contas convidadas entram com e-mail e senha. Depois confirme o código do autenticador (MFA).
+      </p>
+    } @else {
+      <form class="grid gap-4" (submit)="requestReset($event)">
+        <p class="text-sm text-muted-foreground">
+          Enviaremos um link para definir ou redefinir a senha.
+        </p>
+        <div hlmField>
+          <label hlmFieldLabel for="reset-email">E-mail</label>
+          <input
+            hlmInput
+            id="reset-email"
+            class="h-11"
+            type="email"
+            autocomplete="email"
+            [value]="email()"
+            (input)="email.set(inputValue($event))"
             required
           />
         </div>
@@ -75,9 +94,29 @@
           [disabled]="pending()"
           [attr.aria-busy]="pending()"
         >
-          Entrar
+          Enviar link
         </button>
       </form>
+      <button
+        hlmBtn
+        type="button"
+        variant="link"
+        class="h-auto justify-start px-0"
+        (click)="mode.set('login')"
+      >
+        Voltar ao login
+      </button>
+      @if (devMailpit) {
+        <p class="text-sm text-muted-foreground">
+          Em desenvolvimento o e-mail aparece no
+          <a class="underline" href="http://localhost:8025" target="_blank" rel="noopener">Mailpit</a>.
+        </p>
+      }
+    }
+    @if (notice()) {
+      <div hlmAlert>
+        <p hlmAlertDescription>{{ notice() }}</p>
+      </div>
     }
     @if (error()) {
       <div hlmAlert variant="destructive">

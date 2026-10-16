@@ -20,6 +20,13 @@ export const createResellerSchema = z.object({
 export const patchResellerSchema = z.object({
   name: z.string().min(1).optional(),
   resellerPlanId: z.string().uuid().optional(),
+  document: z.string().max(32).optional(),
+  phone: z.string().max(32).optional(),
+  addressLine: z.string().max(200).optional(),
+  addressCity: z.string().max(80).optional(),
+  addressUf: z.string().max(2).optional(),
+  addressCep: z.string().max(16).optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 export const blockSchema = z.object({
@@ -140,9 +147,40 @@ export class ResellersService {
       data: {
         name: input.name,
         resellerPlanId: input.resellerPlanId,
-      },
-      include: { plan: true },
+        // Profile columns from migration 20261016170000_reseller_profile
+        document: input.document,
+        phone: input.phone,
+        addressLine: input.addressLine,
+        addressCity: input.addressCity,
+        addressUf: input.addressUf,
+        addressCep: input.addressCep,
+        notes: input.notes,
+      } as Parameters<AdminPrisma['reseller']['update']>[0]['data'],
+      include: { plan: true, users: true },
     });
+  }
+
+  async sendPasswordReset(id: string): Promise<{ inviteActionLink: string | null }> {
+    const row = await this.get(id);
+    const email = row.users?.[0]?.email;
+    if (!email) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Usuário do revendedor não encontrado' });
+    }
+    try {
+      const recovery = await this.supabaseAdmin.generateRecoveryLink(email);
+      return { inviteActionLink: recovery.actionLink };
+    } catch {
+      return { inviteActionLink: null };
+    }
+  }
+
+  async resetMfa(id: string): Promise<{ removed: number }> {
+    const row = await this.get(id);
+    const supabaseId = row.users?.[0]?.supabaseId;
+    if (!supabaseId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Usuário do revendedor não encontrado' });
+    }
+    return this.supabaseAdmin.unenrollMfaFactors(supabaseId);
   }
 
   async block(id: string, body: unknown) {

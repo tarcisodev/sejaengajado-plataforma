@@ -1,7 +1,8 @@
 import { PlatformLocation } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideSearch } from '@ng-icons/lucide';
+import { lucidePencil, lucideSearch } from '@ng-icons/lucide';
+import { NavigationEnd, Router } from '@angular/router';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -9,7 +10,7 @@ import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { HlmTableImports } from '@spartan-ng/helm/table';
-import { forkJoin } from 'rxjs';
+import { filter, forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { GooglePlacesService } from '../../core/google/google-places.service';
@@ -17,6 +18,12 @@ import { PlaceMatch } from '../../core/google/place-match';
 import { Customer, Plan, Site, SiteStatus, Template } from '../../core/models/domain';
 import { siteStatusBadgeVariant, siteStatusLabel } from '../../core/site/site-status-label';
 import { tenantPreviewUrl } from '../../core/tenant/resolve-host';
+import { ConfirmActionComponent } from '../../shared/confirm-action/confirm-action.component';
+import {
+  SiteEditorComponent,
+  SiteEditorMetaEvent,
+  SiteEditorSaveEvent,
+} from '../site-editor/site-editor.component';
 
 @Component({
   selector: 'app-admin-sites',
@@ -29,8 +36,10 @@ import { tenantPreviewUrl } from '../../core/tenant/resolve-host';
     HlmSelectImports,
     HlmSkeleton,
     HlmTableImports,
+    ConfirmActionComponent,
+    SiteEditorComponent,
   ],
-  providers: [provideIcons({ lucideSearch }), GooglePlacesService],
+  providers: [provideIcons({ lucideSearch, lucidePencil }), GooglePlacesService],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-sites.component.html',
 })
@@ -38,6 +47,7 @@ export class AdminSitesComponent {
   private readonly api = inject(API_PORT);
   private readonly places = inject(GooglePlacesService);
   private readonly platform = inject(PlatformLocation);
+  private readonly router = inject(Router);
   readonly query = signal('');
   readonly status = signal<SiteStatus | ''>('');
   readonly ready = signal(false);
@@ -47,6 +57,7 @@ export class AdminSitesComponent {
   readonly customers = signal<Customer[]>([]);
   readonly plans = signal<Plan[]>([]);
   readonly templates = signal<Template[]>([]);
+  readonly resellers = signal<{ id: string; nome: string }[]>([]);
   readonly matches = signal<PlaceMatch[]>([]);
   readonly notice = signal('');
   readonly error = signal('');
@@ -62,12 +73,127 @@ export class AdminSitesComponent {
   readonly postalCode = signal('');
   readonly slug = signal('');
   readonly placeholders = [1, 2, 3];
-  readonly confirmSuspendId = signal<string | null>(null);
+  readonly editing = signal<Site | null>(null);
+  readonly editorBusy = signal(false);
   readonly statusLabel = siteStatusLabel;
   readonly statusVariant = siteStatusBadgeVariant;
 
   constructor() {
+    this.syncEditorFromPath();
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => this.syncEditorFromPath());
     this.reload();
+  }
+
+  private syncEditorFromPath(): void {
+    const id = siteIdFromPath(this.platform.pathname);
+    if (!id) {
+      this.editing.set(null);
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.getAdminSite(id).subscribe({
+      next: (site) => {
+        this.editing.set(site);
+        this.editorBusy.set(false);
+      },
+      error: () => {
+        this.editing.set(null);
+        this.editorBusy.set(false);
+        void this.router.navigateByUrl('/admin/sites');
+      },
+    });
+  }
+
+  openEditor(site: Site): void {
+    this.editing.set(site);
+    void this.router.navigateByUrl(`/admin/sites/${site.id}`);
+  }
+
+  closeEditor(): void {
+    this.editing.set(null);
+    void this.router.navigateByUrl('/admin/sites');
+  }
+
+  onEditorSave(event: SiteEditorSaveEvent): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.updateAdminSiteContent(site.id, event.content, event.templateId).subscribe({
+      next: (updated) => {
+        this.editing.set(updated);
+        this.editorBusy.set(false);
+        this.reload();
+      },
+      error: () => this.editorBusy.set(false),
+    });
+  }
+
+  onEditorMeta(event: SiteEditorMetaEvent): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.patchAdminSiteMeta(site.id, event).subscribe({
+      next: (updated) => {
+        this.editing.set(updated);
+        this.editorBusy.set(false);
+        this.reload();
+      },
+      error: () => this.editorBusy.set(false),
+    });
+  }
+
+  onEditorPublish(): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.publishAdminSite(site.id).subscribe({
+      next: (updated) => {
+        this.editing.set(updated);
+        this.editorBusy.set(false);
+        this.reload();
+      },
+      error: () => this.editorBusy.set(false),
+    });
+  }
+
+  onEditorUnpublish(): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.unpublishAdminSite(site.id).subscribe({
+      next: (updated) => {
+        this.editing.set(updated);
+        this.editorBusy.set(false);
+        this.reload();
+      },
+      error: () => this.editorBusy.set(false),
+    });
+  }
+
+  onEditorArchive(): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.archiveAdminSite(site.id).subscribe({
+      next: () => {
+        this.editorBusy.set(false);
+        this.closeEditor();
+        this.reload();
+      },
+      error: () => this.editorBusy.set(false),
+    });
   }
 
   reload(): void {
@@ -76,11 +202,13 @@ export class AdminSitesComponent {
       plans: this.api.listPlans(),
       customers: this.api.listCustomers(),
       templates: this.api.listTemplates(),
-    }).subscribe(({ sites, plans, customers, templates }) => {
+      resellers: this.api.listResellers(),
+    }).subscribe(({ sites, plans, customers, templates, resellers }) => {
       this.rows.set(sites);
       this.plans.set(plans);
       this.customers.set(customers);
       this.templates.set(templates);
+      this.resellers.set(resellers.map((row) => ({ id: row.id, nome: row.nome })));
       this.customerId.update((current) => current || customers[0]?.id || '');
       this.templateId.update((current) => current || templates[0]?.id || '');
       this.planId.update((current) => current || plans[0]?.id || '');
@@ -127,23 +255,8 @@ export class AdminSitesComponent {
     this.status.set((value ?? '') as SiteStatus | '');
   }
 
-  askSuspend(site: Site): void {
-    this.confirmSuspendId.set(site.id);
-  }
-
-  cancelSuspend(): void {
-    this.confirmSuspendId.set(null);
-  }
-
-  confirmSuspend(): void {
-    const id = this.confirmSuspendId();
-    if (!id) {
-      return;
-    }
-    this.api.setSiteStatus(id, 'SUSPENDED').subscribe(() => {
-      this.confirmSuspendId.set(null);
-      this.reload();
-    });
+  suspend(site: Site): void {
+    this.api.setSiteStatus(site.id, 'SUSPENDED').subscribe(() => this.reload());
   }
 
   reactivate(site: Site): void {
@@ -172,11 +285,16 @@ export class AdminSitesComponent {
     this.postalCode.set('');
     this.slug.set('');
     this.customerId.set(
-      this.customers().find((customer) => customer.id === 'cust_admin')?.id ?? '',
+      this.customers().find((customer) => customer.id === 'cust_admin')?.id ??
+        this.customers()[0]?.id ??
+        '',
     );
     this.templateId.set(
-      this.templates().find((template) => template.id === 'tpl_personalizado')?.id ?? '',
+      this.templates().find((template) => template.id === 'tpl_personalizado')?.id ??
+        this.templates()[0]?.id ??
+        '',
     );
+    this.planId.set(this.planId() || this.plans()[0]?.id || '');
     this.creating.set(true);
   }
 
@@ -231,15 +349,32 @@ export class AdminSitesComponent {
         },
       })
       .subscribe({
-        next: () => {
+        next: (created) => {
           this.creating.set(false);
+          this.editing.set(created);
           this.reload();
+          void this.router.navigateByUrl(`/admin/sites/${created.id}`);
         },
         error: (error: Error) => {
           this.error.set(siteError(error.message));
         },
       });
   }
+}
+
+function siteIdFromPath(pathname: string): string | null {
+  const parts = pathname.split('/').filter(Boolean);
+  // /admin/sites/:id (UUID em produção; ids mock site_*)
+  if (parts[0] === 'admin' && parts[1] === 'sites' && parts[2]) {
+    const id = parts[2];
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return id;
+    }
+    if (/^[a-z][a-z0-9_-]*$/i.test(id)) {
+      return id;
+    }
+  }
+  return null;
 }
 
 function slugFromName(nome: string): string {

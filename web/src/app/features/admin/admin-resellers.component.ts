@@ -16,6 +16,7 @@ import { migrationAvailable } from '../../core/admin/migration';
 import type { ImpersonateResultDto, ResellerSummaryDto } from '../../core/api/admin-api.types';
 import { API_PORT } from '../../core/api/api-port';
 import { Reseller, ResellerPlan } from '../../core/models/domain';
+import { ConfirmActionComponent } from '../../shared/confirm-action/confirm-action.component';
 
 @Component({
   selector: 'app-admin-resellers',
@@ -30,6 +31,7 @@ import { Reseller, ResellerPlan } from '../../core/models/domain';
     HlmSelectImports,
     HlmSkeleton,
     HlmTableImports,
+    ConfirmActionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './admin-resellers.component.html',
@@ -49,6 +51,16 @@ export class AdminResellersComponent {
   readonly placeholders = [1, 2, 3];
   readonly selectedId = signal<string | null>(null);
   readonly summary = signal<ResellerSummaryDto | null>(null);
+  readonly detail = signal<Reseller | null>(null);
+  readonly editName = signal('');
+  readonly editDocument = signal('');
+  readonly editPhone = signal('');
+  readonly editAddressLine = signal('');
+  readonly editAddressCity = signal('');
+  readonly editAddressUf = signal('');
+  readonly editAddressCep = signal('');
+  readonly editNotes = signal('');
+  readonly editPlanId = signal('');
   readonly impersonation = signal<ImpersonateResultDto | null>(null);
   readonly blockTargetId = signal<string | null>(null);
   readonly blockReason = signal('');
@@ -87,6 +99,81 @@ export class AdminResellersComponent {
     this.api.getResellerSummary(resellerId).subscribe({
       next: (summary) => this.summary.set(summary),
       error: () => this.summary.set(null),
+    });
+    this.api.getReseller(resellerId).subscribe({
+      next: (row) => {
+        this.detail.set(row);
+        this.editName.set(row.nome);
+        this.editDocument.set(row.document ?? '');
+        this.editPhone.set(row.phone ?? '');
+        this.editAddressLine.set(row.addressLine ?? '');
+        this.editAddressCity.set(row.addressCity ?? '');
+        this.editAddressUf.set(row.addressUf ?? '');
+        this.editAddressCep.set(row.addressCep ?? '');
+        this.editNotes.set(row.notes ?? '');
+        this.editPlanId.set(row.resellerPlanId);
+      },
+      error: () => this.detail.set(null),
+    });
+  }
+
+  saveDetail(): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.api
+      .patchReseller(id, {
+        name: this.editName().trim() || undefined,
+        resellerPlanId: this.editPlanId() || undefined,
+        document: this.editDocument().trim(),
+        phone: this.editPhone().trim(),
+        addressLine: this.editAddressLine().trim(),
+        addressCity: this.editAddressCity().trim(),
+        addressUf: this.editAddressUf().trim().toUpperCase().slice(0, 2),
+        addressCep: this.editAddressCep().trim(),
+        notes: this.editNotes().trim(),
+      })
+      .subscribe({
+        next: (row) => {
+          this.detail.set(row);
+          this.message.set('Perfil do vendedor atualizado.');
+          this.reload();
+        },
+        error: () => toast.error('Não foi possível salvar o perfil.'),
+      });
+  }
+
+  resetPassword(): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.api.sendResellerPasswordReset(id).subscribe({
+      next: (result) => {
+        this.inviteActionLink.set(result.inviteActionLink);
+        this.message.set(
+          result.inviteActionLink
+            ? 'Link de redefinição gerado (copie abaixo). O vendedor define a senha nesse link.'
+            : 'Pedido de redefinição enviado (e-mail).',
+        );
+      },
+      error: () => toast.error('Não foi possível gerar o reset de senha.'),
+    });
+  }
+
+  resetMfa(): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.api.resetResellerMfa(id).subscribe({
+      next: (result) => {
+        this.message.set(
+          `MFA resetado (${result.removed} fator(es) removido(s)). No próximo login o vendedor configura de novo.`,
+        );
+      },
+      error: () => toast.error('Não foi possível resetar o MFA.'),
     });
   }
 
@@ -197,8 +284,8 @@ export class AdminResellersComponent {
           this.inviteActionLink.set(created.inviteActionLink ?? null);
           this.message.set(
             created.inviteActionLink
-              ? 'Revendedor criado. Em dev o e-mail fica capturado localmente — use o link abaixo (ou a caixa do Auth) para o OTP.'
-              : 'Revendedor criado (convite por e-mail).',
+              ? 'Revendedor criado. Use o link abaixo para definir a senha (primeiro acesso). Depois entre com e-mail + senha + MFA.'
+              : 'Revendedor criado (convite por e-mail para definir senha).',
           );
           this.reload();
         },

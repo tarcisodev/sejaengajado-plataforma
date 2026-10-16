@@ -43,13 +43,22 @@ const supabaseAnonKey = (process.env['SUPABASE_ANON_KEY'] ?? '').trim();
 const apiPublicUrl = (process.env['API_PUBLIC_URL'] ?? '/api').trim() || '/api';
 
 if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    release: sentryRelease || undefined,
-    environment: process.env['NODE_ENV'] || 'production',
-    beforeSend: (event) => scrubSentryEvent(event),
-    ...({ sendDefaultPii: false } as object),
-  });
+  try {
+    Sentry.init({
+      dsn: sentryDsn,
+      release: sentryRelease || undefined,
+      environment: process.env['NODE_ENV'] || 'production',
+      beforeSend: (event) => scrubSentryEvent(event),
+      // Avoid optional `@sentry/server-runtime-injection` resolution failures in the image.
+      ...({
+        sendDefaultPii: false,
+        registerEsmLoaderHooks: false,
+        skipOpenTelemetrySetup: true,
+      } as object),
+    });
+  } catch (err) {
+    console.error('Sentry.init failed (SSR continues without Sentry)', err);
+  }
 }
 
 const app = express();
@@ -129,6 +138,15 @@ function noticeHtml(title: string, body: string): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title></head><body><main><h1>${title}</h1><p>${body}</p></main></body></html>`;
 }
 
+/** Tenant HTML must never stick in CF edge (false 404 keyed by UA/Accept). */
+function setTenantNoStore(res: express.Response): void {
+  res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+  res.set('CDN-Cache-Control', 'no-store');
+  res.set('Cloudflare-CDN-Cache-Control', 'no-store');
+  res.set('Surrogate-Control', 'no-store');
+  res.set('Vary', 'Accept-Encoding');
+}
+
 /**
  * Handle all other requests by rendering the Angular application.
  */
@@ -155,9 +173,9 @@ app.get('**', async (req, res, next) => {
     try {
       const result = await fetchPublicSiteBySlug(decision.slug);
       if (result.kind === 'not-found') {
+        setTenantNoStore(res);
         res
           .status(404)
-          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(
             noticeHtml('Negócio não encontrado', `O endereço ${decision.slug} não está publicado.`),
@@ -165,19 +183,19 @@ app.get('**', async (req, res, next) => {
         return;
       }
       if (result.kind === 'archived') {
+        setTenantNoStore(res);
         res
           .status(410)
-          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(noticeHtml('Indisponível', 'Este site não está mais neste endereço.'));
         return;
       }
       if (result.kind === 'suspended') {
         const name = businessNameFromBody(result.body);
+        setTenantNoStore(res);
         res
           .status(503)
           .set('Retry-After', '3600')
-          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(
             noticeHtml('Temporariamente indisponível', `${name} está fora do ar por um momento.`),
@@ -185,9 +203,9 @@ app.get('**', async (req, res, next) => {
         return;
       }
       if (result.kind === 'error' || result.kind !== 'ok' || !result.body) {
+        setTenantNoStore(res);
         res
           .status(502)
-          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
         return;
@@ -195,9 +213,9 @@ app.get('**', async (req, res, next) => {
       ssrPublicSite = result.body;
     } catch (err) {
       Sentry.captureException(err);
+      setTenantNoStore(res);
       res
         .status(502)
-        .set('Cache-Control', 'private, no-store')
         .type('html')
         .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
       return;
@@ -228,7 +246,7 @@ app.get('**', async (req, res, next) => {
     })
     .then((html) => {
       if (decision.kind === 'tenant') {
-        res.set('Cache-Control', 'private, no-store');
+        setTenantNoStore(res);
         const status = responseInit.status ?? 200;
         // Prefetch ok but Angular lost context → never ship a false 404.
         if (

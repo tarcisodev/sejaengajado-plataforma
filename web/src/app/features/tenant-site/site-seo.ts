@@ -70,6 +70,14 @@ export function siteTitle(content: SiteContent): string {
     return content.seo.title;
   }
   const city = content.profile?.cidade?.trim();
+  const service =
+    content.servicos?.[0]?.nome ||
+    content.products?.[0]?.nome ||
+    content.profile?.tags?.[0] ||
+    '';
+  if (city && service) {
+    return `${displayName(content)} | ${service} em ${city}`;
+  }
   return city ? `${displayName(content)} em ${city}` : displayName(content);
 }
 
@@ -98,7 +106,19 @@ export function aboutText(content: SiteContent): string {
 }
 
 export function ogImageUrl(content: SiteContent): string {
-  return content.seo?.ogImageUrl ?? 'https://sejaengajado.com.br/og.svg';
+  const fromSeo = content.seo?.ogImageUrl?.trim();
+  if (fromSeo) {
+    return fromSeo;
+  }
+  const logo = content.profile?.logoUrl?.trim();
+  if (logo) {
+    return logo;
+  }
+  const gallery = content.gallery?.find((url) => Boolean(url?.trim()));
+  if (gallery) {
+    return gallery;
+  }
+  return 'https://sejaengajado.com.br/og.svg';
 }
 
 export function whatsappHref(numero: string, text: string): string {

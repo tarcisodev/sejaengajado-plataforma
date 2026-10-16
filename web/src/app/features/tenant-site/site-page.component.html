@@ -40,8 +40,13 @@
       @if (site.content.whatsapp) {
         <a class="cta cta-main" [href]="whatsappHref()" data-link="whatsapp">WhatsApp</a>
       }
-      @if (site.content.phone) {
-        <a class="cta" [href]="'tel:' + site.content.phone" data-link="tel">Ligar</a>
+      @if (site.content.phone || site.content.telefone) {
+        <a
+          class="cta"
+          [href]="'tel:' + (site.content.phone || site.content.telefone)"
+          data-link="tel"
+          >Ligar</a
+        >
       }
       @if (site.content.address) {
         <a class="cta" [href]="mapsLink()" data-link="maps" target="_blank" rel="noopener">Rota</a>
@@ -51,7 +56,7 @@
       <app-section-divider
         shape="ondulada"
         [height]="40"
-        fromColor="var(--t-primary, var(--p1, #6d28d9))"
+        fromColor="var(--t-primary, var(--p1, #0f766e))"
         toColor="var(--t-surface, #fff)"
       />
     </div>
@@ -67,13 +72,31 @@
   }
 
   @if (site.content.links?.length) {
-    <ul class="links">
+    <ul class="links" data-block="links">
       @for (link of site.content.links; track link.url) {
         <li>
           <a [href]="link.url" [attr.data-link]="link.tipo">{{ link.titulo }}</a>
         </li>
       }
     </ul>
+  }
+
+  @if (site.content.servicos?.length) {
+    <section data-block="servicos">
+      <h2>Serviços</h2>
+      <ul class="svcgrid">
+        @for (svc of site.content.servicos; track svc.nome) {
+          <li>
+            <a [href]="interestHref(svc.nome)">
+              @if (svc.fotoUrl) {
+                <img [src]="svc.fotoUrl" alt="" width="320" height="240" loading="lazy" />
+              }
+              <b>{{ svc.nome }}</b>
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
   }
 
   @if (site.content.google) {
@@ -180,6 +203,20 @@
     </section>
   }
 
+  @if (site.content.video?.youtubeId) {
+    <section class="video" data-block="video">
+      <h2>{{ site.content.video.titulo || 'Vídeo' }}</h2>
+      <div class="video-frame">
+        <iframe
+          [src]="youtubeEmbed()"
+          title="Vídeo do negócio"
+          loading="lazy"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </section>
+  }
+
   <section class="about" data-block="about">
     <h2>Sobre</h2>
     <p>{{ about() }}</p>
@@ -238,7 +275,26 @@
     </section>
   }
 
+  @if (site.content.redes?.length) {
+    <section data-block="redes">
+      <h2>Redes</h2>
+      <ul class="links">
+        @for (rede of site.content.redes; track rede.url) {
+          <li>
+            <a [href]="rede.url" [attr.data-social]="rede.tipo" target="_blank" rel="noopener">{{
+              rede.tipo
+            }}</a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <footer>
     <p>feito por <a href="https://sejaengajado.com.br/">Seja Engajado</a></p>
   </footer>
+
+  @if (site.content.whatsapp && !embed) {
+    <a class="wa-fab" [href]="whatsappHref()" data-fab="whatsapp" aria-label="WhatsApp">WhatsApp</a>
+  }
 </article>

@@ -60,45 +60,60 @@ const faqItem = z.object({
   answer: z.string().min(1),
 });
 
-export const siteContentSchema = z.object({
-  theme: z.object({
-    niche,
-    brandColor: hexColor.optional(),
-    overrides: z.record(z.string()).optional(),
-  }),
-  sections: z.array(sectionSchema).default([]),
-  strip: z
-    .object({
-      enabled: z.boolean().default(false),
-      motif: z
-        .enum(['none', 'tesoura', 'pizza', 'agulha', 'coracao', 'circulos', 'estrelas'])
-        .default('none'),
-      speed: z.enum(['slow', 'normal', 'fast']).default('normal'),
-      direction: z.enum(['left', 'right']).default('left'),
-    })
-    .default({
-      enabled: false,
-      motif: 'none',
-      speed: 'normal',
-      direction: 'left',
+/** Known LU fields + passthrough for biosite payload (businessName, profile, …). */
+export const siteContentSchema = z
+  .object({
+    businessName: z.string().min(1).optional(),
+    profile: z
+      .object({
+        nome: z.string().optional(),
+        slogan: z.string().optional(),
+        logoUrl: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        cidade: z.string().optional(),
+        uf: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    theme: z.object({
+      niche,
+      brandColor: hexColor.optional(),
+      overrides: z.record(z.string()).optional(),
     }),
-  catalog: z
-    .object({
-      layout: z.enum(['grid', 'list']).default('grid'),
-    })
-    .default({ layout: 'grid' }),
-  pix: z
-    .object({
-      key: z.string().default(''),
-      receiverName: z.string().default(''),
-    })
-    .default({ key: '', receiverName: '' }),
-  rating: z.number().min(0).max(5).nullable().default(null),
-  googleReviewUrl: z.union([z.string().url(), z.literal('')]).optional(),
-  faq: z.array(faqItem).default([]),
-  hours: hoursSchema,
-  timezone: z.string().min(1).default('America/Sao_Paulo'),
-});
+    sections: z.array(sectionSchema).default([]),
+    strip: z
+      .object({
+        enabled: z.boolean().default(false),
+        motif: z
+          .enum(['none', 'tesoura', 'pizza', 'agulha', 'coracao', 'circulos', 'estrelas'])
+          .default('none'),
+        speed: z.enum(['slow', 'normal', 'fast']).default('normal'),
+        direction: z.enum(['left', 'right']).default('left'),
+      })
+      .default({
+        enabled: false,
+        motif: 'none',
+        speed: 'normal',
+        direction: 'left',
+      }),
+    catalog: z
+      .object({
+        layout: z.enum(['grid', 'list']).default('grid'),
+      })
+      .default({ layout: 'grid' }),
+    pix: z
+      .object({
+        key: z.string().default(''),
+        receiverName: z.string().default(''),
+      })
+      .default({ key: '', receiverName: '' }),
+    rating: z.number().min(0).max(5).nullable().default(null),
+    googleReviewUrl: z.union([z.string().url(), z.literal('')]).optional(),
+    faq: z.array(faqItem).default([]),
+    hours: hoursSchema,
+    timezone: z.string().min(1).default('America/Sao_Paulo'),
+  })
+  .passthrough();
 
 export type SiteContent = z.infer<typeof siteContentSchema>;
 
