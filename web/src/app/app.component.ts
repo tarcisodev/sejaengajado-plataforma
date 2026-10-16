@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { AuthService } from './core/auth/auth.service';
 import { ThemeService } from './core/theme/theme.service';
 
 @Component({
@@ -12,6 +13,7 @@ import { ThemeService } from './core/theme/theme.service';
 })
 export class AppComponent {
   private readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
 
   title = 'Seja Engajado';
 }

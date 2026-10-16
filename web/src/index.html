@@ -13,6 +13,53 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=2" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
     <link rel="manifest" href="/site.webmanifest" />
+    <style>
+      .se-boot-html {
+        min-height: 100dvh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        font-family: Fraunces, Palatino, Georgia, serif;
+        background:
+          radial-gradient(1200px 600px at 10% -10%, rgba(109, 40, 217, 0.18), transparent),
+          #f8f7fc;
+        color: #1e1b2e;
+      }
+      .se-boot-html__mark {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.35rem;
+        font-weight: 600;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .se-boot-html__pulse {
+          width: 2.5rem;
+          height: 0.35rem;
+          border-radius: 999px;
+          background: #6d28d9;
+          animation: se-boot-html-pulse 1.2s ease-in-out infinite;
+        }
+      }
+      @keyframes se-boot-html-pulse {
+        0%,
+        100% {
+          opacity: 0.35;
+          transform: scaleX(0.7);
+        }
+        50% {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+      }
+      html.dark .se-boot-html {
+        background:
+          radial-gradient(1200px 600px at 10% -10%, rgba(109, 40, 217, 0.28), transparent),
+          #121018;
+        color: #f4f2fa;
+      }
+    </style>
     <script>
       try {
         if (localStorage.getItem('seja.theme') === 'dark') {
@@ -22,6 +69,14 @@
     </script>
   </head>
   <body>
-    <app-root></app-root>
+    <app-root>
+      <div class="se-boot-html" aria-busy="true" aria-live="polite">
+        <div class="se-boot-html__mark">
+          <img src="/brand/logo-symbol.svg" width="48" height="48" alt="" />
+          <span>Seja Engajado</span>
+          <div class="se-boot-html__pulse" aria-hidden="true"></div>
+        </div>
+      </div>
+    </app-root>
   </body>
 </html>

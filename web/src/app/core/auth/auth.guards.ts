@@ -5,7 +5,10 @@ import { CanActivateFn, Router } from '@angular/router';
 import type { UserRole } from '../models/domain';
 import { AuthService } from './auth.service';
 
-/** Exige sessão. No SSR redireciona para /entrar (nada privado renderizado anônimo). */
+/**
+ * SSR: redireciona para /entrar (shell público) — evita prerender de painel e mismatch.
+ * Cliente: espera sessionStatus sair de loading via ensureReady.
+ */
 export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
@@ -14,7 +17,7 @@ export const authGuard: CanActivateFn = async () => {
   }
   const auth = inject(AuthService);
   await auth.ensureReady();
-  if (!auth.me()) {
+  if (auth.sessionStatus() !== 'authenticated' || !auth.me()) {
     return router.createUrlTree(['/entrar']);
   }
   return true;
@@ -30,7 +33,7 @@ export function roleGuard(...roles: UserRole[]): CanActivateFn {
     const auth = inject(AuthService);
     await auth.ensureReady();
     const me = auth.me();
-    if (!me || !roles.includes(me.role)) {
+    if (auth.sessionStatus() !== 'authenticated' || !me || !roles.includes(me.role)) {
       return router.createUrlTree(['/entrar']);
     }
     return true;
@@ -46,7 +49,7 @@ export const aal2Guard: CanActivateFn = async () => {
   }
   const auth = inject(AuthService);
   await auth.ensureReady();
-  if (!auth.me()) {
+  if (auth.sessionStatus() !== 'authenticated' || !auth.me()) {
     return router.createUrlTree(['/entrar']);
   }
   const level = await auth.getAuthenticatorAssuranceLevel();
@@ -66,7 +69,7 @@ export const homeRedirectGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   await auth.ensureReady();
   const me = auth.me();
-  if (!me) {
+  if (auth.sessionStatus() !== 'authenticated' || !me) {
     return router.createUrlTree(['/entrar']);
   }
   return router.createUrlTree([auth.homePathForRole(me.role)]);

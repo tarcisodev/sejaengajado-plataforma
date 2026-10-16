@@ -4,6 +4,7 @@ import { HlmAlert } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 
 import { API_PORT } from '../../core/api/api-port';
@@ -12,7 +13,7 @@ import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-reseller-customers',
-  imports: [HlmAlert, HlmButton, HlmCardImports, HlmInput, HlmTableImports],
+  imports: [HlmAlert, HlmButton, HlmCardImports, HlmInput, HlmSkeleton, HlmTableImports],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     @if (!operable()) {
@@ -57,24 +58,32 @@ import { AuthService } from '../../core/auth/auth.service';
     </section>
 
     <section class="mt-6 overflow-x-auto">
-      <table hlmTable class="w-full min-w-[32rem]">
-        <thead>
-          <tr hlmTr>
-            <th hlmTh>Nome</th>
-            <th hlmTh>Cidade</th>
-            <th hlmTh>WhatsApp</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.id) {
-            <tr hlmTr [attr.data-customer-id]="row.id">
-              <td hlmTd>{{ row.name }}</td>
-              <td hlmTd>{{ row.city }}</td>
-              <td hlmTd>{{ row.whatsapp }}</td>
-            </tr>
+      @if (!ready()) {
+        <div class="grid gap-2">
+          @for (n of [1, 2, 3]; track n) {
+            <div hlmSkeleton class="h-12 w-full rounded-md"></div>
           }
-        </tbody>
-      </table>
+        </div>
+      } @else {
+        <table hlmTable class="w-full min-w-[32rem]">
+          <thead>
+            <tr hlmTr>
+              <th hlmTh>Nome</th>
+              <th hlmTh>Cidade</th>
+              <th hlmTh>WhatsApp</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr hlmTr [attr.data-customer-id]="row.id">
+                <td hlmTd>{{ row.name }}</td>
+                <td hlmTd>{{ row.city }}</td>
+                <td hlmTd>{{ row.whatsapp }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     </section>
   `,
 })
@@ -82,6 +91,7 @@ export class ResellerCustomersComponent {
   private readonly api = inject(API_PORT);
   private readonly auth = inject(AuthService);
   readonly rows = signal<ResellerCustomerDto[]>([]);
+  readonly ready = signal(false);
   readonly operable = computed(() => {
     const status = this.auth.me()?.resellerStatus ?? 'ACTIVE';
     return status !== 'DELINQUENT' && status !== 'BLOCKED';
@@ -92,7 +102,11 @@ export class ResellerCustomersComponent {
   }
 
   reload(): void {
-    this.api.listResellerCustomers().subscribe((page) => this.rows.set(page.items));
+    this.ready.set(false);
+    this.api.listResellerCustomers().subscribe((page) => {
+      this.rows.set(page.items);
+      this.ready.set(true);
+    });
   }
 
   create(event: Event): void {

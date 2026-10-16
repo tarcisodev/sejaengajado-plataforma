@@ -9,28 +9,31 @@ import { environment } from '../../../environments/environment';
 import type { AuthMe } from './auth.types';
 import { ensureSupabaseBrowser } from './supabase-browser';
 
+export type SessionStatus = 'loading' | 'authenticated' | 'anonymous';
+
+const BOOT_TIMEOUT_MS = 3_000;
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly platformId = inject(PLATFORM_ID);
 
-  /** Perfil da API (`/api/auth/me`). */
   readonly me = signal<AuthMe | null>(null);
-  /** true após a 1ª resolução de sessão no browser. */
+  readonly sessionStatus = signal<SessionStatus>('loading');
   readonly ready = signal(false);
 
   private boot?: Promise<void>;
   private authSub: { unsubscribe: () => void } | null = null;
 
-  /** Garante init + `onAuthStateChange` no browser (no-op no servidor). */
   ensureReady(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) {
+      this.sessionStatus.set('anonymous');
       this.ready.set(true);
       return Promise.resolve();
     }
     if (!this.boot) {
-      this.boot = this.bootstrap();
+      this.boot = this.bootstrapWithTimeout();
     }
     return this.boot;
   }
@@ -62,6 +65,7 @@ export class AuthService {
   async refreshMe(): Promise<AuthMe> {
     const profile = await firstValueFrom(this.http.get<AuthMe>(`${this.apiBase()}/auth/me`));
     this.me.set(profile);
+    this.sessionStatus.set('authenticated');
     return profile;
   }
 
@@ -74,6 +78,7 @@ export class AuthService {
       this.clearBrowserResidue();
     }
     this.me.set(null);
+    this.sessionStatus.set('anonymous');
     await this.router.navigateByUrl('/entrar');
   }
 
@@ -88,7 +93,6 @@ export class AuthService {
     }
   }
 
-  /** Nível MFA atual (`sb.auth.mfa.getAuthenticatorAssuranceLevel`). */
   async getAuthenticatorAssuranceLevel(): Promise<'aal1' | 'aal2' | null> {
     const sb = await ensureSupabaseBrowser();
     if (!sb) {
@@ -101,26 +105,50 @@ export class AuthService {
     return data.currentLevel === 'aal2' ? 'aal2' : 'aal1';
   }
 
+  private bootstrapWithTimeout(): Promise<void> {
+    return Promise.race([
+      this.bootstrap(),
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          if (this.sessionStatus() === 'loading') {
+            this.me.set(null);
+            this.sessionStatus.set('anonymous');
+          }
+          this.ready.set(true);
+          resolve();
+        }, BOOT_TIMEOUT_MS);
+      }),
+    ]);
+  }
+
   private async bootstrap(): Promise<void> {
-    const sb = await ensureSupabaseBrowser();
-    if (!sb) {
+    try {
+      const sb = await ensureSupabaseBrowser();
+      if (!sb) {
+        this.sessionStatus.set('anonymous');
+        this.ready.set(true);
+        return;
+      }
+      const {
+        data: { session },
+      } = await sb.auth.getSession();
+      await this.onSession(session);
+      const { data } = sb.auth.onAuthStateChange((event, next) => {
+        void this.handleAuthEvent(event, next);
+      });
+      this.authSub = data.subscription;
+    } finally {
+      if (this.sessionStatus() === 'loading') {
+        this.sessionStatus.set(this.me() ? 'authenticated' : 'anonymous');
+      }
       this.ready.set(true);
-      return;
     }
-    const {
-      data: { session },
-    } = await sb.auth.getSession();
-    await this.onSession(session);
-    const { data } = sb.auth.onAuthStateChange((event, next) => {
-      void this.handleAuthEvent(event, next);
-    });
-    this.authSub = data.subscription;
-    this.ready.set(true);
   }
 
   private async handleAuthEvent(event: AuthChangeEvent, session: Session | null): Promise<void> {
     if (event === 'SIGNED_OUT') {
       this.me.set(null);
+      this.sessionStatus.set('anonymous');
       return;
     }
     await this.onSession(session);
@@ -129,12 +157,14 @@ export class AuthService {
   private async onSession(session: Session | null): Promise<void> {
     if (!session?.access_token) {
       this.me.set(null);
+      this.sessionStatus.set('anonymous');
       return;
     }
     try {
       await this.refreshMe();
     } catch {
       this.me.set(null);
+      this.sessionStatus.set('anonymous');
     }
   }
 
@@ -150,7 +180,6 @@ export class AuthService {
     return (environment.apiUrl || '/api').replace(/\/$/, '');
   }
 
-  /** Remove restos de sessão (incl. chaves `sb-*-auth-token`). */
   private clearBrowserResidue(): void {
     try {
       sessionStorage.clear();

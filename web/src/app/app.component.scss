@@ -1,0 +1,93 @@
+.se-boot {
+  min-height: 100dvh;
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, #6d28d9 22%, transparent), transparent),
+    radial-gradient(900px 500px at 90% 0%, color-mix(in oklab, #0f766e 14%, transparent), transparent),
+    #f8f7fc;
+  color: #1e1b2e;
+}
+
+:host-context(html.dark) .se-boot {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, #6d28d9 28%, transparent), transparent),
+    #121018;
+  color: #f4f2fa;
+}
+
+.se-boot__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: Fraunces, Palatino, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.se-boot__layout {
+  display: grid;
+  grid-template-columns: 12rem 1fr;
+  gap: 1rem;
+  min-height: 70dvh;
+}
+
+.se-boot__rail,
+.se-boot__card {
+  border-radius: 0.75rem;
+  background: color-mix(in oklab, currentColor 8%, transparent);
+}
+
+.se-boot__rail {
+  min-height: 100%;
+}
+
+.se-boot__main {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.se-boot__card {
+  height: 5.5rem;
+}
+
+.se-boot__card--wide {
+  height: 12rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .se-boot__rail,
+  .se-boot__card {
+    animation: se-boot-pulse 1.4s ease-in-out infinite;
+  }
+
+  .se-boot__card:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .se-boot__card:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+
+@keyframes se-boot-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .se-boot__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .se-boot__rail {
+    min-height: 4rem;
+  }
+}

@@ -1,1 +1,18 @@
-<router-outlet />
+@if (auth.sessionStatus() === 'loading') {
+  <div class="se-boot" aria-busy="true" aria-live="polite">
+    <div class="se-boot__brand">
+      <img src="/brand/logo-symbol.svg" width="48" height="48" alt="" />
+      <span>Seja Engajado</span>
+    </div>
+    <div class="se-boot__layout">
+      <div class="se-boot__rail"></div>
+      <div class="se-boot__main">
+        <div class="se-boot__card"></div>
+        <div class="se-boot__card"></div>
+        <div class="se-boot__card se-boot__card--wide"></div>
+      </div>
+    </div>
+  </div>
+} @else {
+  <router-outlet />
+}
