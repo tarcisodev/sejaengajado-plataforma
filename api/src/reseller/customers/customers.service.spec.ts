@@ -33,6 +33,7 @@ describe('CustomersService invite', () => {
       generateRecoveryLink: jest.fn(async () => ({
         actionLink: 'https://auth.example/invite',
       })),
+      unenrollMfaFactors: jest.fn(async () => ({ removed: 0 })),
     };
     const service = new CustomersService(db as never, supabaseAdmin as never);
     return { db, supabaseAdmin, service };

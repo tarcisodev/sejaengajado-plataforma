@@ -241,5 +241,125 @@
         </ul>
       </section>
     }
+
+    @if (detail(); as row) {
+      <section hlmCard class="p-4 md:p-6" data-reseller-profile-edit>
+        <h2 class="font-display text-xl">Perfil do vendedor</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{{ row.email || row.id }}</p>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          <label class="grid gap-2 text-sm">
+            Nome
+            <input
+              hlmInput
+              class="h-11"
+              [value]="editName()"
+              (input)="editName.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm">
+            Plano
+            <select
+              class="h-11 rounded-md border border-input bg-background px-3 text-sm"
+              [value]="editPlanId()"
+              (change)="editPlanId.set($any($event.target).value)"
+            >
+              @for (plan of plans(); track plan.id) {
+                <option [value]="plan.id">{{ plan.nome }}</option>
+              }
+            </select>
+          </label>
+          <label class="grid gap-2 text-sm">
+            Documento
+            <input
+              hlmInput
+              class="h-11"
+              [value]="editDocument()"
+              (input)="editDocument.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm">
+            Telefone
+            <input
+              hlmInput
+              class="h-11"
+              [value]="editPhone()"
+              (input)="editPhone.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm md:col-span-2">
+            Endereço
+            <input
+              hlmInput
+              class="h-11"
+              [value]="editAddressLine()"
+              (input)="editAddressLine.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm">
+            Cidade
+            <input
+              hlmInput
+              class="h-11"
+              [value]="editAddressCity()"
+              (input)="editAddressCity.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm">
+            UF
+            <input
+              hlmInput
+              class="h-11"
+              maxlength="2"
+              [value]="editAddressUf()"
+              (input)="editAddressUf.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm">
+            CEP
+            <input
+              hlmInput
+              class="h-11"
+              [value]="editAddressCep()"
+              (input)="editAddressCep.set($any($event.target).value)"
+            />
+          </label>
+          <label class="grid gap-2 text-sm md:col-span-2">
+            Notas internas
+            <textarea
+              hlmInput
+              class="min-h-20 py-2"
+              [value]="editNotes()"
+              (input)="editNotes.set($any($event.target).value)"
+            ></textarea>
+          </label>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-2">
+          <app-confirm-action
+            title="Salvar perfil do vendedor"
+            effect="Nome, documento, contato e plano serão atualizados."
+            verb="Salvar perfil"
+            action="save-reseller-profile"
+            (confirm)="saveDetail()"
+          />
+          <app-confirm-action
+            title="Redefinir senha"
+            effect="Gera um link de recuperação. O vendedor define a nova senha por esse link (primeiro acesso)."
+            verb="Reset senha"
+            triggerVariant="outline"
+            action="reset-password"
+            (confirm)="resetPassword()"
+          />
+          <app-confirm-action
+            title="Resetar MFA"
+            effect="Remove os fatores TOTP. No próximo login o vendedor configura MFA de novo."
+            verb="Reset MFA"
+            triggerVariant="destructive"
+            [destructive]="true"
+            action="reset-mfa"
+            (confirm)="resetMfa()"
+          />
+        </div>
+      </section>
+    }
   }
 </div>

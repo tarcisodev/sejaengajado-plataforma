@@ -66,6 +66,7 @@ import {
   ShippingQuoteResult,
   Site,
   SiteContent,
+  SiteStatus,
   SiteTheme,
   Template,
   User,
@@ -507,6 +508,35 @@ export class MockApiService implements ApiPort {
     site.content = structuredClone(content);
     if (templateId) {
       site.templateId = templateId;
+    }
+    return of(structuredClone(site));
+  }
+
+  patchAdminSiteMeta(
+    siteId: string,
+    body: {
+      slug?: string;
+      planId?: string;
+      status?: SiteStatus;
+      customerId?: string;
+      resellerId?: string;
+    },
+  ): Observable<Site> {
+    const site = this.requireSite(siteId);
+    if (body.slug) {
+      site.slug = body.slug;
+    }
+    if (body.planId) {
+      site.planId = body.planId;
+    }
+    if (body.status) {
+      site.status = body.status;
+    }
+    if (body.customerId) {
+      site.customerId = body.customerId;
+    }
+    if (body.resellerId) {
+      site.resellerId = body.resellerId;
     }
     return of(structuredClone(site));
   }
@@ -1158,6 +1188,78 @@ export class MockApiService implements ApiPort {
       return throwError(() => new Error('reseller not found'));
     }
     return of(structuredClone(row));
+  }
+
+  patchReseller(
+    id: string,
+    body: {
+      name?: string;
+      resellerPlanId?: string;
+      document?: string;
+      phone?: string;
+      addressLine?: string;
+      addressCity?: string;
+      addressUf?: string;
+      addressCep?: string;
+      notes?: string;
+    },
+  ): Observable<Reseller> {
+    const row = this.state.resellers.find((item) => item.id === id);
+    if (!row) {
+      return throwError(() => new Error('reseller not found'));
+    }
+    if (body.name) {
+      row.nome = body.name;
+    }
+    if (body.resellerPlanId) {
+      row.resellerPlanId = body.resellerPlanId;
+    }
+    if (body.document !== undefined) {
+      row.document = body.document;
+    }
+    if (body.phone !== undefined) {
+      row.phone = body.phone;
+    }
+    if (body.addressLine !== undefined) {
+      row.addressLine = body.addressLine;
+    }
+    if (body.addressCity !== undefined) {
+      row.addressCity = body.addressCity;
+    }
+    if (body.addressUf !== undefined) {
+      row.addressUf = body.addressUf;
+    }
+    if (body.addressCep !== undefined) {
+      row.addressCep = body.addressCep;
+    }
+    if (body.notes !== undefined) {
+      row.notes = body.notes;
+    }
+    return of(structuredClone(row));
+  }
+
+  sendResellerPasswordReset(_id: string): Observable<{ inviteActionLink: string | null }> {
+    return of({ inviteActionLink: 'https://example.com/recovery' });
+  }
+
+  resetResellerMfa(_id: string): Observable<{ removed: number }> {
+    return of({ removed: 1 });
+  }
+
+  getMyResellerProfile(): Observable<Reseller> {
+    return of(structuredClone(this.state.resellers[0]!));
+  }
+
+  patchMyResellerProfile(body: {
+    name?: string;
+    document?: string;
+    phone?: string;
+    addressLine?: string;
+    addressCity?: string;
+    addressUf?: string;
+    addressCep?: string;
+  }): Observable<Reseller> {
+    return this.patchReseller(this.state.resellers[0]!.id, body);
   }
 
   getResellerSummary(id: string): Observable<ResellerSummaryDto> {

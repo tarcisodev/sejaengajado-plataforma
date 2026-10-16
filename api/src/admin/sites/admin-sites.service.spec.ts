@@ -25,16 +25,27 @@ describe('AdminSitesService', () => {
       site: {
         findMany: jest.fn().mockResolvedValue([siteRow]),
         findUnique: jest.fn().mockResolvedValue(siteRow),
+        findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) =>
           Promise.resolve({
             ...siteRow,
             ...data,
+            slug: (data['slug'] as string) ?? siteRow.slug,
             status: (data['status'] as string) ?? siteRow.status,
             content: data['content'] ?? siteRow.content,
           }),
         ),
       },
       customer: {
+        findUnique: jest.fn(),
+      },
+      plan: {
+        findUnique: jest.fn().mockResolvedValue({ id: '44444444-4444-4444-8444-444444444444' }),
+      },
+      reservedSlug: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      reseller: {
         findUnique: jest.fn(),
       },
     };
@@ -105,5 +116,18 @@ describe('AdminSitesService', () => {
     });
     expect(updated.content).toMatchObject({ theme: { niche: 'restaurante' } });
     expect(byHostCache.invalidateSlug).toHaveBeenCalledWith('loja-demo');
+  });
+
+  it('patches advanced meta (slug + status) and invalidates both hosts', async () => {
+    const { service, byHostCache } = setup();
+    const updated = await service.patchMeta('s1', {
+      slug: 'loja-nova',
+      status: 'PUBLISHED',
+      planId: '44444444-4444-4444-8444-444444444444',
+    });
+    expect(updated.slug).toBe('loja-nova');
+    expect(updated.status).toBe('PUBLISHED');
+    expect(byHostCache.invalidateSlug).toHaveBeenCalledWith('loja-demo');
+    expect(byHostCache.invalidateSlug).toHaveBeenCalledWith('loja-nova');
   });
 });

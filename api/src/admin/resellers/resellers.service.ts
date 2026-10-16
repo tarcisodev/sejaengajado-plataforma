@@ -147,6 +147,7 @@ export class ResellersService {
       data: {
         name: input.name,
         resellerPlanId: input.resellerPlanId,
+        // Profile columns from migration 20261016170000_reseller_profile
         document: input.document,
         phone: input.phone,
         addressLine: input.addressLine,
@@ -154,7 +155,7 @@ export class ResellersService {
         addressUf: input.addressUf,
         addressCep: input.addressCep,
         notes: input.notes,
-      },
+      } as Parameters<AdminPrisma['reseller']['update']>[0]['data'],
       include: { plan: true, users: true },
     });
   }
@@ -171,6 +172,15 @@ export class ResellersService {
     } catch {
       return { inviteActionLink: null };
     }
+  }
+
+  async resetMfa(id: string): Promise<{ removed: number }> {
+    const row = await this.get(id);
+    const supabaseId = row.users?.[0]?.supabaseId;
+    if (!supabaseId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Usuário do revendedor não encontrado' });
+    }
+    return this.supabaseAdmin.unenrollMfaFactors(supabaseId);
   }
 
   async block(id: string, body: unknown) {

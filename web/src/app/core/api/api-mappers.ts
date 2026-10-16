@@ -56,11 +56,19 @@ export function mapCoupon(row: Record<string, unknown>): Coupon {
 }
 
 export function mapReseller(row: Record<string, unknown>): Reseller {
-  const users = row['users'] as { id: string }[] | undefined;
+  const users = row['users'] as { id: string; email?: string }[] | undefined;
   return {
     id: String(row['id']),
     userId: users?.[0]?.id ?? '',
     nome: String(row['name'] ?? ''),
+    email: users?.[0]?.email ?? (row['email'] as string | undefined),
+    document: String(row['document'] ?? ''),
+    phone: String(row['phone'] ?? ''),
+    addressLine: String(row['addressLine'] ?? ''),
+    addressCity: String(row['addressCity'] ?? ''),
+    addressUf: String(row['addressUf'] ?? ''),
+    addressCep: String(row['addressCep'] ?? ''),
+    notes: String(row['notes'] ?? ''),
     resellerPlanId: String(row['resellerPlanId'] ?? ''),
     status: row['status'] as Reseller['status'],
     delinquentSince: (row['delinquentSince'] as string | null) ?? null,

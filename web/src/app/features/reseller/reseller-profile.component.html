@@ -1,0 +1,114 @@
+<section hlmCard class="p-4 md:p-6" data-reseller-profile>
+  <h2 class="font-display text-xl">Meu perfil</h2>
+  <p class="mt-1 text-sm text-muted-foreground">
+    Dados da revenda. Senha e MFA usam o mesmo login da plataforma.
+  </p>
+
+  @if (error()) {
+    <div hlmAlert variant="destructive" class="mt-4">{{ error() }}</div>
+  }
+  @if (message()) {
+    <div hlmAlert class="mt-4">{{ message() }}</div>
+  }
+
+  @if (ready()) {
+    <div class="mt-6 grid gap-4 md:grid-cols-2">
+      <label class="grid gap-2 text-sm">
+        Nome
+        <input
+          hlmInput
+          class="h-11"
+          data-field="nome"
+          [value]="nome()"
+          (input)="nome.set($any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        E-mail de login
+        <input hlmInput class="h-11" [value]="email()" readonly />
+      </label>
+      <label class="grid gap-2 text-sm">
+        Documento
+        <input
+          hlmInput
+          class="h-11"
+          data-field="document"
+          [value]="document()"
+          (input)="document.set($any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        Telefone / WhatsApp
+        <input
+          hlmInput
+          class="h-11"
+          data-field="phone"
+          [value]="phone()"
+          (input)="phone.set($any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-2 text-sm md:col-span-2">
+        Endereço
+        <input
+          hlmInput
+          class="h-11"
+          data-field="addressLine"
+          [value]="addressLine()"
+          (input)="addressLine.set($any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        Cidade
+        <input
+          hlmInput
+          class="h-11"
+          [value]="addressCity()"
+          (input)="addressCity.set($any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        UF
+        <input
+          hlmInput
+          class="h-11"
+          maxlength="2"
+          [value]="addressUf()"
+          (input)="addressUf.set($any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-2 text-sm">
+        CEP
+        <input
+          hlmInput
+          class="h-11"
+          [value]="addressCep()"
+          (input)="addressCep.set($any($event.target).value)"
+        />
+      </label>
+    </div>
+
+    <div class="mt-6 flex flex-wrap gap-2">
+      <app-confirm-action
+        title="Salvar perfil"
+        effect="Os dados da revenda serão atualizados."
+        verb="Salvar"
+        undoHint="Você pode editar de novo a qualquer momento."
+        action="save-profile"
+        [disabled]="busy()"
+        (confirm)="save()"
+      />
+      <app-confirm-action
+        title="Redefinir senha"
+        effect="Enviaremos um link de recuperação para o e-mail de login."
+        verb="Enviar link"
+        undoHint="O link expira; peça outro se precisar."
+        action="password-reset"
+        triggerVariant="outline"
+        (confirm)="requestPasswordReset()"
+      />
+    </div>
+    <p class="mt-4 text-sm text-muted-foreground">
+      Para configurar ou resetar MFA (TOTP), use a tela de MFA após o login ou peça ao admin.
+    </p>
+  }
+</section>

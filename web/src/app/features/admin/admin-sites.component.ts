@@ -21,6 +21,7 @@ import { tenantPreviewUrl } from '../../core/tenant/resolve-host';
 import { ConfirmActionComponent } from '../../shared/confirm-action/confirm-action.component';
 import {
   SiteEditorComponent,
+  SiteEditorMetaEvent,
   SiteEditorSaveEvent,
 } from '../site-editor/site-editor.component';
 
@@ -56,6 +57,7 @@ export class AdminSitesComponent {
   readonly customers = signal<Customer[]>([]);
   readonly plans = signal<Plan[]>([]);
   readonly templates = signal<Template[]>([]);
+  readonly resellers = signal<{ id: string; nome: string }[]>([]);
   readonly matches = signal<PlaceMatch[]>([]);
   readonly notice = signal('');
   readonly error = signal('');
@@ -130,6 +132,22 @@ export class AdminSitesComponent {
     });
   }
 
+  onEditorMeta(event: SiteEditorMetaEvent): void {
+    const site = this.editing();
+    if (!site) {
+      return;
+    }
+    this.editorBusy.set(true);
+    this.api.patchAdminSiteMeta(site.id, event).subscribe({
+      next: (updated) => {
+        this.editing.set(updated);
+        this.editorBusy.set(false);
+        this.reload();
+      },
+      error: () => this.editorBusy.set(false),
+    });
+  }
+
   onEditorPublish(): void {
     const site = this.editing();
     if (!site) {
@@ -184,11 +202,13 @@ export class AdminSitesComponent {
       plans: this.api.listPlans(),
       customers: this.api.listCustomers(),
       templates: this.api.listTemplates(),
-    }).subscribe(({ sites, plans, customers, templates }) => {
+      resellers: this.api.listResellers(),
+    }).subscribe(({ sites, plans, customers, templates, resellers }) => {
       this.rows.set(sites);
       this.plans.set(plans);
       this.customers.set(customers);
       this.templates.set(templates);
+      this.resellers.set(resellers.map((row) => ({ id: row.id, nome: row.nome })));
       this.customerId.update((current) => current || customers[0]?.id || '');
       this.templateId.update((current) => current || templates[0]?.id || '');
       this.planId.update((current) => current || plans[0]?.id || '');

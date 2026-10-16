@@ -49,6 +49,7 @@ import {
   Site,
   SiteAddress,
   SiteContent,
+  SiteStatus,
   Template,
   User,
 } from '../models/domain';
@@ -142,6 +143,17 @@ export interface ApiPort {
     siteId: string,
     content: SiteContent,
     templateId?: string,
+  ): Observable<Site>;
+  /** Admin: PATCH /admin/sites/:id (slug, plan, status, customer, reseller). */
+  patchAdminSiteMeta(
+    siteId: string,
+    body: {
+      slug?: string;
+      planId?: string;
+      status?: SiteStatus;
+      customerId?: string;
+      resellerId?: string;
+    },
   ): Observable<Site>;
   publishAdminSite(siteId: string): Observable<Site>;
   unpublishAdminSite(siteId: string): Observable<Site>;
@@ -258,9 +270,36 @@ export interface ApiPort {
 
   /** Admin — B2 */
   getReseller(id: string): Observable<Reseller>;
+  patchReseller(
+    id: string,
+    body: {
+      name?: string;
+      resellerPlanId?: string;
+      document?: string;
+      phone?: string;
+      addressLine?: string;
+      addressCity?: string;
+      addressUf?: string;
+      addressCep?: string;
+      notes?: string;
+    },
+  ): Observable<Reseller>;
+  sendResellerPasswordReset(id: string): Observable<{ inviteActionLink: string | null }>;
+  resetResellerMfa(id: string): Observable<{ removed: number }>;
   getResellerSummary(id: string): Observable<ResellerSummaryDto>;
   suspendResellerSites(id: string): Observable<{ count: number }>;
   impersonateReseller(id: string): Observable<ImpersonateResultDto>;
+  /** Revendedor — GET/PATCH /reseller/me */
+  getMyResellerProfile(): Observable<Reseller>;
+  patchMyResellerProfile(body: {
+    name?: string;
+    document?: string;
+    phone?: string;
+    addressLine?: string;
+    addressCity?: string;
+    addressUf?: string;
+    addressCep?: string;
+  }): Observable<Reseller>;
   listAdminProducts(): Observable<AdminProductDto[]>;
   listResellerWholesaleAdmin(resellerId: string): Observable<ResellerWholesaleAdminDto>;
   setResellerWholesale(

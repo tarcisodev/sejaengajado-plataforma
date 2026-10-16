@@ -1,5 +1,12 @@
 export type ResellerSection =
-  'inicio' | 'clientes' | 'sites' | 'vendas' | 'estoque' | 'extrato' | 'faturas';
+  | 'inicio'
+  | 'clientes'
+  | 'sites'
+  | 'vendas'
+  | 'estoque'
+  | 'extrato'
+  | 'faturas'
+  | 'perfil';
 
 const SECTIONS: ResellerSection[] = [
   'clientes',
@@ -8,6 +15,7 @@ const SECTIONS: ResellerSection[] = [
   'estoque',
   'extrato',
   'faturas',
+  'perfil',
 ];
 
 export function resellerSection(pathname: string): ResellerSection {

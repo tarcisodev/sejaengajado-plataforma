@@ -25,6 +25,7 @@ import {
   ShippingQuoteResult,
   Site,
   SiteContent,
+  SiteStatus,
   Template,
   User,
 } from '../models/domain';
@@ -338,6 +339,21 @@ export class HttpApiService implements ApiPort {
     }
     return this.http
       .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/content`), body)
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  patchAdminSiteMeta(
+    siteId: string,
+    body: {
+      slug?: string;
+      planId?: string;
+      status?: SiteStatus;
+      customerId?: string;
+      resellerId?: string;
+    },
+  ): Observable<Site> {
+    return this.http
+      .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}`), body)
       .pipe(map((row) => siteFromResellerDto(row)));
   }
 
@@ -712,6 +728,54 @@ export class HttpApiService implements ApiPort {
   getReseller(id: string): Observable<Reseller> {
     return this.http
       .get<Record<string, unknown>>(this.url(`/admin/resellers/${id}`))
+      .pipe(map(mapReseller));
+  }
+
+  patchReseller(
+    id: string,
+    body: {
+      name?: string;
+      resellerPlanId?: string;
+      document?: string;
+      phone?: string;
+      addressLine?: string;
+      addressCity?: string;
+      addressUf?: string;
+      addressCep?: string;
+      notes?: string;
+    },
+  ): Observable<Reseller> {
+    return this.http
+      .patch<Record<string, unknown>>(this.url(`/admin/resellers/${id}`), body)
+      .pipe(map(mapReseller));
+  }
+
+  sendResellerPasswordReset(id: string): Observable<{ inviteActionLink: string | null }> {
+    return this.http.post<{ inviteActionLink: string | null }>(
+      this.url(`/admin/resellers/${id}/password-reset`),
+      {},
+    );
+  }
+
+  resetResellerMfa(id: string): Observable<{ removed: number }> {
+    return this.http.post<{ removed: number }>(this.url(`/admin/resellers/${id}/mfa-reset`), {});
+  }
+
+  getMyResellerProfile(): Observable<Reseller> {
+    return this.http.get<Record<string, unknown>>(this.url('/reseller/me')).pipe(map(mapReseller));
+  }
+
+  patchMyResellerProfile(body: {
+    name?: string;
+    document?: string;
+    phone?: string;
+    addressLine?: string;
+    addressCity?: string;
+    addressUf?: string;
+    addressCep?: string;
+  }): Observable<Reseller> {
+    return this.http
+      .patch<Record<string, unknown>>(this.url('/reseller/me'), body)
       .pipe(map(mapReseller));
   }
 

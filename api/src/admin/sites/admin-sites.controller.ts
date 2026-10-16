@@ -53,6 +53,12 @@ export class AdminSitesController {
     return this.sites.updateContent(id, body);
   }
 
+  @Patch('sites/:id')
+  @Audit({ action: 'admin.site.meta', entity: 'Site', entityId: (_r, req) => req.params.id })
+  patchMeta(@Param('id', ParseUUIDPipe) id: string, @Body() body: unknown) {
+    return this.sites.patchMeta(id, body);
+  }
+
   @Post('sites/:id/publish')
   @Audit({ action: 'admin.site.publish', entity: 'Site', entityId: (_r, req) => req.params.id })
   publish(@Param('id', ParseUUIDPipe) id: string) {

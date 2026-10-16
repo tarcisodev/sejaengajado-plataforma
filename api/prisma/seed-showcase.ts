@@ -4,6 +4,12 @@
  */
 import { Prisma, PrismaClient } from '@prisma/client';
 
+import {
+  formulaDemoBarbearia,
+  formulaDemoEstudio,
+  formulaDemoForno,
+} from './showcase-formula-content';
+
 export const SHOWCASE_CUSTOMER_NAME = 'Demonstração Seja Engajado';
 export const SHOWCASE_CUSTOMER_EMAIL = 'demo.sites@sejaengajado.com.br';
 export const SHOWCASE_CUSTOMER_ID = '00000000-0000-4000-8000-00000000d0c1';
@@ -162,90 +168,52 @@ export async function runShowcaseSeed(db: ShowcasePrisma): Promise<ShowcaseSeedR
     {
       slug: 'demo-forno' as const,
       templateId: templates.restaurante.id,
-      content: {
-        theme: { niche: 'restaurante', brandColor: '#c2410c' },
-        businessName: 'Forno da Praça',
-        profile: {
-          nome: 'Forno da Praça',
-          slogan: 'Pães e lanches frescos todo dia',
-          logoUrl: `${base}/samples/forno.svg`,
-          cidade: 'Uberaba',
-          uf: 'MG',
-          tags: ['padaria', 'lanche', 'café'],
-        },
-        pix: { key: 'forno@demo.sejaengajado.com.br', receiverName: 'Forno da Praça' },
-        googleReviewUrl: 'https://g.page/r/demo-forno',
-        catalog: { layout: 'grid' },
-        strip: { enabled: true, motif: 'pizza', speed: 'normal', direction: 'left' },
-        faq: [
-          {
-            question: 'Fazem entrega?',
-            answer: 'Sim, no centro de Uberaba das 10h às 20h.',
-          },
-        ],
-        timezone: 'America/Sao_Paulo',
-      },
+      content: formulaDemoForno(base),
     },
     {
       slug: 'demo-barbearia' as const,
       templateId: templates.barbearia.id,
-      content: {
-        theme: { niche: 'barbearia', brandColor: '#1e3a5f' },
-        businessName: 'Barbearia do Centro',
-        profile: {
-          nome: 'Barbearia do Centro',
-          slogan: 'Corte, barba e cuidado masculino',
-          logoUrl: `${base}/samples/barbearia.svg`,
-          cidade: 'Uberaba',
-          uf: 'MG',
-          tags: ['corte', 'barba', 'barbearia'],
-        },
-        pix: { key: 'barbearia@demo.sejaengajado.com.br', receiverName: 'Barbearia do Centro' },
-        googleReviewUrl: 'https://g.page/r/demo-barbearia',
-        catalog: { layout: 'list' },
-        strip: { enabled: true, motif: 'tesoura', speed: 'slow', direction: 'left' },
-        faq: [
-          {
-            question: 'Aceitam encaixe?',
-            answer: 'Sim, conforme agenda do dia. Prefira agendar pelo WhatsApp.',
-          },
-        ],
-        timezone: 'America/Sao_Paulo',
-      },
+      content: formulaDemoBarbearia(base),
     },
     {
       slug: 'demo-estudio' as const,
       templateId: templates.loja.id,
-      content: {
-        theme: { niche: 'generico', brandColor: '#0f766e' },
-        businessName: 'Estúdio Luz Local',
-        profile: {
-          nome: 'Estúdio Luz Local',
-          slogan: 'Fotos e serviços para o seu negócio',
-          logoUrl: `${base}/samples/estudio.svg`,
-          cidade: 'Uberaba',
-          uf: 'MG',
-          tags: ['foto', 'estúdio', 'serviço'],
-        },
-        pix: { key: 'estudio@demo.sejaengajado.com.br', receiverName: 'Estúdio Luz Local' },
-        googleReviewUrl: 'https://g.page/r/demo-estudio',
-        catalog: { layout: 'grid' },
-        strip: { enabled: false, motif: 'none', speed: 'normal', direction: 'left' },
-        faq: [
-          {
-            question: 'Atendem empresas?',
-            answer: 'Sim — ensaio de produto, equipe e fachada.',
-          },
-        ],
-        timezone: 'America/Sao_Paulo',
-      },
+      content: formulaDemoEstudio(base),
     },
   ];
 
   for (const model of models) {
     const existing = await db.site.findFirst({ where: { slug: model.slug } });
     if (existing) {
+      await db.site.update({
+        where: { id: existing.id },
+        data: {
+          customerId: customer.id,
+          resellerId: platform.id,
+          templateId: model.templateId,
+          planId: plan.id,
+          status: 'PUBLISHED',
+          editable: false,
+          isDemo: true,
+          content: model.content as Prisma.InputJsonValue,
+          publishedAt: existing.publishedAt ?? new Date(),
+        },
+      });
       skipped.sites.push(model.slug);
+      const plaqueExisting = await db.plaque.findFirst({
+        where: { siteId: existing.id, type: 'QR' },
+      });
+      if (!plaqueExisting) {
+        await db.plaque.create({
+          data: {
+            resellerId: platform.id,
+            siteId: existing.id,
+            type: 'QR',
+            status: 'DELIVERED',
+          },
+        });
+        created.plaques.push(model.slug);
+      }
       continue;
     }
 

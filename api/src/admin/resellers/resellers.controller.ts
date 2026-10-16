@@ -84,6 +84,16 @@ export class ResellersController {
     return this.resellers.sendPasswordReset(id);
   }
 
+  @Post('admin/resellers/:id/mfa-reset')
+  @Audit({
+    action: 'reseller.mfa_reset',
+    entity: 'Reseller',
+    entityId: (_r, req) => req.params.id,
+  })
+  mfaReset(@Param('id') id: string) {
+    return this.resellers.resetMfa(id);
+  }
+
   @Post('admin/resellers/:id/block')
   @Audit({ action: 'reseller.block', entity: 'Reseller', entityId: (_r, req) => req.params.id })
   block(@Param('id') id: string, @Body() body: unknown) {

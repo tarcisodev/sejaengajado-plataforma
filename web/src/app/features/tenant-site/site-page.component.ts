@@ -149,12 +149,12 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   googleRatingLabel(): string {
-    const rating = this.site.content.google?.rating;
+    const rating = this.site.content.google?.rating ?? this.site.content.google?.nota;
     return typeof rating === 'number' && Number.isFinite(rating) ? rating.toFixed(1) : '—';
   }
 
   googleReviewCountLabel(): string {
-    const count = this.site.content.google?.reviewCount;
+    const count = this.site.content.google?.reviewCount ?? this.site.content.google?.total;
     return typeof count === 'number' && Number.isFinite(count) ? String(count) : '—';
   }
 
@@ -204,6 +204,13 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
       return '';
     }
     return whatsappHref(whatsapp.numero, whatsapp.mensagem);
+  }
+
+  youtubeEmbed(): SafeResourceUrl {
+    const id = this.site.content.video?.youtubeId ?? '';
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`,
+    );
   }
 
   interestHref(nome: string): string {
@@ -276,6 +283,31 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     this.meta.updateTag({ name: 'twitter:image', content: image });
     this.upsertCanonical(url);
     this.upsertJsonLd(schemaType);
+    this.upsertAnalytics(content.analytics);
+  }
+
+  private upsertAnalytics(analytics: Site['content']['analytics']): void {
+    this.document.head.querySelectorAll('[data-site-analytics]').forEach((el) => el.remove());
+    if (!analytics?.gaId && !analytics?.metaPixel) {
+      return;
+    }
+    if (analytics.gaId) {
+      const s = this.renderer.createElement('script') as HTMLScriptElement;
+      s.async = true;
+      s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(analytics.gaId)}`;
+      s.setAttribute('data-site-analytics', 'ga');
+      this.renderer.appendChild(this.document.head, s);
+      const inline = this.renderer.createElement('script') as HTMLScriptElement;
+      inline.setAttribute('data-site-analytics', 'ga-inline');
+      inline.text = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${JSON.stringify(analytics.gaId)});`;
+      this.renderer.appendChild(this.document.head, inline);
+    }
+    if (analytics.metaPixel) {
+      const inline = this.renderer.createElement('script') as HTMLScriptElement;
+      inline.setAttribute('data-site-analytics', 'meta');
+      inline.text = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${JSON.stringify(analytics.metaPixel)});fbq('track','PageView');`;
+      this.renderer.appendChild(this.document.head, inline);
+    }
   }
 
   private upsertCanonical(url: string): void {

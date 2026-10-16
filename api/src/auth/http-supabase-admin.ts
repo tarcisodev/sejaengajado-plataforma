@@ -48,6 +48,37 @@ export class HttpSupabaseAdminClient implements SupabaseAdminClient {
     return { actionLink: body.action_link };
   }
 
+  async unenrollMfaFactors(supabaseUserId: string): Promise<{ removed: number }> {
+    const base = this.baseUrl.replace(/\/$/, '');
+    const list = await fetch(`${base}/auth/v1/admin/users/${supabaseUserId}/factors`, {
+      method: 'GET',
+      headers: this.headers(),
+    });
+    if (!list.ok) {
+      throw new Error(`Supabase list factors failed (${list.status})`);
+    }
+    const body = (await list.json()) as { factors?: { id: string }[] } | { id: string }[];
+    const factors = Array.isArray(body)
+      ? body
+      : Array.isArray(body.factors)
+        ? body.factors
+        : [];
+    let removed = 0;
+    for (const factor of factors) {
+      if (!factor?.id) {
+        continue;
+      }
+      const del = await fetch(
+        `${base}/auth/v1/admin/users/${supabaseUserId}/factors/${factor.id}`,
+        { method: 'DELETE', headers: this.headers() },
+      );
+      if (del.ok || del.status === 404) {
+        removed += 1;
+      }
+    }
+    return { removed };
+  }
+
   private headers(): Record<string, string> {
     return {
       Authorization: `Bearer ${this.serviceRoleKey}`,
