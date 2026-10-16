@@ -181,6 +181,18 @@ export interface ApiPort {
     contentLength: number;
     filename?: string;
   }): Observable<CustomerUploadPresign>;
+  /** Presign S3 do revendedor (POST /reseller/uploads/presign). */
+  presignResellerUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign>;
+  /** Presign S3 do admin (POST /admin/uploads/presign). */
+  presignAdminUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign>;
   requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog>;
   requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog>;
   listAuditLogs(): Observable<AuditLog[]>;

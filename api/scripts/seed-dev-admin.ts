@@ -37,7 +37,10 @@ async function main(): Promise<void> {
   if (!serviceKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY ausente em .env.local');
   }
-  const email = (env.DEV_ADMIN_EMAIL || 'tarcisojun@gmail.com').trim().toLowerCase();
+  const email = (process.env.DEV_ADMIN_EMAIL || env.DEV_ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!email) {
+    throw new Error('DEV_ADMIN_EMAIL ausente (defina em .env.local ou no ambiente)');
+  }
 
   const listUrl = `${base}/auth/v1/admin/users?page=1&per_page=200`;
   const listRes = await fetch(listUrl, {
@@ -56,6 +59,20 @@ async function main(): Promise<void> {
   };
   let supabaseId = listBody.users?.find((u) => u.email?.toLowerCase() === email)?.id;
 
+  // Password only from env (never hardcoded in the repo). Absent -> skip, never print it.
+  const adminPassword = (
+    process.env.DEV_ADMIN_PASSWORD ||
+    process.env.E2E_ADMIN_PASSWORD ||
+    env.DEV_ADMIN_PASSWORD ||
+    env.E2E_ADMIN_PASSWORD ||
+    ''
+  ).trim();
+  if (!adminPassword) {
+    console.warn(
+      'Aviso: DEV_ADMIN_PASSWORD/E2E_ADMIN_PASSWORD ausente — senha do admin não será definida.',
+    );
+  }
+
   if (!supabaseId) {
     const createRes = await fetch(`${base}/auth/v1/admin/users`, {
       method: 'POST',
@@ -66,6 +83,7 @@ async function main(): Promise<void> {
       },
       body: JSON.stringify({
         email,
+        ...(adminPassword ? { password: adminPassword } : {}),
         email_confirm: true,
         app_metadata: { provider: 'email', providers: ['email'] },
       }),
@@ -75,9 +93,30 @@ async function main(): Promise<void> {
     }
     const created = (await createRes.json()) as { id: string };
     supabaseId = created.id;
-    console.log(`GoTrue: criado ${email} (${supabaseId})`);
+    console.log(
+      `GoTrue: admin criado${adminPassword ? ' com senha' : ' sem senha'} (${supabaseId})`,
+    );
+  } else if (adminPassword) {
+    console.log(`GoTrue: admin já existe (${supabaseId}) — definindo senha...`);
+    const updateRes = await fetch(`${base}/auth/v1/admin/users/${supabaseId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        password: adminPassword,
+        email_confirm: true,
+      }),
+    });
+    if (!updateRes.ok) {
+      console.warn(`GoTrue: falha ao definir senha do admin (${updateRes.status}).`);
+    } else {
+      console.log('GoTrue: senha do admin definida.');
+    }
   } else {
-    console.log(`GoTrue: já existe ${email} (${supabaseId})`);
+    console.log(`GoTrue: admin já existe (${supabaseId}).`);
   }
 
   const adminUrl =
@@ -99,7 +138,7 @@ async function main(): Promise<void> {
         status: 'ACTIVE',
       },
     });
-    console.log(`users: ${email} → ADMIN (supabase_id=${supabaseId})`);
+    console.log(`users: admin → ADMIN (supabase_id=${supabaseId})`);
   } finally {
     await prisma.$disconnect();
   }

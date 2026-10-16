@@ -13,7 +13,7 @@ import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../../common/c
 import { ByHostCache } from '../../public/sites/by-host.cache';
 import { PRISMA, type TenantPrisma } from '../../tenant/prisma.module';
 import { assertResellerOperable } from '../reseller-status';
-import { defaultSiteContent, siteContentSchema } from './site-content.schema';
+import { defaultSiteContent, mergeSiteContent, siteContentSchema } from './site-content.schema';
 import {
   assertSlugFormat,
   assertSlugNotBrand,
@@ -34,7 +34,10 @@ export const patchSiteSchema = z.object({
   slug: z.string().min(1).optional(),
   templateId: z.string().uuid().optional(),
   planId: z.string().uuid().optional(),
-  content: siteContentSchema.optional(),
+  /** Validated after the optional merge (see `merge`). */
+  content: z.unknown().optional(),
+  /** true = shallow-merge top-level keys into stored content (wizard step drafts). */
+  merge: z.boolean().optional(),
 });
 
 @Injectable()
@@ -262,7 +265,10 @@ export class SitesService {
       data.plan = { connect: { id: parsed.data.planId } };
     }
     if (parsed.data.content !== undefined) {
-      data.content = this.parseContent(parsed.data.content) as Prisma.InputJsonValue;
+      const raw = parsed.data.merge
+        ? mergeSiteContent(existing.content, parsed.data.content)
+        : parsed.data.content;
+      data.content = this.parseContent(raw) as Prisma.InputJsonValue;
     }
 
     try {

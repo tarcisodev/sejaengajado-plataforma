@@ -500,6 +500,22 @@ export class HttpApiService implements ApiPort {
     return this.http.post<CustomerUploadPresign>(this.url('/customer/uploads/presign'), body);
   }
 
+  presignResellerUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign> {
+    return this.http.post<CustomerUploadPresign>(this.url('/reseller/uploads/presign'), body);
+  }
+
+  presignAdminUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign> {
+    return this.http.post<CustomerUploadPresign>(this.url('/admin/uploads/presign'), body);
+  }
+
   requestSiteChange(siteId: string, _actorId: string, note: string): Observable<AuditLog> {
     return this.http
       .post<AuditLog>(this.url(`/customer/sites/${siteId}/request-change`), { note })

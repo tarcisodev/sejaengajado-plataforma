@@ -10,7 +10,7 @@ import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { HlmTableImports } from '@spartan-ng/helm/table';
-import { filter, forkJoin } from 'rxjs';
+import { filter, forkJoin, switchMap } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { GooglePlacesService } from '../../core/google/google-places.service';
@@ -148,13 +148,17 @@ export class AdminSitesComponent {
     });
   }
 
-  onEditorPublish(): void {
+  /** Admin publica direto do editor (com prévia ao vivo): salva o conteúdo e publica. */
+  onEditorPublish(event: SiteEditorSaveEvent): void {
     const site = this.editing();
     if (!site) {
       return;
     }
     this.editorBusy.set(true);
-    this.api.publishAdminSite(site.id).subscribe({
+    this.api
+      .updateAdminSiteContent(site.id, event.content, event.templateId)
+      .pipe(switchMap(() => this.api.publishAdminSite(site.id)))
+      .subscribe({
       next: (updated) => {
         this.editing.set(updated);
         this.editorBusy.set(false);

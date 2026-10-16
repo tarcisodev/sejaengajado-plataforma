@@ -2,6 +2,7 @@ import {
   UPLOAD_ALLOWED_TYPES,
   UPLOAD_EXPIRES_SECONDS,
   UPLOAD_MAX_BYTES,
+  buildScopedUploadKey,
   buildUploadObjectKey,
   uploadPostConditions,
 } from './upload.service';
@@ -26,6 +27,20 @@ describe('presigned upload constraints', () => {
     const key = buildUploadObjectKey(resellerId, 'image/png');
     expect(key.startsWith(`resellers/${resellerId}/`)).toBe(true);
     expect(key.endsWith('.png')).toBe(true);
+  });
+
+  it('builds scoped keys for reseller, admin and customer', () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    expect(buildScopedUploadKey({ kind: 'reseller', resellerId: id }, 'image/jpeg')).toMatch(
+      new RegExp(`^resellers/${id}/[0-9a-f-]{36}\\.jpg$`),
+    );
+    expect(buildScopedUploadKey({ kind: 'admin' }, 'image/png')).toMatch(
+      /^admin\/[0-9a-f-]{36}\.png$/,
+    );
+    expect(buildScopedUploadKey({ kind: 'customer', userId: id }, 'image/webp')).toMatch(
+      new RegExp(`^customers/${id}/[0-9a-f-]{36}\\.webp$`),
+    );
+    expect(() => buildScopedUploadKey({ kind: 'reseller', resellerId: '' }, 'image/png')).toThrow();
   });
 
   it('includes content-length-range and content-type in post conditions', () => {

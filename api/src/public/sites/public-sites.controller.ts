@@ -39,6 +39,27 @@ export class PublicSitesController {
     return body;
   }
 
+  /** Same body as by-host, addressed by slug (biosite `/b/:slug`). */
+  @Get('sites/by-slug/:slug')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  async bySlug(
+    @Param('slug') slug: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const normalized = (slug ?? '').trim().toLowerCase();
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(normalized)) {
+      throw new NotFoundException({
+        code: 'NOT_FOUND',
+        message: 'Site não encontrado',
+      });
+    }
+
+    const { body, etag } = await this.sites.byHost(`${normalized}.sejaengajado.com.br`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('ETag', etag);
+    return body;
+  }
+
   @Get('r/:slug/avaliar')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async avaliar(

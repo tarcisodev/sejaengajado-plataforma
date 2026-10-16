@@ -1,5 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideArrowLeft,
+  lucideArrowRight,
+  lucideExternalLink,
+  lucideEye,
+  lucidePencil,
+  lucidePlus,
+} from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmAlert } from '@spartan-ng/helm/alert';
 import { HlmBadge } from '@spartan-ng/helm/badge';
@@ -7,7 +16,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmTableImports } from '@spartan-ng/helm/table';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import type {
@@ -16,10 +25,13 @@ import type {
   SiteOptionsDto,
 } from '../../core/api/reseller-api.types';
 import { AuthService } from '../../core/auth/auth.service';
-import type { Site, SiteContent } from '../../core/models/domain';
+import type { Site } from '../../core/models/domain';
 import { siteStatusBadgeVariant, siteStatusLabel } from '../../core/site/site-status-label';
+import { normalizeSiteContent } from '../../core/api/public-site.mapper';
+import { normalizeWhatsapp } from '../../core/site/site-content';
 import { SiteEditorComponent, SiteEditorSaveEvent } from '../site-editor/site-editor.component';
 import { SitePageComponent } from '../tenant-site/site-page.component';
+import { ConfirmActionComponent } from '../../shared/confirm-action/confirm-action.component';
 import { formatBrl } from '../landing/landing-seo';
 import { plaqueNfcPayload, plaqueReviewUrl, plaqueSiteUrl } from './plaque-links';
 import { qrPngDataUrl, qrSvg } from './qr-code';
@@ -30,14 +42,26 @@ type PlaqueType = 'QR' | 'NFC';
 @Component({
   selector: 'app-reseller-sites',
   imports: [
+    NgIcon,
     HlmAlert,
     HlmBadge,
     HlmButton,
     HlmCardImports,
     HlmInput,
     HlmTableImports,
+    ConfirmActionComponent,
     SiteEditorComponent,
     SitePageComponent,
+  ],
+  providers: [
+    provideIcons({
+      lucideArrowLeft,
+      lucideArrowRight,
+      lucideExternalLink,
+      lucideEye,
+      lucidePencil,
+      lucidePlus,
+    }),
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './reseller-sites.component.html',
@@ -61,13 +85,12 @@ export class ResellerSitesComponent {
   readonly newCustomerWhatsapp = signal('');
   readonly planId = signal('');
   readonly templateId = signal('');
-  readonly niche = signal('generico');
-  readonly pixKey = signal('');
-  readonly googleReviewUrl = signal('');
   readonly slug = signal('');
   readonly slugHint = signal('');
   readonly slugOk = signal(false);
   readonly draft = signal<ResellerSiteDto | null>(null);
+  /** Site do rascunho para o site-editor (fixo durante o passo Conteúdo). */
+  readonly draftSite = signal<Site | null>(null);
   readonly busy = signal(false);
   readonly plaqueSite = signal<ResellerSiteDto | null>(null);
   readonly plaqueType = signal<PlaqueType>('QR');
@@ -117,7 +140,6 @@ export class ResellerSitesComponent {
       }
       if (!this.templateId() && options.templates[0]) {
         this.templateId.set(options.templates[0].id);
-        this.niche.set(options.templates[0].niche || 'generico');
       }
     });
   }
@@ -129,6 +151,7 @@ export class ResellerSitesComponent {
     this.wizardOpen.set(true);
     this.step.set('cliente');
     this.draft.set(null);
+    this.draftSite.set(null);
     this.slug.set('');
     this.slugHint.set('');
     this.slugOk.set(false);
@@ -136,6 +159,9 @@ export class ResellerSitesComponent {
 
   closeWizard(): void {
     this.wizardOpen.set(false);
+    this.draft.set(null);
+    this.draftSite.set(null);
+    this.reload();
   }
 
   nextFromCliente(): void {
@@ -170,83 +196,175 @@ export class ResellerSitesComponent {
       });
   }
 
+  /** Passo 2 → cria (ou atualiza) o rascunho DRAFT com slug sugerido e vai para o Conteúdo. */
   nextFromTemplate(): void {
     if (!this.planId() || !this.templateId()) {
       toast.error('Escolha plano e template.');
       return;
     }
-    const template = this.options()?.templates.find((item) => item.id === this.templateId());
-    if (template?.niche) {
-      this.niche.set(template.niche);
+    if (!this.operable() || this.busy()) {
+      return;
     }
-    this.step.set('conteudo');
+    const existing = this.draft();
+    this.busy.set(true);
+    if (existing) {
+      this.api
+        .patchResellerSite(existing.id, { planId: this.planId(), templateId: this.templateId() })
+        .subscribe({
+          next: (site) => this.afterDraftSaved(site, 'conteudo'),
+          error: (error: unknown) => this.failBusy(error, 'Não foi possível salvar o rascunho.'),
+        });
+      return;
+    }
+    const customer = this.customers().find((row) => row.id === this.customerId());
+    const name = customer?.name?.trim() || 'Meu negócio';
+    const base = slugify(name);
+    const template = this.options()?.templates.find((item) => item.id === this.templateId());
+    const content: Record<string, unknown> = {
+      businessName: name,
+      profile: { nome: name, cidade: customer?.city?.trim() || '', uf: '' },
+      theme: { niche: template?.niche || 'generico' },
+      ...(customer?.whatsapp
+        ? {
+            whatsapp: {
+              numero: normalizeWhatsapp(customer.whatsapp),
+              mensagem: 'Olá! Vim pelo site.',
+            },
+          }
+        : {}),
+      ...(customer?.email ? { email: customer.email } : {}),
+    };
+    this.findFreeSlug(base, 0, (slug) => {
+      this.api
+        .createResellerSite({
+          customerId: this.customerId(),
+          slug,
+          planId: this.planId(),
+          templateId: this.templateId(),
+          content,
+        })
+        .subscribe({
+          next: (site) => {
+            this.slug.set(site.slug);
+            this.slugOk.set(true);
+            this.slugHint.set('');
+            this.afterDraftSaved(site, 'conteudo');
+            toast.success('Rascunho criado. Agora preencha o conteúdo.');
+          },
+          error: (error: unknown) => this.failBusy(error, 'Não foi possível criar o rascunho.'),
+        });
+    });
   }
 
-  nextFromConteudo(): void {
-    this.step.set('slug');
+  /** Tenta base, base-2, base-3… e por fim um sufixo aleatório. */
+  private findFreeSlug(base: string, attempt: number, done: (slug: string) => void): void {
+    const candidate =
+      attempt === 0
+        ? base
+        : attempt < 4
+          ? `${base.slice(0, 27)}-${attempt + 1}`
+          : `${base.slice(0, 26)}-${Math.random().toString(36).slice(2, 6)}`;
+    this.api.checkResellerSlug(candidate).subscribe({
+      next: (result) => {
+        if (result.available || attempt >= 5) {
+          done(candidate);
+          return;
+        }
+        this.findFreeSlug(base, attempt + 1, done);
+      },
+      error: () => done(candidate),
+    });
+  }
+
+  private afterDraftSaved(site: ResellerSiteDto, nextStep?: WizardStep): void {
+    this.busy.set(false);
+    this.draft.set(site);
+    // O editor em modo wizard só ressincroniza quando o id muda; manter o site atualizado
+    // garante que voltar ao passo Conteúdo reabra com o rascunho salvo.
+    this.draftSite.set(toPreviewSite(site));
+    if (nextStep) {
+      this.step.set(nextStep);
+    }
+  }
+
+  private failBusy(error: unknown, fallback: string): void {
+    this.busy.set(false);
+    this.toastApiError(error, fallback);
+  }
+
+  /** Rascunho salvo a cada aba do Conteúdo (Identidade → Contato → Módulos). */
+  onWizardContentSave(event: SiteEditorSaveEvent, nextStep?: WizardStep): void {
+    const site = this.draft();
+    if (!site) {
+      return;
+    }
+    this.busy.set(true);
+    this.api
+      .patchResellerSite(site.id, {
+        content: event.content as unknown as Record<string, unknown>,
+        templateId: event.templateId,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.afterDraftSaved(updated, nextStep);
+          if (nextStep) {
+            this.slug.set(updated.slug);
+            this.slugOk.set(true);
+          }
+        },
+        error: (error: unknown) => this.failBusy(error, 'Não foi possível salvar o rascunho.'),
+      });
   }
 
   onSlugInput(event: Event): void {
-    this.slug.set((event.target as HTMLInputElement).value.trim().toLowerCase());
+    this.slug.set(slugify((event.target as HTMLInputElement).value, false));
     this.slugOk.set(false);
     this.slugHint.set('');
   }
 
   checkSlug(): void {
     const value = this.slug();
-    if (!value) {
-      this.slugHint.set('Informe o slug.');
+    const current = this.draft()?.slug;
+    if (value && value === current) {
+      this.slugOk.set(true);
+      this.slugHint.set('Este é o endereço atual do rascunho.');
+      return;
+    }
+    if (!/^[a-z0-9](-?[a-z0-9]){2,30}$/.test(value)) {
+      this.slugHint.set('Use de 3 a 31 letras minúsculas, números ou hífen.');
       this.slugOk.set(false);
       return;
     }
     this.api.checkResellerSlug(value).subscribe((result) => {
       this.slugOk.set(result.available);
       this.slugHint.set(
-        result.available ? 'Slug disponível.' : `Slug indisponível (${result.code ?? 'erro'}).`,
+        result.available ? 'Endereço disponível.' : 'Endereço indisponível. Tente outro.',
       );
     });
   }
 
-  createDraft(): void {
-    if (!this.operable() || !this.slugOk() || this.busy()) {
+  /** Passo 4: confirma/troca o slug do rascunho e vai para a Prévia. */
+  confirmSlug(): void {
+    const site = this.draft();
+    if (!site || this.busy()) {
+      return;
+    }
+    const value = this.slug();
+    if (value === site.slug) {
+      this.step.set('previa');
+      return;
+    }
+    if (!this.slugOk()) {
+      this.checkSlug();
       return;
     }
     this.busy.set(true);
-    const customer = this.customers().find((row) => row.id === this.customerId());
-    const businessName = customer?.name || this.slug();
-    const reviewUrl = this.googleReviewUrl().trim();
-    // Payload alinhado ao siteContentSchema da Nest (não ao SiteContent do mock).
-    const content: Record<string, unknown> = {
-      businessName,
-      profile: { nome: businessName, cidade: '', uf: '' },
-      theme: { niche: 'generico', brandColor: '#1e3a5f' },
-      pix: {
-        key: this.pixKey().trim() || '',
-        receiverName: businessName,
+    this.api.patchResellerSite(site.id, { slug: value }).subscribe({
+      next: (updated) => {
+        this.afterDraftSaved(updated, 'previa');
       },
-      ...(reviewUrl ? { googleReviewUrl: reviewUrl } : {}),
-    };
-    this.api
-      .createResellerSite({
-        customerId: this.customerId(),
-        slug: this.slug(),
-        planId: this.planId(),
-        templateId: this.templateId(),
-        content,
-      })
-      .subscribe({
-        next: (site) => {
-          this.busy.set(false);
-          this.draft.set(site);
-          this.wizardOpen.set(false);
-          this.openEditor(site);
-          this.reload();
-        },
-        error: (error: unknown) => {
-          this.busy.set(false);
-          this.toastApiError(error, 'Não foi possível criar o site.');
-        },
-      });
+      error: (error: unknown) => this.failBusy(error, 'Não foi possível trocar o endereço.'),
+    });
   }
 
   openEditor(row: ResellerSiteDto): void {
@@ -282,24 +400,31 @@ export class ResellerSitesComponent {
       });
   }
 
-  onEditorPublish(): void {
+  /** Salva o conteúdo atual do editor e publica. */
+  onEditorPublish(event: SiteEditorSaveEvent): void {
     const site = this.editing();
     if (!site || !this.operable()) {
       return;
     }
     this.editorBusy.set(true);
-    this.api.publishResellerSite(site.id).subscribe({
-      next: (updated) => {
-        this.editing.set(toPreviewSite(updated));
-        this.editorBusy.set(false);
-        this.reload();
-        toast.success('Site publicado.');
-      },
-      error: (error: unknown) => {
-        this.editorBusy.set(false);
-        this.toastApiError(error, 'Não foi possível publicar.');
-      },
-    });
+    this.api
+      .patchResellerSite(site.id, {
+        content: event.content as unknown as Record<string, unknown>,
+        templateId: event.templateId,
+      })
+      .pipe(switchMap(() => this.api.publishResellerSite(site.id)))
+      .subscribe({
+        next: (updated) => {
+          this.editing.set(toPreviewSite(updated));
+          this.editorBusy.set(false);
+          this.reload();
+          toast.success('Site publicado.');
+        },
+        error: (error: unknown) => {
+          this.editorBusy.set(false);
+          this.toastApiError(error, 'Não foi possível publicar.');
+        },
+      });
   }
 
   onEditorUnpublish(): void {
@@ -344,14 +469,15 @@ export class ResellerSitesComponent {
 
   publishDraft(): void {
     const site = this.draft();
-    if (!site || !this.operable()) {
+    if (!site || !this.operable() || this.busy()) {
       return;
     }
     this.busy.set(true);
     this.api.publishResellerSite(site.id).subscribe({
-      next: () => {
+      next: (updated) => {
         this.busy.set(false);
-        toast.success('Site publicado.');
+        this.draft.set(updated);
+        toast.success(`Site publicado em ${this.publicUrl(updated.slug)}`);
         this.wizardOpen.set(false);
         this.reload();
       },
@@ -360,6 +486,12 @@ export class ResellerSitesComponent {
         this.toastApiError(error, 'Não foi possível publicar.');
       },
     });
+  }
+
+  /** Sai do wizard mantendo o rascunho salvo. */
+  saveDraftAndExit(): void {
+    toast.success('Rascunho salvo. Você pode continuar depois em Sites.');
+    this.closeWizard();
   }
 
   publish(siteId: string): void {
@@ -496,10 +628,6 @@ export class ResellerSitesComponent {
   onTemplateChange(event: Event): void {
     const id = (event.target as HTMLSelectElement).value;
     this.templateId.set(id);
-    const template = this.options()?.templates.find((item) => item.id === id);
-    if (template?.niche) {
-      this.niche.set(template.niche);
-    }
   }
 
   private toastApiError(error: unknown, fallback: string): void {
@@ -518,27 +646,36 @@ export class ResellerSitesComponent {
   }
 }
 
-function defaultPreviewTheme(): SiteContent['theme'] {
-  return {
-    p1: '#1e3a5f',
-    p2: '#3d5a4c',
-    p3: '#d5e2dc',
-    on3: '#102018',
-    hi: '#f4f7f6',
-    fontHeading: 'Fraunces, Palatino, serif',
-    fontBody: 'Literata, Georgia, serif',
-    fontScale: 1,
-    italic: 'normal',
-  };
+/** "Pizzaria Bella Vista!" → "pizzaria-bella-vista" (3–31 chars). */
+function slugify(value: string, pad = true): string {
+  const slug = value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-/, '')
+    .slice(0, 31);
+  if (!pad) {
+    return slug;
+  }
+  const trimmed = slug.replace(/-$/, '');
+  return trimmed.length >= 3 ? trimmed : `${trimmed || 'site'}-bio`.slice(0, 31);
 }
 
 function toPreviewSite(row: ResellerSiteDto): Site {
-  const raw = (row.content ?? {}) as Partial<SiteContent> & Record<string, unknown>;
-  const profile = (raw['profile'] ?? {}) as Partial<SiteContent['profile']>;
-  const themeRaw = (raw['theme'] ?? {}) as Partial<SiteContent['theme']>;
-  const pixRaw = (raw['pix'] ?? {}) as Record<string, unknown>;
-  const waRaw = (raw['whatsapp'] ?? {}) as Record<string, unknown>;
-  const businessName = String(raw['businessName'] ?? row.customer?.name ?? row.slug);
+  const content = normalizeSiteContent(row.content ?? {}, row.slug);
+  const raw = (row.content ?? {}) as Record<string, unknown>;
+  if (!content.whatsapp?.numero) {
+    const wa = raw['whatsapp'] as Record<string, unknown> | undefined;
+    if (typeof wa?.['e164'] === 'string') {
+      content.whatsapp = { numero: wa['e164'], mensagem: 'Olá! Vim pelo site.' };
+    }
+  }
+  if (!raw['businessName'] && row.customer?.name) {
+    content.businessName = row.customer.name;
+    content.profile = { ...content.profile, nome: row.customer.name };
+  }
   return {
     id: row.id,
     customerId: row.customerId,
@@ -546,36 +683,7 @@ function toPreviewSite(row: ResellerSiteDto): Site {
     slug: row.slug,
     customDomain: null,
     templateId: row.templateId,
-    content: {
-      businessName,
-      profile: {
-        nome: String(profile?.nome ?? businessName),
-        cidade: String(profile?.cidade ?? ''),
-        uf: String(profile?.uf ?? ''),
-      },
-      theme: {
-        ...defaultPreviewTheme(),
-        ...themeRaw,
-        italic: themeRaw.italic === 'italic' ? 'italic' : 'normal',
-      },
-      whatsapp:
-        typeof waRaw['numero'] === 'string'
-          ? {
-              numero: waRaw['numero'],
-              mensagem: String(waRaw['mensagem'] ?? 'Olá! Vim pelo site.'),
-            }
-          : typeof waRaw['e164'] === 'string'
-            ? {
-                numero: String(waRaw['e164']),
-                mensagem: 'Olá! Vim pelo site.',
-              }
-            : undefined,
-      pix: {
-        chave: String(pixRaw['chave'] ?? pixRaw['key'] ?? 'exemplo-chave-pix'),
-        nome: String(pixRaw['nome'] ?? pixRaw['receiverName'] ?? 'exemplo'),
-      },
-      google: raw['google'] as SiteContent['google'],
-    },
+    content,
     status: row.status as Site['status'],
     planId: row.planId,
     editable: row.editable,

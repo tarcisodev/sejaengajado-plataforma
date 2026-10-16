@@ -61,13 +61,13 @@
         hlmBtn
         type="button"
         variant="link"
-        class="h-auto justify-start px-0"
+        class="h-auto justify-start px-0 font-medium text-primary underline"
         (click)="mode.set('forgot')"
       >
-        Esqueci a senha
+        Primeiro acesso ou esqueceu a senha? Definir senha
       </button>
       <p class="text-sm text-muted-foreground">
-        Contas convidadas entram com e-mail e senha. Depois confirme o código do autenticador (MFA).
+        Defina sua senha antes de entrar. Depois do primeiro acesso, confirme com e-mail, senha e autenticador (MFA).
       </p>
     } @else if (mode() === 'reset') {
       <form class="grid gap-4" (submit)="completeReset($event)">

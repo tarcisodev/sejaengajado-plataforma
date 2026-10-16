@@ -80,10 +80,6 @@ export class CustomerSitesController {
   /** Same type/size rules as reseller uploads (JPEG/PNG/WebP ≤ 5 MB). */
   @Post('uploads/presign')
   presign(@CurrentUser() user: AuthUser, @Body() body: unknown) {
-    const resellerId = user.resellerId;
-    if (!resellerId) {
-      return this.uploads.createPresignedUpload(body, 'customer');
-    }
-    return this.uploads.createPresignedUpload(body, resellerId);
+    return this.uploads.createPresignedUpload(body, { kind: 'customer', userId: user.id });
   }
 }

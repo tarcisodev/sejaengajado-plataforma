@@ -1,4 +1,4 @@
-import { defaultSiteContent, siteContentSchema } from './site-content.schema';
+import { defaultSiteContent, safeUrl, siteContentSchema } from './site-content.schema';
 
 describe('siteContentSchema', () => {
   it('accepts a valid theme/sections/strip payload', () => {
@@ -40,6 +40,42 @@ describe('siteContentSchema', () => {
         sections: [{ type: 'hero', divisor: { shape, height: 48 } }],
       });
       expect(parsed.sections[0]?.divisor?.shape).toBe(shape);
+    }
+  });
+});
+
+describe('safeUrl', () => {
+  const ok = (v: string) => safeUrl.safeParse(v);
+
+  it('prefixes https:// on bare domains (legacy content)', () => {
+    expect(ok('wa.me/5534999999999').data).toBe('https://wa.me/5534999999999');
+    expect(ok(' instagram.com/x ').data).toBe('https://instagram.com/x');
+    expect(ok('www.loja.com.br').data).toBe('https://www.loja.com.br');
+    expect(ok('loja.com.br:8080/a?b=1').data).toBe('https://loja.com.br:8080/a?b=1');
+  });
+
+  it('keeps valid schemes, relative paths and empty untouched', () => {
+    expect(ok('https://x.com').data).toBe('https://x.com');
+    expect(ok('mailto:a@b.co').data).toBe('mailto:a@b.co');
+    expect(ok('tel:+5534999').data).toBe('tel:+5534999');
+    expect(ok('/uploads/a.png').data).toBe('/uploads/a.png');
+    expect(ok('').data).toBe('');
+  });
+
+  it('still rejects unsafe values', () => {
+    for (const v of [
+      'javascript:alert(1)',
+      'JavaScript:alert(1)',
+      'data:text/html,x',
+      'vbscript:x',
+      '//evil.com',
+      '/\\evil.com',
+      'java\tscript:alert(1)',
+      '\u0001javascript:alert(1)',
+      'loja com.br',
+      'semdominio',
+    ]) {
+      expect(ok(v).success).toBe(false);
     }
   });
 });

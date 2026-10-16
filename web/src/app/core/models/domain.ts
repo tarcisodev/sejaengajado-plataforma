@@ -87,6 +87,11 @@ export interface SiteProfile {
   nome: string;
   slogan?: string;
   logoUrl?: string;
+  /** Alt text da foto de perfil (padrão: "Logo de <nome>"). */
+  logoAlt?: string;
+  /** Capa 16:9 do topo do biosite. */
+  coverUrl?: string;
+  coverAlt?: string;
   tags?: string[];
   cidade: string;
   uf: string;
@@ -162,11 +167,47 @@ export interface SiteFaqItem {
 
 export interface SiteProduct {
   nome: string;
-  precoTexto: string;
+  /** Legado (só leitura): use `precoCentavos`. */
+  priceCents?: number | null;
+  /** Preço em centavos (nome oficial do schema da API, fonte da verdade). */
+  precoCentavos?: number | null;
+  /** Texto de exibição (legado FORMULA / derivado de precoCentavos). */
+  precoTexto?: string;
+  descricao?: string;
   rotuloBotao?: string;
   tag?: string;
   fotoUrl?: string;
+  /** Legado (só leitura): use `alt`. */
+  fotoAlt?: string;
+  /** Alt da foto (nome oficial do schema da API). */
+  alt?: string;
   categoria?: string;
+}
+
+export interface SiteGalleryImage {
+  url: string;
+  alt?: string;
+}
+
+export interface SiteTestimonial {
+  /** Legado (só leitura): use `nome`/`texto`. */
+  name?: string;
+  text?: string;
+  /** Nomes oficiais do schema da API. */
+  nome?: string;
+  texto?: string;
+}
+
+/** Liga/desliga de módulos do biosite (ausente = ligado se houver conteúdo). */
+export interface SiteModules {
+  catalog?: boolean;
+  gallery?: boolean;
+  pix?: boolean;
+  links?: boolean;
+  testimonials?: boolean;
+  hours?: boolean;
+  map?: boolean;
+  reviews?: boolean;
 }
 
 export interface SiteService {
@@ -195,6 +236,10 @@ export interface SiteGoogle {
 
 export interface SiteAddress {
   logradouro: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  mapsUrl?: string;
   cidade: string;
   uf: string;
   cep?: string;
@@ -221,6 +266,9 @@ export interface SitePix {
   chave: string;
   nome: string;
   qrUrl?: string;
+  /** Aliases do schema da API (key/receiverName). */
+  key?: string;
+  receiverName?: string;
 }
 
 export interface SiteSeo {
@@ -246,9 +294,17 @@ export interface SiteContent {
   theme: SiteTheme;
   whatsapp?: SiteWhatsapp;
   links?: SiteLink[];
+  /** Legado FORMULA (lista). A API valida `hours` como objeto semanal — use weeklyHours/hours via helpers. */
   hours?: SiteHours[];
-  gallery?: string[];
+  /** Observação livre do horário (ex.: "Feriados: consultar"). */
+  hoursNote?: string;
+  /** Legado: string[]; novo: {url, alt}[]. */
+  gallery?: (string | SiteGalleryImage)[];
   products?: SiteProduct[];
+  testimonials?: SiteTestimonial[];
+  modules?: SiteModules;
+  email?: string;
+  googleReviewUrl?: string;
   /** Modo do carrossel de produtos (FORMULA). */
   produtosModo?: 'unica' | 'auto';
   servicos?: SiteService[];

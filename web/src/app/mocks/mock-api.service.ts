@@ -630,6 +630,22 @@ export class MockApiService implements ApiPort {
     return of(structuredClone(site));
   }
 
+  presignResellerUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign> {
+    return this.presignCustomerUpload(body);
+  }
+
+  presignAdminUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign> {
+    return this.presignCustomerUpload(body);
+  }
+
   presignCustomerUpload(body: {
     contentType: string;
     contentLength: number;
@@ -925,7 +941,15 @@ export class MockApiService implements ApiPort {
       businessName: body.slug,
       phone: '',
       address: { logradouro: '', cidade: 'Uberaba', uf: 'MG' },
-    }).pipe(map((site) => this.toResellerSiteDto(site)));
+    }).pipe(
+      map((site) => {
+        const stored = this.state.sites.find((item) => item.id === site.id) ?? site;
+        if (body.content) {
+          stored.content = { ...stored.content, ...(body.content as Partial<SiteContent>) };
+        }
+        return this.toResellerSiteDto(stored);
+      }),
+    );
   }
 
   patchResellerSite(
@@ -944,6 +968,7 @@ export class MockApiService implements ApiPort {
     if (body.templateId) site.templateId = body.templateId;
     if (body.planId) site.planId = body.planId;
     if (body.slug) site.slug = body.slug;
+    if (body.content) site.content = structuredClone(body.content) as unknown as SiteContent;
     return of(this.toResellerSiteDto(site));
   }
 
