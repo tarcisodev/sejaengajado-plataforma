@@ -8,7 +8,7 @@
 | FF2 | DONE | 3451581 | 2026-10-16 |
 | FF3 | DONE | 5c46b3e | 2026-10-16 |
 | FF4 | DONE | 0e4d9d5 | 2026-10-16 |
-| FF5 | TODO | — | — |
+| FF5 | DONE | f34f461 | 2026-10-16 |
 | M1 | TODO | — | — |
 | AW6 | DONE | 379005c | 2026-10-16 |
 | AW7 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-FF4 — Placa: OUT ASSIGN na API (Pronto + isolamento 404); painel no revendedor com link /avaliar, QR SVG/PNG, URL NFC, baixa estoque; SSR /avaliar → API; test:int ASSIGN + redirect ja existente.
+FF5 — Dashboard: lucro previsto, a pagar a plataforma com linhas da fatura (mensalidade + atacado/placas), extrato e vendas; API inclui openInvoice.lines; specs + test:int.
 
 ## Proximo
-FF5 — Financeiro do revendedor (vendas, lucro, a pagar, ledger).
+M1 — Marco 1: seed-demo, e2e happy-path, docs/marco-1.md; depois PARE para OK de deploy do Tarciso.
 
 ## Bloqueios / perguntas para o Tarciso
 - #5 P6 valores reais
