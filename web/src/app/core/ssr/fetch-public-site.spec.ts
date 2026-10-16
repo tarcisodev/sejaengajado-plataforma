@@ -60,7 +60,9 @@ describe('fetch-public-site (SSR tenant)', () => {
     const miss = jasmine.createSpy('fetch-404').and.resolveTo(new Response(null, { status: 404 }));
     const first = await fetchPublicSiteByHost('loja.sejaengajado.com.br', miss, cache);
     expect(first.kind).toBe('not-found');
-    expect(miss).toHaveBeenCalledTimes(1);
+    // Soft 404 is retried (Nest/CDN blip) before sticking.
+    expect(miss.calls.count()).toBeGreaterThanOrEqual(2);
+    expect(BY_HOST_TTL_NEGATIVE_MS).toBeLessThan(10_000);
 
     const hit = jasmine.createSpy('fetch-200').and.resolveTo(
       new Response(
@@ -75,7 +77,30 @@ describe('fetch-public-site (SSR tenant)', () => {
     const afterPublish = await fetchPublicSiteByHost('loja.sejaengajado.com.br', hit, cache);
     expect(afterPublish.kind).toBe('ok');
     expect(hit).toHaveBeenCalledTimes(1);
-    expect(BY_HOST_TTL_NEGATIVE_MS).toBeLessThan(10_000);
+  });
+
+  it('recovers when first by-host answers 404 then 200', async () => {
+    const cache = new ByHostMemoryCache();
+    let n = 0;
+    const fetchImpl = jasmine.createSpy('fetch-404-then-ok').and.callFake(() => {
+      n += 1;
+      if (n === 1) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            status: 'PUBLISHED',
+            slug: 'demo-forno',
+            content: { businessName: 'Forno da Praça' },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    });
+    const result = await fetchPublicSiteByHost('demo-forno.sejaengajado.com.br', fetchImpl, cache);
+    expect(result.kind).toBe('ok');
+    expect(n).toBe(2);
   });
 
   it('treats Nest 304 as transport error (not not-found)', async () => {
