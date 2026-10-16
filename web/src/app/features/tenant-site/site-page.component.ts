@@ -36,6 +36,7 @@ import {
   siteTitle,
   whatsappHref,
 } from './site-seo';
+import { OpenNowStatus, openNowStatus } from './site-open-now';
 import { AnimatedStripComponent } from './ui/animated-strip.component';
 import { SectionDividerComponent } from './ui/section-divider.component';
 
@@ -56,7 +57,6 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   private templatesSub: Subscription | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private jsonLd: HTMLScriptElement | null = null;
-  private mapUrl = '';
 
   @Input({ required: true }) site!: Site;
   @Input() embed = false;
@@ -65,7 +65,10 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   readonly clock = signal<ClockParts | null>(null);
   readonly copied = signal(false);
   readonly themeVars = signal<Record<string, string>>({});
-  mapSrc: SafeResourceUrl | null = null;
+  readonly mapLoaded = signal(false);
+  readonly mapSrc = signal<SafeResourceUrl | null>(null);
+  readonly openNow = signal<OpenNowStatus | null>(null);
+  readonly categoryFilter = signal<string | null>(null);
 
   constructor() {
     afterNextRender(() => {
@@ -76,13 +79,16 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['site']) {
       this.syncTheme();
-      this.syncMap();
+      this.mapLoaded.set(false);
+      this.mapSrc.set(null);
+      this.refreshOpenNow();
+      this.categoryFilter.set(null);
     }
   }
 
   ngOnInit(): void {
     this.syncTheme();
-    this.syncMap();
+    this.refreshOpenNow();
     this.refreshClock();
     if (!this.embed) {
       this.applyHead(this.schemaType());
@@ -101,6 +107,50 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
       return;
     }
     this.themeVars.set(themeToCssVars(resolveTheme(this.site.content)));
+  }
+
+  private refreshOpenNow(): void {
+    if (!this.site) {
+      this.openNow.set(null);
+      return;
+    }
+    this.openNow.set(
+      openNowStatus(
+        this.site.content.weeklyHours,
+        this.site.content.timezone ?? 'America/Sao_Paulo',
+      ),
+    );
+  }
+
+  loadMap(): void {
+    if (!this.site?.content.address) {
+      return;
+    }
+    this.mapSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(mapsEmbedUrl(this.site.content)));
+    this.mapLoaded.set(true);
+  }
+
+  categories(): string[] {
+    const tags = new Set<string>();
+    for (const product of this.site.content.products ?? []) {
+      if (product.categoria) {
+        tags.add(product.categoria);
+      }
+    }
+    return [...tags];
+  }
+
+  filteredProducts() {
+    const products = this.site.content.products ?? [];
+    const filter = this.categoryFilter();
+    if (!filter) {
+      return products;
+    }
+    return products.filter((item) => item.categoria === filter);
+  }
+
+  setCategory(category: string | null): void {
+    this.categoryFilter.set(category);
   }
 
   googleRatingLabel(): string {
@@ -130,20 +180,6 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
 
   nome(): string {
     return displayName(this.site.content);
-  }
-
-  private syncMap(): void {
-    if (!this.site?.content.address) {
-      this.mapUrl = '';
-      this.mapSrc = null;
-      return;
-    }
-    const next = mapsEmbedUrl(this.site.content);
-    if (next === this.mapUrl) {
-      return;
-    }
-    this.mapUrl = next;
-    this.mapSrc = this.sanitizer.bypassSecurityTrustResourceUrl(next);
   }
 
   initials(): string {
@@ -186,11 +222,27 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
 
   async copyPix(): Promise<void> {
     const chave = this.site.content.pix?.chave;
-    if (!chave || !navigator.clipboard) {
+    if (!chave) {
       return;
     }
-    await navigator.clipboard.writeText(chave);
-    this.copied.set(true);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(chave);
+      } else {
+        const input = this.document.createElement('textarea');
+        input.value = chave;
+        input.setAttribute('readonly', '');
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        this.document.body.appendChild(input);
+        input.select();
+        this.document.execCommand('copy');
+        input.remove();
+      }
+      this.copied.set(true);
+    } catch {
+      this.copied.set(false);
+    }
   }
 
   private refreshClock(): void {

@@ -133,22 +133,33 @@ export function siteJsonLd(content: SiteContent, slug: string, schemaType: strin
       description: item.precoTexto,
     }));
   }
+  const graph: Record<string, unknown>[] = [
+    business,
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: `${content.profile.cidade}-${content.profile.uf}`,
+          item: 'https://sejaengajado.com.br/',
+        },
+        { '@type': 'ListItem', position: 2, name: displayName(content), item: url },
+      ],
+    },
+  ];
+  if (content.faq?.length) {
+    graph.push({
+      '@type': 'FAQPage',
+      mainEntity: content.faq.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    });
+  }
   return JSON.stringify({
     '@context': 'https://schema.org',
-    '@graph': [
-      business,
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: `${content.profile.cidade}-${content.profile.uf}`,
-            item: 'https://sejaengajado.com.br/',
-          },
-          { '@type': 'ListItem', position: 2, name: displayName(content), item: url },
-        ],
-      },
-    ],
+    '@graph': graph,
   });
 }

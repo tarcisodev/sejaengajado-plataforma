@@ -34,6 +34,17 @@
         <span class="example-label">avaliações (exemplo)</span>
       </p>
     }
+    <div class="hero-ctas">
+      @if (site.content.whatsapp) {
+        <a class="cta cta-main" [href]="whatsappHref()" data-link="whatsapp">WhatsApp</a>
+      }
+      @if (site.content.phone) {
+        <a class="cta" [href]="'tel:' + site.content.phone" data-link="tel">Ligar</a>
+      }
+      @if (site.content.address) {
+        <a class="cta" [href]="mapsLink()" data-link="maps" target="_blank" rel="noopener">Rota</a>
+      }
+    </div>
     <div class="wave">
       <app-section-divider
         shape="ondulada"
@@ -53,13 +64,8 @@
     />
   }
 
-  @if (site.content.whatsapp || site.content.links?.length) {
+  @if (site.content.links?.length) {
     <ul class="links">
-      @if (site.content.whatsapp) {
-        <li>
-          <a class="main" [href]="whatsappHref()" data-link="whatsapp">WhatsApp</a>
-        </li>
-      }
       @for (link of site.content.links; track link.url) {
         <li>
           <a [href]="link.url" [attr.data-link]="link.tipo">{{ link.titulo }}</a>
@@ -85,14 +91,19 @@
     </section>
   }
 
-  @if (site.content.hours?.length) {
+  @if (site.content.hours?.length || site.content.weeklyHours) {
     <section data-block="hours">
       <h2>Horários</h2>
-      <ul class="hours">
-        @for (row of site.content.hours; track row.dias) {
-          <li>{{ hourLine(row) }}</li>
-        }
-      </ul>
+      @if (openNow(); as status) {
+        <p class="open-now" data-open-now [attr.data-open-kind]="status.kind">{{ status.label }}</p>
+      }
+      @if (site.content.hours?.length) {
+        <ul class="hours">
+          @for (row of site.content.hours; track row.dias) {
+            <li>{{ hourLine(row) }}</li>
+          }
+        </ul>
+      }
     </section>
   }
 
@@ -101,7 +112,7 @@
       <h2>Galeria</h2>
       <div class="gallery">
         @for (src of site.content.gallery; track src) {
-          <img [src]="src" alt="" />
+          <img [src]="src" alt="" width="480" height="360" loading="lazy" />
         }
       </div>
     </section>
@@ -110,12 +121,34 @@
   @if (site.content.products?.length) {
     <section data-block="catalog">
       <h2>Catálogo</h2>
+      @if (categories().length) {
+        <div class="cat-chips" role="group" aria-label="Filtrar por categoria">
+          <button
+            type="button"
+            class="cat-chip"
+            [attr.aria-pressed]="categoryFilter() === null"
+            (click)="setCategory(null)"
+          >
+            Todos
+          </button>
+          @for (cat of categories(); track cat) {
+            <button
+              type="button"
+              class="cat-chip"
+              [attr.aria-pressed]="categoryFilter() === cat"
+              (click)="setCategory(cat)"
+            >
+              {{ cat }}
+            </button>
+          }
+        </div>
+      }
       <ul class="catalog" data-catalog-layout="grid">
-        @for (item of site.content.products; track item.nome) {
+        @for (item of filteredProducts(); track item.nome) {
           <li>
             <a [href]="interestHref(item.nome)">
               @if (item.fotoUrl) {
-                <img [src]="item.fotoUrl" alt="" loading="lazy" />
+                <img [src]="item.fotoUrl" alt="" width="320" height="240" loading="lazy" />
               } @else {
                 <div class="catalog-ph" aria-hidden="true"></div>
               }
@@ -150,14 +183,33 @@
     <p>{{ about() }}</p>
   </section>
 
+  @if (site.content.faq?.length) {
+    <section data-block="faq">
+      <h2>Perguntas frequentes</h2>
+      <div class="faq">
+        @for (item of site.content.faq; track item.question) {
+          <details>
+            <summary>{{ item.question }}</summary>
+            <p>{{ item.answer }}</p>
+          </details>
+        }
+      </div>
+    </section>
+  }
+
   @if (site.content.address) {
     <section data-block="map">
       <h2>Onde estamos</h2>
-      @if (mapSrc) {
-        <iframe class="map" [src]="mapSrc" title="Mapa do negócio"></iframe>
+      <p class="address-line">{{ addressLine() }}</p>
+      @if (mapLoaded() && mapSrc(); as src) {
+        <iframe class="map" [src]="src" title="Mapa do negócio" loading="lazy"></iframe>
+      } @else {
+        <div class="map-placeholder" data-map-placeholder>
+          <button type="button" class="cta" data-load-map (click)="loadMap()">Carregar mapa</button>
+        </div>
       }
       <p class="actions">
-        <a [href]="mapsLink()">Como chegar</a>
+        <a [href]="mapsLink()" target="_blank" rel="noopener">Abrir no Maps</a>
         @if (site.content.phone) {
           <a [href]="'tel:' + site.content.phone">Ligar</a>
         }
@@ -175,7 +227,7 @@
       <p>{{ site.content.pix.nome }}</p>
       <p class="pix-hint">Confira o nome do recebedor antes de pagar.</p>
       @if (site.content.pix.qrUrl) {
-        <img class="qr" [src]="site.content.pix.qrUrl" alt="QR do Pix" />
+        <img class="qr" [src]="site.content.pix.qrUrl" alt="QR do Pix" width="128" height="128" />
       }
       <button type="button" (click)="copyPix()">Copiar chave</button>
       @if (copied()) {

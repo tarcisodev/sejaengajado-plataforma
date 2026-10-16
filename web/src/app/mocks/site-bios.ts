@@ -4,6 +4,13 @@ const HEADING_SHOP = 'Fraunces, Palatino, serif';
 const HEADING_MENU = 'Newsreader, Palatino, serif';
 const BODY = 'Literata, Georgia, serif';
 
+function promoEndsInDays(days: number): string {
+  const end = new Date();
+  end.setDate(end.getDate() + days);
+  end.setHours(23, 59, 0, 0);
+  return end.toISOString();
+}
+
 const THEME_BARBER: SiteTheme = {
   niche: 'barbearia',
   p1: '#161410',
@@ -116,15 +123,35 @@ const BIOS: Record<string, SiteContent> = {
       { dias: 'seg', fechado: true },
       { dias: 'ter a sáb', abre: '09:00', fecha: '19:00' },
     ],
+    timezone: 'America/Sao_Paulo',
+    weeklyHours: {
+      mon: null,
+      tue: { open: '09:00', close: '19:00' },
+      wed: { open: '09:00', close: '19:00' },
+      thu: { open: '09:00', close: '19:00' },
+      fri: { open: '09:00', close: '19:00' },
+      sat: { open: '09:00', close: '19:00' },
+      sun: null,
+    },
     gallery: ['/samples/barbearia.svg'],
     products: [
-      { nome: 'Corte', precoTexto: 'R$ 40,00', fotoUrl: '/samples/barbearia.svg' },
-      { nome: 'Barba', precoTexto: 'R$ 30,00', fotoUrl: '/samples/barbearia.svg' },
+      {
+        nome: 'Corte',
+        precoTexto: 'R$ 40,00',
+        fotoUrl: '/samples/barbearia.svg',
+        categoria: 'Cabelo',
+      },
+      {
+        nome: 'Barba',
+        precoTexto: 'R$ 30,00',
+        fotoUrl: '/samples/barbearia.svg',
+        categoria: 'Barba',
+      },
     ],
     promo: {
       titulo: 'Corte e barba',
       texto: 'Os dois no mesmo horário, nesta semana.',
-      terminaEm: '2027-06-01T23:59:00-03:00',
+      terminaEm: promoEndsInDays(7),
     },
     google: { placeId: 'ChIJZeUberabaMock' },
     address: {
@@ -134,6 +161,16 @@ const BIOS: Record<string, SiteContent> = {
     },
     phone: '+5534999990001',
     strip: { enabled: true, motif: 'tesoura', speed: 'normal', direction: 'left' },
+    faq: [
+      {
+        question: 'Precisa agendar?',
+        answer: 'Sim. Chame no WhatsApp para marcar horário (exemplo).',
+      },
+      {
+        question: 'Aceita Pix?',
+        answer: 'Sim, no local. Confira o nome do recebedor antes de pagar.',
+      },
+    ],
     seo: {
       title: 'Barbearia do Zé | Corte em Uberaba',
       description: 'Corte e barba no centro de Uberaba. Chame no WhatsApp.',
@@ -163,15 +200,41 @@ const BIOS: Record<string, SiteContent> = {
       },
     ],
     hours: [{ dias: 'ter a dom', abre: '18:00', fecha: '23:00' }],
+    timezone: 'America/Sao_Paulo',
+    weeklyHours: {
+      mon: null,
+      tue: { open: '18:00', close: '23:00' },
+      wed: { open: '18:00', close: '23:00' },
+      thu: { open: '18:00', close: '23:00' },
+      fri: { open: '18:00', close: '23:00' },
+      sat: { open: '18:00', close: '23:00' },
+      sun: { open: '18:00', close: '23:00' },
+    },
     gallery: ['/samples/forno.svg'],
     products: [
-      { nome: 'Margherita', precoTexto: 'R$ 48,00', fotoUrl: '/samples/forno.svg' },
-      { nome: 'Calabresa', precoTexto: 'R$ 52,00', fotoUrl: '/samples/forno.svg' },
+      {
+        nome: 'Margherita',
+        precoTexto: 'R$ 48,00',
+        fotoUrl: '/samples/forno.svg',
+        categoria: 'Pizzas',
+      },
+      {
+        nome: 'Calabresa',
+        precoTexto: 'R$ 52,00',
+        fotoUrl: '/samples/forno.svg',
+        categoria: 'Pizzas',
+      },
+      {
+        nome: 'Refrigerante',
+        precoTexto: 'R$ 8,00',
+        fotoUrl: '/samples/forno.svg',
+        categoria: 'Bebidas',
+      },
     ],
     promo: {
       titulo: 'Borda recheada',
       texto: 'Na pizza grande, até o fim do mês.',
-      terminaEm: '2027-06-30T23:59:00-03:00',
+      terminaEm: promoEndsInDays(7),
     },
     google: { placeId: 'ChIJFornoUberabaMock' },
     address: {
@@ -182,6 +245,12 @@ const BIOS: Record<string, SiteContent> = {
     phone: '+5534999990002',
     pix: { chave: 'forno@example.com', nome: 'Pizzaria Forno da Praça' },
     strip: { enabled: true, motif: 'pizza', speed: 'normal', direction: 'left' },
+    faq: [
+      {
+        question: 'Tem delivery?',
+        answer: 'Sim, peça pelo WhatsApp (dados de exemplo).',
+      },
+    ],
     seo: {
       title: 'Pizzaria Forno da Praça | Pizza em Uberaba',
       description: 'Forno a lenha na praça de Uberaba. Chame no WhatsApp.',

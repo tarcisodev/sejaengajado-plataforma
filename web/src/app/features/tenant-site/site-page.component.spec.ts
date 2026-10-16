@@ -48,10 +48,22 @@ describe('SitePageComponent', () => {
       fixture.nativeElement.querySelector('[data-animated-strip]')?.getAttribute('data-motif'),
     ).toBe('tesoura');
     expect(fixture.nativeElement.querySelector('[data-google-rating]')?.textContent).toBe('—');
+    expect(fixture.nativeElement.querySelector('[data-map-placeholder]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('iframe.map')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-block="faq"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-open-now]')).toBeTruthy();
     expect(whatsapp.href).toContain('wa.me/5534999990001');
     expect(whatsapp.href).toContain(encodeURIComponent('Olá, quero horário na Barbearia do Zé.'));
     expect(text).not.toMatch(/white label/i);
     expect(text).not.toMatch(/(?<!sub)domínio próprio/);
+  });
+
+  it('loads the map iframe only after consent click', async () => {
+    const fixture = await render(seedSite('barbearia-do-ze'));
+    expect(fixture.nativeElement.querySelector('iframe.map')).toBeNull();
+    fixture.nativeElement.querySelector('[data-load-map]')?.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('iframe.map')).toBeTruthy();
   });
 
   it('renders the restaurant prices and the service studio Pix QR', async () => {
@@ -85,6 +97,7 @@ describe('SitePageComponent', () => {
     const script = document.head.querySelector('script[data-site-jsonld]')?.textContent ?? '';
     expect(script).toContain('HairSalon');
     expect(script).toContain('Uberaba-MG');
+    expect(script).toContain('FAQPage');
     fixture.destroy();
   });
 

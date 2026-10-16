@@ -117,10 +117,26 @@ export interface SiteHours {
   fechado?: boolean;
 }
 
+export type WeekdayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+export interface DayHours {
+  open: string;
+  close: string;
+}
+
+/** Structured weekly hours for "Aberto agora" (LU5). */
+export type SiteWeeklyHours = Partial<Record<WeekdayKey, DayHours | null>>;
+
+export interface SiteFaqItem {
+  question: string;
+  answer: string;
+}
+
 export interface SiteProduct {
   nome: string;
   precoTexto: string;
   fotoUrl?: string;
+  categoria?: string;
 }
 
 export interface SitePromo {
@@ -183,6 +199,9 @@ export interface SiteContent {
   seo?: SiteSeo;
   /** Optional decorative motif strip (LU3). */
   strip?: SiteStrip;
+  timezone?: string;
+  weeklyHours?: SiteWeeklyHours;
+  faq?: SiteFaqItem[];
 }
 
 export interface Site {
