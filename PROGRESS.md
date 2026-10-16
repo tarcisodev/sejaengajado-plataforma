@@ -14,7 +14,7 @@
 | AW7 | DONE | 6c4db08 | 2026-10-16 |
 | BR1 | DONE | 7cfff66 | 2026-10-16 |
 | LU2 | DONE | 5add9a3 | 2026-10-16 |
-| LU3 | TODO | — | — |
+| LU3 | DONE | 7d43092 | 2026-10-16 |
 | LU1+ | TODO | — | — |
 | LU5 | TODO | — | — |
 | LU6 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-LU2 — Divisores de seção (5add9a3).
+LU3 — Faixa animada (7d43092).
 
 ## Proximo
-LU3 — Faixa animada (Lumen B3 / 03-B4).
+LU1+ — Temas por nicho restantes (barbearia, restaurante, moda, beleza, saude).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
