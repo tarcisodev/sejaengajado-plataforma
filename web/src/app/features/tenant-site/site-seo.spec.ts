@@ -1,11 +1,19 @@
 import { SiteContent } from '../../core/models/domain';
-import { aboutText, countdownParts, siteJsonLd, whatsappHref } from './site-seo';
+import {
+  aboutText,
+  countdownParts,
+  openingHoursSpecification,
+  schemaTypeForContent,
+  siteJsonLd,
+  whatsappHref,
+} from './site-seo';
 
 describe('site seo helpers', () => {
   const content: SiteContent = {
     businessName: 'Barbearia do Zé',
     profile: { nome: 'Barbearia do Zé', cidade: 'Uberaba', uf: 'MG', slogan: 'Corte no centro' },
     theme: {
+      niche: 'barbearia',
       p1: '#161410',
       p2: '#8c3a2f',
       p3: '#e6d3a3',
@@ -15,6 +23,10 @@ describe('site seo helpers', () => {
       fontBody: 'Literata, serif',
       fontScale: 1,
       italic: 'normal',
+    },
+    weeklyHours: {
+      tue: { open: '09:00', close: '19:00' },
+      wed: { open: '09:00', close: '19:00' },
     },
     products: [{ nome: 'Corte', precoTexto: 'R$ 40,00' }],
     seo: { ogImageUrl: 'https://sejaengajado.com.br/og.svg' },
@@ -37,8 +49,25 @@ describe('site seo helpers', () => {
     const graph = siteJsonLd(content, 'barbearia-do-ze', 'HairSalon');
     expect(graph).toContain('HairSalon');
     expect(graph).toContain('BreadcrumbList');
+    expect(graph).toContain('OpeningHoursSpecification');
     expect(graph).toContain('https://barbearia-do-ze.sejaengajado.com.br/');
     expect(graph).not.toContain('data:');
+    expect(graph).not.toContain('aggregateRating');
+  });
+
+  it('maps niche to schema type and omits invented ratings', () => {
+    expect(schemaTypeForContent(content)).toBe('BarberShop');
+    expect(openingHoursSpecification(content.weeklyHours).length).toBe(2);
+    const withFake = siteJsonLd(
+      {
+        ...content,
+        google: { placeId: 'x', rating: null, reviewCount: null },
+      },
+      'barbearia-do-ze',
+      'LocalBusiness',
+    );
+    expect(withFake).toContain('BarberShop');
+    expect(withFake).not.toContain('aggregateRating');
   });
 
   it('builds a WhatsApp link from digits', () => {

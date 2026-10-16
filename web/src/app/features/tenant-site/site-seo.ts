@@ -1,10 +1,60 @@
-import { SiteContent, SiteHours } from '../../core/models/domain';
+import { SiteContent, SiteHours, SiteWeeklyHours, WeekdayKey } from '../../core/models/domain';
+import type { NicheThemeKey } from '../../core/theme/niche-themes';
+import { resolveNicheKey } from '../../core/theme/niche-themes';
 
 export interface ClockParts {
   d: string;
   h: string;
   m: string;
   s: string;
+}
+
+const NICHE_SCHEMA: Record<NicheThemeKey, string> = {
+  barbearia: 'BarberShop',
+  restaurante: 'Restaurant',
+  moda: 'ClothingStore',
+  beleza: 'BeautySalon',
+  saude: 'MedicalBusiness',
+  generico: 'LocalBusiness',
+};
+
+const WEEKDAY_SCHEMA: Record<WeekdayKey, string> = {
+  mon: 'Monday',
+  tue: 'Tuesday',
+  wed: 'Wednesday',
+  thu: 'Thursday',
+  fri: 'Friday',
+  sat: 'Saturday',
+  sun: 'Sunday',
+};
+
+/** Prefer template schemaType; fall back to niche mapping. */
+export function schemaTypeForContent(content: SiteContent, templateSchema?: string | null): string {
+  if (templateSchema && templateSchema !== 'LocalBusiness') {
+    return templateSchema;
+  }
+  return NICHE_SCHEMA[resolveNicheKey(content.theme?.niche)];
+}
+
+export function openingHoursSpecification(
+  weekly: SiteWeeklyHours | undefined,
+): Record<string, unknown>[] {
+  if (!weekly) {
+    return [];
+  }
+  const specs: Record<string, unknown>[] = [];
+  for (const day of Object.keys(WEEKDAY_SCHEMA) as WeekdayKey[]) {
+    const slot = weekly[day];
+    if (slot?.open && slot.close) {
+      specs.push({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: WEEKDAY_SCHEMA[day],
+        opens: slot.open,
+        closes: slot.close,
+      });
+    }
+  }
+  return specs;
 }
 
 export function displayName(content: SiteContent): string {
@@ -100,11 +150,12 @@ export function countdownParts(endIso: string, now = new Date()): ClockParts | n
 
 export function siteJsonLd(content: SiteContent, slug: string, schemaType: string): string {
   const url = siteCanonical(slug);
+  const resolvedType = schemaTypeForContent(content, schemaType);
   const sameAs = (content.links ?? [])
     .filter((link) => link.tipo === 'instagram')
     .map((link) => link.url);
   const business: Record<string, unknown> = {
-    '@type': schemaType,
+    '@type': resolvedType,
     name: displayName(content),
     url,
     description: siteDescription(content),
@@ -125,6 +176,19 @@ export function siteJsonLd(content: SiteContent, slug: string, schemaType: strin
   }
   if (sameAs.length) {
     business['sameAs'] = sameAs;
+  }
+  const hours = openingHoursSpecification(content.weeklyHours);
+  if (hours.length) {
+    business['openingHoursSpecification'] = hours;
+  }
+  const rating = content.google?.rating;
+  const reviewCount = content.google?.reviewCount;
+  if (typeof rating === 'number' && Number.isFinite(rating) && typeof reviewCount === 'number') {
+    business['aggregateRating'] = {
+      '@type': 'AggregateRating',
+      ratingValue: rating,
+      reviewCount,
+    };
   }
   if (content.products?.length) {
     business['makesOffer'] = content.products.map((item) => ({

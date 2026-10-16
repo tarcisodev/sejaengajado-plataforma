@@ -30,6 +30,7 @@ import {
   mapsEmbed as mapsEmbedUrl,
   mapsLink as mapsLinkUrl,
   ogImageUrl,
+  schemaTypeForContent,
   siteCanonical,
   siteDescription,
   siteJsonLd,
@@ -95,7 +96,7 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     }
     this.templatesSub = this.api.listTemplates().subscribe((templates) => {
       const found = templates.find((item) => item.id === this.site.templateId);
-      this.schemaType.set(found?.schemaType ?? 'LocalBusiness');
+      this.schemaType.set(schemaTypeForContent(this.site.content, found?.schemaType));
       if (!this.embed) {
         this.applyHead(this.schemaType());
       }
@@ -258,13 +259,21 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     const image = ogImageUrl(content);
     this.title.setTitle(title);
     this.meta.updateTag({ name: 'description', content: description });
-    this.meta.updateTag({ name: 'robots', content: 'index, follow' });
+    this.meta.updateTag({
+      name: 'robots',
+      content: 'index, follow, max-image-preview:large',
+    });
     this.meta.updateTag({ property: 'og:title', content: title });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ property: 'og:url', content: url });
     this.meta.updateTag({ property: 'og:locale', content: 'pt_BR' });
     this.meta.updateTag({ property: 'og:image', content: image });
+    this.meta.updateTag({ property: 'og:site_name', content: 'Seja Engajado' });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:description', content: description });
+    this.meta.updateTag({ name: 'twitter:image', content: image });
     this.upsertCanonical(url);
     this.upsertJsonLd(schemaType);
   }
