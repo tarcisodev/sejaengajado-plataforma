@@ -16,7 +16,7 @@
 | LU2 | DONE | 5add9a3 | 2026-10-16 |
 | LU3 | DONE | 7d43092 | 2026-10-16 |
 | LU1+ | DONE | 1cb2560 | 2026-10-16 |
-| LU5 | TODO | — | — |
+| LU5 | DONE | 5781005 | 2026-10-16 |
 | LU6 | TODO | — | — |
 | SEO1 | TODO | — | — |
 | UI7 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-LU1+ — Temas por nicho (1cb2560).
+LU5 — Layout revisado do biosite (5781005).
 
 ## Proximo
-LU5 — Layout revisado do biosite (Lumen B4 / 03-B5).
+LU6 — Lista /sites do painel (Lumen B6 / 04-B7).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
