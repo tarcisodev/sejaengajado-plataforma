@@ -8,14 +8,14 @@ export const usesHttpApi = Boolean(environment.apiUrl?.trim());
  * Em produção (HttpApi) não há fallback para mock.
  */
 export const featureFlags = {
-  /** Admin: lista global de clientes — sem GET /admin/customers. */
-  adminCustomers: !usesHttpApi,
-  /** Admin: lista global de sites — sem GET /admin/sites. */
-  adminSites: !usesHttpApi,
-  /** Admin: receita via payments — sem GET /admin/payments. */
-  adminRevenue: !usesHttpApi,
-  /** Admin: dashboard agregado de payments — sem endpoint dedicado. */
-  adminDashboard: !usesHttpApi,
+  /** Admin: lista global de clientes — GET /admin/customers. */
+  adminCustomers: true,
+  /** Admin: lista global de sites — GET /admin/sites. */
+  adminSites: true,
+  /** Admin: receita via payments — GET /admin/payments. */
+  adminRevenue: true,
+  /** Admin: dashboard agregado de payments — usa listPayments + listSites. */
+  adminDashboard: true,
   /** Admin: "Minhas faturas" é de revendedor. */
   adminFaturas: !usesHttpApi,
   /** Admin: delete de cupom — API só cria. */
