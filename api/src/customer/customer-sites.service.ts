@@ -157,8 +157,13 @@ export class CustomerSitesService {
     if (!email) {
       return null;
     }
+    // Prefer link by userId; email fallback scoped to the user's reseller when present.
     const byEmail = await this.db.customer.findFirst({
-      where: { email },
+      where: {
+        email,
+        ...(user.resellerId ? { resellerId: user.resellerId } : {}),
+      },
+      orderBy: { createdAt: 'asc' },
     });
     if (byEmail && !byEmail.userId) {
       return this.db.customer.update({

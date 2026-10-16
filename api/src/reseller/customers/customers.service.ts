@@ -94,11 +94,13 @@ export class CustomersService {
       });
     }
 
-    const existing = await this.db.customer.findFirst({ where: { email } });
+    const existing = await this.db.customer.findFirst({
+      where: { resellerId, email },
+    });
     if (existing) {
       throw new ConflictException({
         code: 'CONFLICT',
-        message: 'E-mail de cliente já cadastrado',
+        message: 'E-mail de cliente já cadastrado nesta revenda',
       });
     }
 

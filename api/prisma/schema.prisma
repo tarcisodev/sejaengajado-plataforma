@@ -194,8 +194,8 @@ model Customer {
   doc        String   @default("")
   whatsapp   String   @default("")
   city       String   @default("")
-  /** Login e-mail for direct (platform) customers — optional for reseller CRM rows. */
-  email      String?  @unique
+  /** Login e-mail — unique per reseller (partial index); linked via userId invite. */
+  email      String?
   userId     String?  @unique @map("user_id") @db.Uuid
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
