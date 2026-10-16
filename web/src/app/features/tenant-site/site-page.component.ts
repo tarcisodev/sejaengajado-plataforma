@@ -36,10 +36,11 @@ import {
   siteTitle,
   whatsappHref,
 } from './site-seo';
+import { SectionDividerComponent } from './ui/section-divider.component';
 
 @Component({
   selector: 'app-site-page',
-  imports: [NgStyle],
+  imports: [NgStyle, SectionDividerComponent],
   templateUrl: './site-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-page.component.scss',

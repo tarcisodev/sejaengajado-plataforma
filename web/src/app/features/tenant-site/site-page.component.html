@@ -34,9 +34,14 @@
         <span class="example-label">avaliações (exemplo)</span>
       </p>
     }
-    <svg class="wave" viewBox="0 0 480 36" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 18c80 22 160-22 240 0s160 22 240 0v18H0z" />
-    </svg>
+    <div class="wave">
+      <app-section-divider
+        shape="ondulada"
+        [height]="40"
+        fromColor="var(--t-primary, var(--p1, #6d28d9))"
+        toColor="var(--t-surface, #fff)"
+      />
+    </div>
   </header>
 
   @if (site.content.whatsapp || site.content.links?.length) {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
 
 import { aal2Guard, authGuard, homeRedirectGuard, roleGuard } from './core/auth/auth.guards';
@@ -8,6 +8,18 @@ import { AuthCallbackComponent } from './features/auth/auth-callback.component';
 import { LoginComponent } from './features/auth/login.component';
 import { MfaComponent } from './features/auth/mfa.component';
 import { legalRoutes } from './features/legal/legal.routes';
+
+const devRoutes: Routes = isDevMode()
+  ? [
+      {
+        path: 'dev/divisores',
+        loadComponent: () =>
+          import('./features/tenant-site/dev/divisores-demo.component').then(
+            (m) => m.DivisoresDemoComponent,
+          ),
+      },
+    ]
+  : [];
 
 /** Alvo inerte — o guard sempre redireciona. */
 @Component({
@@ -23,6 +35,7 @@ export const routes: Routes = [
     canMatch: [appHostCanMatch],
     children: [
       ...legalRoutes,
+      ...devRoutes,
       {
         path: '',
         component: AuthShellComponent,

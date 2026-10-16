@@ -32,4 +32,14 @@ describe('siteContentSchema', () => {
   it('defaults catalog layout to grid', () => {
     expect(defaultSiteContent().catalog.layout).toBe('grid');
   });
+
+  it('accepts lumen divider shapes', () => {
+    for (const shape of ['zigzag', 'curva', 'nuvem', 'serrilhada', 'inclinada'] as const) {
+      const parsed = siteContentSchema.parse({
+        theme: { niche: 'generico' },
+        sections: [{ type: 'hero', divisor: { shape, height: 48 } }],
+      });
+      expect(parsed.sections[0]?.divisor?.shape).toBe(shape);
+    }
+  });
 });

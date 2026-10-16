@@ -14,7 +14,18 @@ const niche = z.enum([
 ]);
 
 const divisorSchema = z.object({
-  shape: z.enum(['reta', 'ondulada', 'serrilhada', 'inclinada', 'none']).default('none'),
+  shape: z
+    .enum([
+      'reta',
+      'ondulada',
+      'zigzag',
+      'curva',
+      'inclinada',
+      'nuvem',
+      'serrilhada',
+      'none',
+    ])
+    .default('none'),
   height: z.number().int().min(16).max(120).default(48),
   flip: z.boolean().default(false),
   invert: z.boolean().default(false),
