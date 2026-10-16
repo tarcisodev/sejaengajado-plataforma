@@ -95,6 +95,17 @@ export interface NoticeRecord {
   created: boolean;
 }
 
+export interface CustomerUploadPresign {
+  method: 'POST';
+  uploadUrl: string;
+  fields: Record<string, string>;
+  publicUrl: string;
+  key: string;
+  contentType: string;
+  maxBytes: number;
+  expiresIn: number;
+}
+
 export interface ApiPort {
   getPlatformConfig(): Observable<PlatformConfig>;
   updatePlatformConfig(patch: Partial<PlatformConfig>): Observable<PlatformConfig>;
@@ -129,9 +140,19 @@ export interface ApiPort {
   deleteCoupon(couponId: string): Observable<void>;
   requestCustomerOtp(email: string): Observable<CustomerOtp>;
   verifyCustomerOtp(email: string, code: string): Observable<User>;
+  /** Sites do cliente autenticado (GET /customer/sites). */
+  listMySites(): Observable<Site[]>;
   listSitesByCustomer(customerId: string): Observable<Site[]>;
+  /** Templates ativos para o editor do cliente. */
+  listCustomerTemplates(): Observable<Template[]>;
   updateSiteContent(siteId: string, content: SiteContent, templateId: string): Observable<Site>;
   publishSite(siteId: string): Observable<Site>;
+  /** Presign S3 — JPEG/PNG/WebP ≤ 5 MB (POST /customer/uploads/presign). */
+  presignCustomerUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign>;
   requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog>;
   requestMonthlyPlan(siteId: string, actorId: string): Observable<AuditLog>;
   listAuditLogs(): Observable<AuditLog[]>;

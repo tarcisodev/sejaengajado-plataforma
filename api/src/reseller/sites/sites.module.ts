@@ -9,6 +9,6 @@ import { UploadService } from './upload.service';
   imports: [PublicModule],
   controllers: [SitesController],
   providers: [SitesService, UploadService],
-  exports: [SitesService],
+  exports: [SitesService, UploadService, PublicModule],
 })
 export class SitesModule {}

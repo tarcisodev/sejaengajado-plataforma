@@ -16,6 +16,7 @@ import { SupabaseJwtGuard } from './auth/supabase-jwt.guard';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { ConfigModule } from './config/config.module';
 import type { Env } from './config/env';
+import { CustomerModule } from './customer/customer.module';
 import { HealthController } from './health/health.controller';
 import { PgReadyProbe, READY_PROBE } from './health/ready';
 import { JobsModule } from './jobs/jobs.module';
@@ -57,6 +58,7 @@ export class AppModule {
         ReportsModule,
         PublicModule,
         ResellerModule,
+        CustomerModule,
         PaymentsModule.register(),
         PlacesModule,
         BillingModule,

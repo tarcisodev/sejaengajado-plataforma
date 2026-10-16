@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, InjectionToken, inject, signal } from '@angular/core';
 import { BrnAlertDialogContent } from '@spartan-ng/brain/alert-dialog';
 import { BrnDialogContent } from '@spartan-ng/brain/dialog';
@@ -18,13 +19,16 @@ import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { PlaquePenaltyQuote } from '../../core/api/plaque-penalty';
+import { AuthService } from '../../core/auth/auth.service';
 import { canEditSite, renewalLeadDays } from '../../core/customer/access';
 import { siteDraftErrors } from '../../core/customer/draft-errors';
 import { Cancellation, Site, SiteContent, SiteHours, Template } from '../../core/models/domain';
 import { themeForTemplate } from '../../mocks/site-bios';
 import { formatBrl } from '../landing/landing-seo';
 import { SitePageComponent } from '../tenant-site/site-page.component';
-import { AuthService } from '../../core/auth/auth.service';
+
+const UPLOAD_ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 
 export const CUSTOMER_TODAY = new InjectionToken<Date>('CUSTOMER_TODAY');
 
@@ -77,25 +81,18 @@ export class CustomerStudioComponent {
   readonly monthlySent = signal(false);
 
   constructor() {
-    const user = this.auth.me();
-    if (!user) {
+    if (!this.auth.me()) {
       return;
     }
     forkJoin({
-      customers: this.api.listCustomers(),
-      templates: this.api.listTemplates(),
-    }).subscribe(({ customers, templates }) => {
+      sites: this.api.listMySites(),
+      templates: this.api.listCustomerTemplates(),
+    }).subscribe(({ sites, templates }) => {
       this.templates.set(templates);
-      const customer = customers.find((item) => item.userId === user.id);
-      if (!customer) {
-        return;
+      this.sites.set(sites);
+      if (sites.length === 1) {
+        this.open(sites[0]);
       }
-      this.api.listSitesByCustomer(customer.id).subscribe((sites) => {
-        this.sites.set(sites);
-        if (sites.length === 1) {
-          this.open(sites[0]);
-        }
-      });
     });
   }
 
@@ -269,11 +266,14 @@ export class CustomerStudioComponent {
     if (errors.length) {
       return;
     }
-    this.api.updateSiteContent(site.id, site.content, site.templateId).subscribe((saved) => {
-      this.draft.set(saved);
-      this.replaceSite(saved);
-      this.message.set('Alterações salvas.');
-      toast.success('Alterações salvas.');
+    this.api.updateSiteContent(site.id, site.content, site.templateId).subscribe({
+      next: (saved) => {
+        this.draft.set(saved);
+        this.replaceSite(saved);
+        this.message.set('Alterações salvas.');
+        toast.success('Alterações salvas.');
+      },
+      error: (error: unknown) => this.toastApiError(error, 'Não foi possível salvar.'),
     });
   }
 
@@ -287,14 +287,53 @@ export class CustomerStudioComponent {
     if (errors.length) {
       return;
     }
-    this.api.updateSiteContent(site.id, site.content, site.templateId).subscribe((saved) => {
-      this.api.publishSite(saved.id).subscribe((published) => {
-        this.draft.set(published);
-        this.replaceSite(published);
-        this.message.set('Site publicado.');
-        toast.success('Site publicado.');
-      });
+    this.api.updateSiteContent(site.id, site.content, site.templateId).subscribe({
+      next: (saved) => {
+        this.api.publishSite(saved.id).subscribe({
+          next: (published) => {
+            this.draft.set(published);
+            this.replaceSite(published);
+            this.message.set('Site publicado.');
+            toast.success('Site publicado.');
+          },
+          error: (error: unknown) => this.toastApiError(error, 'Não foi possível publicar.'),
+        });
+      },
+      error: (error: unknown) => this.toastApiError(error, 'Não foi possível salvar.'),
     });
+  }
+
+  onPhotoSelected(index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || !this.editing()) {
+      return;
+    }
+    if (!UPLOAD_ALLOWED.has(file.type)) {
+      toast.error('Use JPEG, PNG ou WebP.');
+      this.errors.set(['Use JPEG, PNG ou WebP.']);
+      return;
+    }
+    if (file.size > UPLOAD_MAX_BYTES) {
+      toast.error('Arquivo muito grande (máximo 5 MB).');
+      this.errors.set(['Arquivo muito grande (máximo 5 MB).']);
+      return;
+    }
+    this.api
+      .presignCustomerUpload({
+        contentType: file.type,
+        contentLength: file.size,
+        filename: file.name,
+      })
+      .subscribe({
+        next: (presign) => {
+          this.patchPhoto(index, presign.publicUrl);
+          this.errors.set([]);
+          toast.success('Foto pronta para salvar.');
+        },
+        error: (error: unknown) => this.toastApiError(error, 'Upload inválido.'),
+      });
   }
 
   confirmCancel(): void {
@@ -347,6 +386,22 @@ export class CustomerStudioComponent {
 
   private replaceSite(site: Site): void {
     this.sites.set(this.sites().map((item) => (item.id === site.id ? site : item)));
+  }
+
+  private toastApiError(error: unknown, fallback: string): void {
+    if (error instanceof HttpErrorResponse) {
+      const body = error.error as { code?: string; message?: string } | null;
+      if (body?.code === 'SITE_NOT_EDITABLE') {
+        toast.error(body.message ?? 'Este site está em modo só leitura.');
+        this.message.set(body.message ?? 'Este site está em modo só leitura.');
+        return;
+      }
+      if (body?.message) {
+        toast.error(body.message);
+        return;
+      }
+    }
+    toast.error(fallback);
   }
 }
 

@@ -136,6 +136,7 @@ model User {
   updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   reseller Reseller? @relation(fields: [resellerId], references: [id], onDelete: SetNull)
+  customer Customer?
 
   @@index([resellerId])
   @@map("users")
@@ -193,10 +194,14 @@ model Customer {
   doc        String   @default("")
   whatsapp   String   @default("")
   city       String   @default("")
+  /** Login e-mail for direct (platform) customers — optional for reseller CRM rows. */
+  email      String?  @unique
+  userId     String?  @unique @map("user_id") @db.Uuid
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   reseller Reseller @relation(fields: [resellerId], references: [id])
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   sites    Site[]
 
   @@index([resellerId])

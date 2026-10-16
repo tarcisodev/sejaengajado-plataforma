@@ -65,12 +65,38 @@ describe('CustomerStudioComponent', () => {
     const text = fixture.nativeElement.textContent as string;
 
     expect(fixture.nativeElement.querySelector('[data-locked]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-pronto]')?.textContent).toContain(
+      'Plano Pronto: alterações via suporte',
+    );
     expect(fixture.nativeElement.querySelector('[data-field="businessName"]')).toBeNull();
     expect(text).toContain('Assinar o plano mensal');
     expect(text).toContain('Pedir alteração');
     expect(fixture.nativeElement.querySelector('[data-renewal]')?.textContent).toContain(
       '10/01/2027',
     );
+  });
+
+  it('rejects upload files that are not jpeg/png/webp or exceed 5 MB', async () => {
+    await render(customer('user_forno', 'forno@example.com'));
+    fixture.componentInstance.step.set(3);
+    fixture.componentInstance.addPhoto();
+    fixture.detectChanges();
+
+    const gif = new File([new Uint8Array(16)], 'x.gif', { type: 'image/gif' });
+    const gifInput = document.createElement('input');
+    Object.defineProperty(gifInput, 'files', { value: [gif] });
+    fixture.componentInstance.onPhotoSelected(0, { target: gifInput } as unknown as Event);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.errors()).toContain('Use JPEG, PNG ou WebP.');
+
+    const huge = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'x.jpg', {
+      type: 'image/jpeg',
+    });
+    const hugeInput = document.createElement('input');
+    Object.defineProperty(hugeInput, 'files', { value: [huge] });
+    fixture.componentInstance.onPhotoSelected(0, { target: hugeInput } as unknown as Event);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.errors()[0]).toContain('5 MB');
   });
 
   it('blocks editing when the site is overdue and read-only', async () => {

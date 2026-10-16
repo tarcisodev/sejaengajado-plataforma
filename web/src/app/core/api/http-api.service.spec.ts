@@ -161,6 +161,95 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
     expect((await suspended)?.status).toBe('SUSPENDED');
   });
 
+  it('uses /customer/sites for self-service list/patch/publish (AW7)', async () => {
+    const listPending = firstValueFrom(api.listMySites());
+    await Promise.resolve();
+    const listReq = http.expectOne((r) => r.url.includes('/customer/sites') && r.method === 'GET');
+    listReq.flush([
+      {
+        id: 'site1',
+        resellerId: 'r1',
+        customerId: 'c1',
+        slug: 'loja',
+        templateId: 't1',
+        planId: 'p1',
+        status: 'PUBLISHED',
+        editable: true,
+        content: {
+          businessName: 'Loja',
+          profile: { nome: 'Loja', cidade: 'Uberaba', uf: 'MG' },
+          theme: {},
+        },
+        publishedAt: null,
+        hostingRenewsAt: null,
+        plaqueFidelityEndsAt: null,
+      },
+    ]);
+    expect((await listPending)[0].slug).toBe('loja');
+
+    const patchPending = firstValueFrom(
+      api.updateSiteContent(
+        'site1',
+        {
+          businessName: 'Loja Nova',
+          profile: { nome: 'Loja Nova', cidade: 'Uberaba', uf: 'MG' },
+          theme: {
+            p1: '#000',
+            p2: '#111',
+            p3: '#fff',
+            on3: '#000',
+            hi: '#eee',
+            fontHeading: 'serif',
+            fontBody: 'sans',
+            fontScale: 1,
+            italic: 'normal',
+          },
+        },
+        't1',
+      ),
+    );
+    await Promise.resolve();
+    const patchReq = http.expectOne(
+      (r) => r.url.includes('/customer/sites/site1') && r.method === 'PATCH',
+    );
+    expect(patchReq.request.body.templateId).toBe('t1');
+    patchReq.flush({
+      id: 'site1',
+      resellerId: 'r1',
+      customerId: 'c1',
+      slug: 'loja',
+      templateId: 't1',
+      planId: 'p1',
+      status: 'PUBLISHED',
+      editable: true,
+      content: patchReq.request.body.content,
+      publishedAt: null,
+      hostingRenewsAt: null,
+      plaqueFidelityEndsAt: null,
+    });
+    expect((await patchPending).content.businessName).toBe('Loja Nova');
+
+    const publishPending = firstValueFrom(api.publishSite('site1'));
+    await Promise.resolve();
+    http
+      .expectOne((r) => r.url.includes('/customer/sites/site1/publish') && r.method === 'POST')
+      .flush({
+        id: 'site1',
+        resellerId: 'r1',
+        customerId: 'c1',
+        slug: 'loja',
+        templateId: 't1',
+        planId: 'p1',
+        status: 'PUBLISHED',
+        editable: true,
+        content: { businessName: 'Loja Nova', profile: { nome: 'Loja Nova', cidade: '', uf: '' }, theme: {} },
+        publishedAt: '2026-10-16',
+        hostingRenewsAt: null,
+        plaqueFidelityEndsAt: null,
+      });
+    expect((await publishPending).status).toBe('PUBLISHED');
+  });
+
   it('sends Idempotency-Key on plaque movement POST', async () => {
     const key = 'plaque-in-1';
     const pending = firstValueFrom(

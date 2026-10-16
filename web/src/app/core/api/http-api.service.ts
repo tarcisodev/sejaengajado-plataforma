@@ -56,6 +56,7 @@ import {
   CreateResellerResult,
   CreateSiteCommand,
   CustomerOtp,
+  CustomerUploadPresign,
   NoticeRecord,
 } from './api-port';
 import { PlaquePenaltyQuote } from './plaque-penalty';
@@ -307,19 +308,43 @@ export class HttpApiService implements ApiPort {
     return throwError(() => unsupported('verifyCustomerOtp'));
   }
 
+  listMySites(): Observable<Site[]> {
+    return this.http
+      .get<ResellerSiteDto[] | { items?: ResellerSiteDto[] }>(this.url('/customer/sites'))
+      .pipe(map((body) => asSiteRows(body).map(siteFromResellerDto)));
+  }
+
   listSitesByCustomer(_customerId: string): Observable<Site[]> {
-    return this.listResellerSites().pipe(
-      map((page) =>
-        page.items
-          .filter((site) => site.customerId === _customerId)
-          .map((site) => siteFromResellerDto(site)),
-      ),
-    );
+    return this.listMySites();
+  }
+
+  listCustomerTemplates(): Observable<Template[]> {
+    return this.http
+      .get<
+        | { id: string; key: string; name: string; niche: string }[]
+        | { items?: { id: string; key: string; name: string; niche: string }[] }
+      >(this.url('/customer/templates'))
+      .pipe(
+        map((body) => {
+          const rows = Array.isArray(body) ? body : (body.items ?? []);
+          return rows.map(
+            (row): Template => ({
+              id: row.id,
+              key: row.key,
+              nome: row.name,
+              ramo: row.niche,
+              schemaType: 'LocalBusiness',
+              schema: {},
+              ativo: true,
+            }),
+          );
+        }),
+      );
   }
 
   updateSiteContent(siteId: string, content: SiteContent, templateId: string): Observable<Site> {
     return this.http
-      .patch<ResellerSiteDto>(this.url(`/reseller/sites/${siteId}`), {
+      .patch<ResellerSiteDto>(this.url(`/customer/sites/${siteId}`), {
         templateId,
         content,
       })
@@ -327,7 +352,17 @@ export class HttpApiService implements ApiPort {
   }
 
   publishSite(siteId: string): Observable<Site> {
-    return this.publishResellerSite(siteId).pipe(map((row) => siteFromResellerDto(row)));
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/customer/sites/${siteId}/publish`), {})
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  presignCustomerUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign> {
+    return this.http.post<CustomerUploadPresign>(this.url('/customer/uploads/presign'), body);
   }
 
   requestSiteChange(_siteId: string, _actorId: string, _note: string): Observable<AuditLog> {
@@ -636,6 +671,12 @@ function cursorParams(cursor?: string | null): HttpParams {
 function asItems(
   body: { items?: Record<string, unknown>[] } | Record<string, unknown>[],
 ): Record<string, unknown>[] {
+  return Array.isArray(body) ? body : (body.items ?? []);
+}
+
+function asSiteRows(
+  body: ResellerSiteDto[] | { items?: ResellerSiteDto[] },
+): ResellerSiteDto[] {
   return Array.isArray(body) ? body : (body.items ?? []);
 }
 

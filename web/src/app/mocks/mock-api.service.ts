@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, map, of, throwError } from 'rxjs';
+
+import { AuthService } from '../core/auth/auth.service';
 
 import type {
   AdminPlaqueMoveCommand,
@@ -20,6 +22,7 @@ import {
   CreateResellerCommand,
   CreateResellerResult,
   CreateSiteCommand,
+  CustomerUploadPresign,
   NoticeRecord,
 } from '../core/api/api-port';
 import {
@@ -74,6 +77,7 @@ const CUSTOMER_OTP = '482913';
 
 @Injectable({ providedIn: 'root' })
 export class MockApiService implements ApiPort {
+  private readonly auth = inject(AuthService, { optional: true });
   private readonly state: MockDatabase = createUberabaSeed();
   private otpEmail: string | null = null;
   private readonly checkoutByGateway = new Map<string, CheckoutResult>();
@@ -527,8 +531,26 @@ export class MockApiService implements ApiPort {
     return of(structuredClone(user));
   }
 
+  listMySites(): Observable<Site[]> {
+    const userId = this.auth?.me()?.id;
+    if (!userId) {
+      return of([]);
+    }
+    const customer = this.state.customers.find((item) => item.userId === userId);
+    if (!customer) {
+      return of([]);
+    }
+    return of(
+      structuredClone(this.state.sites.filter((site) => site.customerId === customer.id)),
+    );
+  }
+
   listSitesByCustomer(customerId: string): Observable<Site[]> {
     return of(structuredClone(this.state.sites.filter((site) => site.customerId === customerId)));
+  }
+
+  listCustomerTemplates(): Observable<Template[]> {
+    return this.listTemplates();
   }
 
   updateSiteContent(siteId: string, content: SiteContent, templateId: string): Observable<Site> {
@@ -543,6 +565,42 @@ export class MockApiService implements ApiPort {
     site.status = 'PUBLISHED';
     site.publishedAt = site.publishedAt ?? toCivilDate(new Date());
     return of(structuredClone(site));
+  }
+
+  presignCustomerUpload(body: {
+    contentType: string;
+    contentLength: number;
+    filename?: string;
+  }): Observable<CustomerUploadPresign> {
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    const maxBytes = 5 * 1024 * 1024;
+    if (!allowed.has(body.contentType)) {
+      return throwError(() => ({
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Tipo de arquivo não permitido',
+        },
+      }));
+    }
+    if (body.contentLength > maxBytes) {
+      return throwError(() => ({
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Arquivo muito grande',
+        },
+      }));
+    }
+    const key = `resellers/customer/${body.filename ?? 'foto'}`;
+    return of({
+      method: 'POST',
+      uploadUrl: 'https://upload.example.local',
+      fields: { key, 'Content-Type': body.contentType },
+      publicUrl: `https://cdn.example.local/${key}`,
+      key,
+      contentType: body.contentType,
+      maxBytes,
+      expiresIn: 300,
+    });
   }
 
   requestSiteChange(siteId: string, actorId: string, note: string): Observable<AuditLog> {

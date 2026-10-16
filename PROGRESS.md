@@ -11,7 +11,7 @@
 | FF5 | DONE | f34f461 | 2026-10-16 |
 | M1 | DONE | 4df0f08 | 2026-10-16 |
 | AW6 | DONE | 379005c | 2026-10-16 |
-| AW7 | TODO | — | — |
+| AW7 | DONE | — | 2026-10-16 |
 | BR1 | TODO | — | — |
 | LU2 | TODO | — | — |
 | LU3 | TODO | — | — |
@@ -24,20 +24,21 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-M1 — seed:demo (precos DEMO), docs/marco-1.md, Playwright happy-path (skip sem E2E_HAPPY_PATH=1), e2e sandbox verde (ALS admin no chargePronto).
+AW7 — Painel do cliente (self-service Pro + SITE_NOT_EDITABLE + upload).
 
 ## Proximo
-**PARE — aguardando OK do Tarciso para o primeiro deploy de teste** (#4). Depois: AW7 → BR1 → … (reordenar pela triagem).
+BR1 — Brand pack (aplicar assets já em web/public).
 
 ## Bloqueios / perguntas para o Tarciso
-- **#4 OK deploy teste pos-M1** ← bloqueia o loop aqui
-- #5 P6 valores reais
-- #6 P25 textos juridicos
-- #1 P16 SMTP
-- #2 secrets prod + Cloudflare/Traefik
-- #3 P21 RAM/KVM
+_(nenhum dos #1–#6)_
 
 ## Decisoes assumidas (recomendacao padrao)
 - P2/P2a → JWT HS256; P10 → pg-boss; P12 → 404 tenants; P27 → impersonacao read-only
-- Marca → opcao C; BR1 pendente de aplicar pack
+- Marca → opcao C; BR1 aplicar pack (já em web/public)
 - FF3: LU1 reduzido a 1 tema (generico); demais nichos no LU1+
+- #4 → deploy teste OK (só push; aprovação manual no environment production)
+- #1 → SMTP Resend (`se_smtp_url_v1`)
+- #2 → secrets + Cloudflare/Traefik OK
+- #5 → precos-v1.md §4 (placa 10000, kit 15000)
+- #6 → juridico publicar agora; advogado depois (não bloqueia). Artefato: `producao/juridico-final.tgz` (ainda não no repo — abrir issue se faltar)
+- #3 → VPS 8G/2vCPU OK para piloto

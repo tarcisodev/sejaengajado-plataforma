@@ -31,6 +31,7 @@ export class TenantScopeGuard implements CanActivate {
     if (actor.role === 'ADMIN') {
       return true;
     }
+    // RESELLER and CUSTOMER always carry resellerId (tenant of the owning reseller).
     if (!actor.resellerId) {
       throw new NotFoundException({
         code: 'NOT_FOUND',

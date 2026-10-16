@@ -41,8 +41,10 @@
         }
         @if (!editing()) {
           <div class="grid gap-4" data-locked>
-            <p>Este site está só para leitura.</p>
             @if (!site.editable) {
+              <p data-pronto>
+                Plano Pronto: alterações via suporte. Assine o Engajado Pro para editar.
+              </p>
               <button hlmBtn class="h-11" type="button" (click)="askMonthly()">
                 Assinar o plano mensal
               </button>
@@ -81,6 +83,8 @@
                   </hlm-dialog-content>
                 </ng-template>
               </hlm-dialog>
+            } @else {
+              <p>Este site está só para leitura.</p>
             }
           </div>
         } @else {
@@ -241,7 +245,7 @@
             </div>
             <div hlmTabsContent="fotos" class="grid gap-4">
               @for (url of site.content.gallery ?? []; track $index) {
-                <div hlmField>
+                <div hlmField class="grid gap-2">
                   <label hlmFieldLabel [attr.for]="'photo-' + $index">Foto</label>
                   <input
                     hlmInput
@@ -249,6 +253,13 @@
                     [id]="'photo-' + $index"
                     [value]="url"
                     (input)="patchPhoto($index, inputValue($event))"
+                  />
+                  <input
+                    class="h-11 w-full text-sm"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    [attr.data-upload]="$index"
+                    (change)="onPhotoSelected($index, $event)"
                   />
                 </div>
               }
