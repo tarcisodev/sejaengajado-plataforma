@@ -24,7 +24,7 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-#7 — Páginas jurídicas públicas + aceite no login/checkout.
+#7 — Páginas jurídicas públicas + aceite (208e23d, Closes #7).
 
 ## Proximo
 BR1 — Brand pack (aplicar assets já em web/public).
