@@ -1,8 +1,4 @@
-import {
-  BY_HOST_TTL_NEGATIVE_MS,
-  ByHostMemoryCache,
-  canonicalTenantHost,
-} from './by-host-cache';
+import { BY_HOST_TTL_NEGATIVE_MS, ByHostMemoryCache, canonicalTenantHost } from './by-host-cache';
 import {
   apiInternalUrlForSsr,
   classifyPublicSite,
@@ -61,9 +57,7 @@ describe('fetch-public-site (SSR tenant)', () => {
   it('does not cache 404 so publish after miss is visible on the next request', async () => {
     const cache = new ByHostMemoryCache();
 
-    const miss = jasmine
-      .createSpy('fetch-404')
-      .and.resolveTo(new Response(null, { status: 404 }));
+    const miss = jasmine.createSpy('fetch-404').and.resolveTo(new Response(null, { status: 404 }));
     const first = await fetchPublicSiteByHost('loja.sejaengajado.com.br', miss, cache);
     expect(first.kind).toBe('not-found');
     expect(miss).toHaveBeenCalledTimes(1);

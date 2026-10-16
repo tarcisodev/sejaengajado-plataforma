@@ -4,15 +4,27 @@
   gap: 1.5rem;
   padding: 1.5rem;
   background:
-    radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, #6d28d9 22%, transparent), transparent),
-    radial-gradient(900px 500px at 90% 0%, color-mix(in oklab, #0f766e 14%, transparent), transparent),
+    radial-gradient(
+      1200px 600px at 10% -10%,
+      color-mix(in oklab, #6d28d9 22%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      900px 500px at 90% 0%,
+      color-mix(in oklab, #0f766e 14%, transparent),
+      transparent
+    ),
     #f8f7fc;
   color: #1e1b2e;
 }
 
 :host-context(html.dark) .se-boot {
   background:
-    radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, #6d28d9 28%, transparent), transparent),
+    radial-gradient(
+      1200px 600px at 10% -10%,
+      color-mix(in oklab, #6d28d9 28%, transparent),
+      transparent
+    ),
     #121018;
   color: #f4f2fa;
 }

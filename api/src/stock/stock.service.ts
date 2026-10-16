@@ -15,8 +15,10 @@ import { asOfInSaoPaulo } from '../common/sao-paulo-time';
 import { LedgerService } from '../ledger/ledger.service';
 import {
   ADMIN_PRISMA,
+  APP_PRISMA,
   PRISMA,
   type AdminPrisma,
+  type AppPrisma,
   type TenantPrisma,
 } from '../tenant/prisma.module';
 import { requireTenantResellerId } from '../tenant/tenant.context';
@@ -73,13 +75,47 @@ function stockInsufficient(): ConflictException {
   });
 }
 
+const STOCK_TX_OPTIONS = { maxWait: 15_000, timeout: 30_000 } as const;
+
+function isRetryableStockTxError(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    (err.code === 'P2034' || err.code === 'P2028')
+  );
+}
+
 @Injectable()
 export class StockService {
   constructor(
     @Inject(ADMIN_PRISMA) private readonly adminDb: AdminPrisma,
     @Inject(PRISMA) private readonly db: TenantPrisma,
+    @Inject(APP_PRISMA) private readonly appDb: AppPrisma,
     private readonly ledger: LedgerService,
   ) {}
+
+  /**
+   * Multi-step stock mutation on raw se_app (APP_PRISMA). The tenant proxy nests
+   * a $transaction per scoped model op, which releases the advisory lock mid-flight
+   * and times out under concurrent OUT.
+   */
+  private async withTenantStockTx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+    const resellerId = requireTenantResellerId();
+    let last: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await this.appDb.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.reseller_id', ${resellerId}, true)`;
+          return fn(tx as unknown as Tx);
+        }, STOCK_TX_OPTIONS);
+      } catch (err) {
+        last = err;
+        if (!isRetryableStockTxError(err) || attempt === 2) {
+          throw err;
+        }
+      }
+    }
+    throw last;
+  }
 
   async listStock(resellerId: string) {
     return this.mapStockRows(
@@ -251,8 +287,8 @@ export class StockService {
     }
 
     const inbound = parsed.data;
-    return this.db.$transaction(async (tx) =>
-      this.moveInTx(tx as unknown as Tx, {
+    return this.withTenantStockTx(async (tx) =>
+      this.moveInTx(tx, {
         resellerId,
         type: 'IN',
         plaqueType: inbound.plaqueType,
@@ -285,8 +321,8 @@ export class StockService {
       });
     }
 
-    return this.db.$transaction(async (tx) =>
-      this.moveInTx(tx as unknown as Tx, {
+    return this.withTenantStockTx(async (tx) =>
+      this.moveInTx(tx, {
         resellerId,
         type: 'OUT',
         plaqueType: input.plaqueType,
@@ -313,8 +349,8 @@ export class StockService {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Site não encontrado' });
     }
 
-    return this.db.$transaction(async (tx) =>
-      this.moveInTx(tx as unknown as Tx, {
+    return this.withTenantStockTx(async (tx) =>
+      this.moveInTx(tx, {
         resellerId,
         type: 'OUT',
         plaqueType: input.plaqueType,
@@ -494,8 +530,8 @@ export class StockService {
     reason?: string;
   }) {
     const resellerId = requireTenantResellerId();
-    return this.db.$transaction(async (tx) =>
-      this.moveInTx(tx as unknown as Tx, {
+    return this.withTenantStockTx(async (tx) =>
+      this.moveInTx(tx, {
         resellerId,
         type: 'OUT',
         plaqueType: input.plaqueType,
