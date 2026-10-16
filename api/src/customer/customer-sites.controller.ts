@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 
+import { Audit } from '../audit/audit.interceptor';
 import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles } from '../auth/roles.decorator';
@@ -29,41 +30,50 @@ export class CustomerSitesController {
   }
 
   @Get('sites/:id')
-  get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.sites.getMine(user, id);
   }
 
   @Patch('sites/:id')
-  update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: unknown) {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
     return this.sites.updateContent(user, id, body);
   }
 
   @Post('sites/:id/publish')
-  publish(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  publish(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.sites.publish(user, id);
   }
 
   @Get('sites/:id/plaque-penalty')
-  plaquePenalty(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  plaquePenalty(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.cancel.quote(user, id);
   }
 
   @Post('sites/:id/cancel')
-  cancelSite(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  @Audit({
+    action: 'customer.site.cancel',
+    entity: 'Site',
+    entityId: (_r, req) => req.params.id,
+  })
+  cancelSite(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.cancel.cancel(user, id);
   }
 
   @Post('sites/:id/request-change')
   requestChange(
     @CurrentUser() user: AuthUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() body: unknown,
   ) {
     return this.requests.requestSiteChange(user, id, body);
   }
 
   @Post('sites/:id/request-monthly-plan')
-  requestMonthly(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  requestMonthly(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.requests.requestMonthlyPlan(user, id);
   }
 

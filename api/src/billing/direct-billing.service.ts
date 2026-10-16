@@ -263,7 +263,10 @@ export class DirectBillingService {
    * Cancel Pro before 12 months: charge penalty already stored in LifecycleEvent
    * (or compute from config + fidelity end — uses stored penalty when present).
    */
-  async chargeCancellationPenalty(siteId: string) {
+  async chargeCancellationPenalty(
+    siteId: string,
+    opts?: { idempotencyKey?: string },
+  ) {
     const { site, platform } = await this.requirePlatformSite(siteId);
     const cfg = await this.db.platformConfig.findUnique({ where: { id: 'default' } });
     if (!cfg) {
@@ -295,11 +298,10 @@ export class DirectBillingService {
       externalReference: site.id,
     });
 
-    const idempotencyKey = directChargeIdempotencyKey(
-      'penalty',
-      site.id,
-      stored?.id ?? 'live',
-    );
+    // Prefer fixed cancel:<siteId> so retries never create a second penalty charge.
+    const idempotencyKey =
+      opts?.idempotencyKey ??
+      directChargeIdempotencyKey('penalty', site.id, 'cancel');
     const charge = await this.gateway.createCharge({
       gatewayCustomerId: customer.gatewayCustomerId,
       amountCents,

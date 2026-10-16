@@ -1,4 +1,6 @@
-import { CustomerCancelService } from './customer-cancel.service';
+import { ConflictException } from '@nestjs/common';
+
+import { cancelIdempotencyKey, CustomerCancelService } from './customer-cancel.service';
 
 describe('CustomerCancelService', () => {
   const siteId = '11111111-1111-4111-8111-111111111111';
@@ -9,35 +11,49 @@ describe('CustomerCancelService', () => {
     resellerId: 'r1',
   };
 
-  function setup() {
+  function setup(status: 'PUBLISHED' | 'ARCHIVED' = 'PUBLISHED') {
     const ends = new Date(Date.now() + 90 * 86_400_000);
-    const sites = {
-      getMine: jest.fn().mockResolvedValue({
-        id: siteId,
-        slug: 'loja',
-        status: 'PUBLISHED',
-        resellerId: 'r1',
-        plaqueFidelityEndsAt: ends,
-      }),
+    const siteRow = {
+      id: siteId,
+      slug: 'loja',
+      status,
+      resellerId: 'r1',
+      customerId: 'cust1',
+      plaqueFidelityEndsAt: ends,
     };
-    const db = {
-      platformConfig: {
-        findUnique: jest.fn().mockResolvedValue({
-          plaqueValueCents: 12000,
-          plaquePenaltyPct: 100,
+    const sites = {
+      getMine: jest.fn().mockResolvedValue(siteRow),
+    };
+    const tx = {
+      site: {
+        findFirst: jest.fn().mockResolvedValue({ ...siteRow }),
+        update: jest.fn().mockImplementation(async ({ data }: { data: { status: string } }) => {
+          siteRow.status = data.status as 'ARCHIVED';
+          return { ...siteRow, ...data };
         }),
       },
       subscription: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findFirst: jest.fn().mockResolvedValue({ id: 'sub1' }),
       },
-      site: {
-        update: jest.fn().mockResolvedValue({ id: siteId, slug: 'loja', status: 'ARCHIVED' }),
-      },
       lifecycleEvent: { create: jest.fn().mockResolvedValue({}) },
+      platformConfig: {
+        findUnique: jest.fn().mockResolvedValue({
+          plaqueValueCents: 12000,
+          plaquePenaltyPct: 100,
+        }),
+      },
+    };
+    const db = {
+      platformConfig: tx.platformConfig,
+      $transaction: jest.fn(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx)),
     };
     const billing = {
-      chargeCancellationPenalty: jest.fn().mockRejectedValue(new Error('not platform')),
+      chargeCancellationPenalty: jest.fn().mockResolvedValue({
+        gatewayPaymentId: 'pay_1',
+        amountCents: 12000,
+        skipped: false,
+      }),
     };
     const byHostCache = { invalidateSlug: jest.fn() };
     const service = new CustomerCancelService(
@@ -46,7 +62,7 @@ describe('CustomerCancelService', () => {
       billing as never,
       byHostCache as never,
     );
-    return { service, db, billing, byHostCache };
+    return { service, db, tx, billing, byHostCache, siteRow };
   }
 
   it('quotes penalty from config + fidelity', async () => {
@@ -57,13 +73,24 @@ describe('CustomerCancelService', () => {
     expect(quote.multaCentavos).toBeGreaterThan(0);
   });
 
-  it('archives site and records lifecycle on cancel', async () => {
-    const { service, db, byHostCache } = setup();
-    const result = await service.cancel(user as never, siteId);
-    expect(db.site.update).toHaveBeenCalled();
-    expect(db.lifecycleEvent.create).toHaveBeenCalled();
+  it('archives site once; second cancel is rejected; one penalty charge', async () => {
+    const { service, billing, byHostCache, siteRow } = setup('PUBLISHED');
+    const first = await service.cancel(user as never, siteId);
+    expect(first.multaCentavos).toBeGreaterThan(0);
+    expect(billing.chargeCancellationPenalty).toHaveBeenCalledTimes(1);
+    expect(billing.chargeCancellationPenalty).toHaveBeenCalledWith(siteId, {
+      idempotencyKey: cancelIdempotencyKey(siteId),
+    });
     expect(byHostCache.invalidateSlug).toHaveBeenCalledWith('loja');
-    expect(result.siteId).toBe(siteId);
-    expect(result.multaCentavos).toBeGreaterThan(0);
+
+    siteRow.status = 'ARCHIVED';
+    await expect(service.cancel(user as never, siteId)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(billing.chargeCancellationPenalty).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancelIdempotencyKey is stable per site', () => {
+    expect(cancelIdempotencyKey(siteId)).toBe(`cancel:${siteId}`);
   });
 });
