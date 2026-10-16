@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Regras de triagem
+    url: https://github.com/OWNER/REPO/blob/HEAD/TRIAGEM.md
+    about: Leia antes de abrir; troque OWNER/REPO ao instalar.
