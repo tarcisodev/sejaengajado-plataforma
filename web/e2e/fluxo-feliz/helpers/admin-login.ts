@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { fetchLatestOtp } from './mailpit';
+import { acceptLegalIfPresent, clearBrowserSession } from './session';
 import { totpCode } from './totp';
 
 const appBase = (process.env['E2E_APP_BASE'] ?? 'http://app.localhost:4200').replace(/\/$/, '');
@@ -16,16 +17,11 @@ export async function loginAdminWithMfa(page: Page): Promise<void> {
   }
   let totpSecret = (process.env['E2E_ADMIN_TOTP_SECRET'] ?? '').trim();
 
+  await clearBrowserSession(page);
   const started = Date.now();
   await page.goto(`${appBase}/entrar`);
   await page.locator('#email, input[type="email"]').first().fill(email);
-
-  const legal = page
-    .locator('[data-legal-accept] button, [data-legal-accept] [role="checkbox"]')
-    .first();
-  if (await legal.count()) {
-    await legal.click();
-  }
+  await acceptLegalIfPresent(page);
 
   await page.getByRole('button', { name: /Receber código/i }).click();
   const codeField = page.locator('#code');
@@ -40,7 +36,10 @@ export async function loginAdminWithMfa(page: Page): Promise<void> {
   }
 
   const otp = await fetchLatestOtp(email, started - 5_000);
-  await page.locator('#code').fill(otp);
+  const codeInput = page.locator('#code');
+  await codeInput.click();
+  await codeInput.fill('');
+  await codeInput.pressSequentially(otp, { delay: 20 });
   await page.getByRole('button', { name: /^Entrar$/i }).click();
 
   await page.waitForURL(/\/(admin|mfa)/, { timeout: 30_000 });
