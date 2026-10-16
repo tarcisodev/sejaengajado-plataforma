@@ -11,10 +11,19 @@ import { interval, switchMap, takeWhile } from 'rxjs';
 import { API_PORT } from '../../core/api/api-port';
 import { CheckoutResult, PaymentMethod, ShippingQuoteOption } from '../../core/models/domain';
 import { formatBrl } from '../landing/landing-seo';
+import { LegalAcceptComponent } from '../legal/legal-accept.component';
 
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule, HlmButton, HlmCardImports, HlmFieldImports, HlmInput, HlmSelectImports],
+  imports: [
+    FormsModule,
+    HlmButton,
+    HlmCardImports,
+    HlmFieldImports,
+    HlmInput,
+    HlmSelectImports,
+    LegalAcceptComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './checkout.component.html',
 })
@@ -36,6 +45,7 @@ export class CheckoutComponent {
   readonly result = signal<CheckoutResult | null>(null);
   readonly liveStatus = signal<string | null>(null);
   readonly copied = signal(false);
+  readonly legalAccepted = signal(false);
 
   setMethod(value: string | null | undefined): void {
     if (value === 'PIX' || value === 'BOLETO' || value === 'CARD') {
@@ -82,6 +92,10 @@ export class CheckoutComponent {
 
   start(): void {
     this.error.set(null);
+    if (!this.legalAccepted()) {
+      this.error.set('Aceite os termos e políticas para continuar.');
+      return;
+    }
     const cep = this.destinationCep().trim();
     const serviceId = this.shippingServiceId();
     if (cep && !serviceId) {

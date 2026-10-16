@@ -1,0 +1,112 @@
+.legal {
+  --ink: #102018;
+  --muted: #3d5a4c;
+  --line: color-mix(in oklab, #3d5a4c 22%, transparent);
+  --paper: #f7faf8;
+  min-height: 100dvh;
+  padding: 2rem clamp(1rem, 5vw, 3rem) 4rem;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, #3d5a4c 12%, transparent), transparent),
+    var(--paper);
+  font-family: 'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
+}
+
+.legal__header {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  max-width: 48rem;
+}
+
+.legal__brand a {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.legal__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.95rem;
+}
+
+.legal__nav a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.legal__nav a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.legal__body {
+  max-width: 48rem;
+  line-height: 1.65;
+}
+
+.legal__body :is(h1, h2, h3) {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.75rem 0 0.75rem;
+}
+
+.legal__body h1 {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  margin-top: 0;
+}
+
+.legal__body h2 {
+  font-size: 1.35rem;
+}
+
+.legal__body h3 {
+  font-size: 1.15rem;
+}
+
+.legal__body p,
+.legal__body li {
+  margin: 0.5rem 0;
+}
+
+.legal__body ul,
+.legal__body ol {
+  padding-left: 1.35rem;
+}
+
+.legal__body blockquote {
+  margin: 1rem 0;
+  padding: 0.5rem 0 0.5rem 1rem;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+
+.legal__body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+.legal__body th,
+.legal__body td {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal__body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.legal__body a {
+  color: var(--muted);
+}

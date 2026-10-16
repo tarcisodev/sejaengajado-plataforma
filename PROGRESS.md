@@ -24,7 +24,7 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-AW7 — Painel do cliente (self-service Pro + SITE_NOT_EDITABLE + upload).
+#7 — Páginas jurídicas públicas + aceite no login/checkout.
 
 ## Proximo
 BR1 — Brand pack (aplicar assets já em web/public).
@@ -40,5 +40,5 @@ _(nenhum dos #1–#6)_
 - #1 → SMTP Resend (`se_smtp_url_v1`)
 - #2 → secrets + Cloudflare/Traefik OK
 - #5 → precos-v1.md §4 (placa 10000, kit 15000)
-- #6 → juridico publicar agora; advogado depois (não bloqueia). Artefato: `producao/juridico-final.tgz` (ainda não no repo — abrir issue se faltar)
+- #6 → juridico publicar agora; advogado depois (não bloqueia). Artefato: `producao/juridico-final.tgz`
 - #3 → VPS 8G/2vCPU OK para piloto

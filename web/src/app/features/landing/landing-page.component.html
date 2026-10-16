@@ -101,5 +101,10 @@
 
 <footer>
   <p>Seja Engajado · Uberaba, MG</p>
+  <nav class="legal-links" aria-label="Documentos jurídicos">
+    @for (link of legalNav; track link.slug) {
+      <a [routerLink]="link.path">{{ link.label }}</a>
+    }
+  </nav>
   <a [href]="whatsappHref">Falar com a Seja Engajado no WhatsApp</a>
 </footer>

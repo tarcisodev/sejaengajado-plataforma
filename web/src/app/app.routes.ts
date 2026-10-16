@@ -7,6 +7,7 @@ import { AuthShellComponent } from './features/auth/auth-shell.component';
 import { AuthCallbackComponent } from './features/auth/auth-callback.component';
 import { LoginComponent } from './features/auth/login.component';
 import { MfaComponent } from './features/auth/mfa.component';
+import { legalRoutes } from './features/legal/legal.routes';
 
 /** Alvo inerte — o guard sempre redireciona. */
 @Component({
@@ -21,6 +22,7 @@ export const routes: Routes = [
     path: '',
     canMatch: [appHostCanMatch],
     children: [
+      ...legalRoutes,
       {
         path: '',
         component: AuthShellComponent,

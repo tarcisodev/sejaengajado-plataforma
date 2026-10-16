@@ -1,0 +1,20 @@
+<article class="legal" data-legal-page>
+  <header class="legal__header">
+    <p class="legal__brand">
+      <a routerLink="/">Seja Engajado</a>
+    </p>
+    <nav class="legal__nav" aria-label="Documentos jurídicos">
+      @for (link of nav; track link.slug) {
+        <a [routerLink]="link.path" [attr.aria-current]="doc()?.slug === link.slug ? 'page' : null">
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+  </header>
+
+  @if (doc(); as page) {
+    <div class="legal__body" [innerHTML]="page.html"></div>
+  } @else {
+    <p role="alert">Documento não encontrado.</p>
+  }
+</article>

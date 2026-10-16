@@ -264,7 +264,24 @@ footer {
   flex-wrap: wrap;
   gap: 0.75rem 1.5rem;
   justify-content: space-between;
+  align-items: flex-end;
   padding: 2rem 7vw 3rem;
+}
+
+footer .legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  flex: 1 1 100%;
+  order: 3;
+  font-size: 0.9rem;
+}
+
+footer .legal-links a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  opacity: 0.85;
 }
 
 a:focus-visible {

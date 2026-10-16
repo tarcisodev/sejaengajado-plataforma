@@ -9,10 +9,12 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
+import { RouterLink } from '@angular/router';
 import { Observable, catchError, combineLatest, map, of } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { Plan } from '../../core/models/domain';
+import { LEGAL_NAV } from '../legal/legal-links';
 import {
   LANDING_DESCRIPTION,
   LANDING_TITLE,
@@ -29,7 +31,7 @@ interface LandingOffer {
 
 @Component({
   selector: 'app-landing-page',
-  imports: [AsyncPipe],
+  imports: [AsyncPipe, RouterLink],
   templateUrl: './landing-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './landing-page.component.scss',
@@ -43,6 +45,7 @@ export class LandingPageComponent implements OnInit, OnDestroy {
   private jsonLd: HTMLScriptElement | null = null;
 
   readonly whatsappHref = WHATSAPP_HREF;
+  readonly legalNav = LEGAL_NAV;
   readonly formatBrl = formatBrl;
   readonly steps = [
     {

@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { API_PORT } from '../../core/api/api-port';
 import { MockApiService } from '../../mocks/mock-api.service';
@@ -9,7 +10,11 @@ describe('CheckoutComponent', () => {
   it('shows API amountCents and Pix copy for pending checkout', async () => {
     TestBed.configureTestingModule({
       imports: [CheckoutComponent],
-      providers: [MockApiService, { provide: API_PORT, useExisting: MockApiService }],
+      providers: [
+        provideRouter([]),
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
+      ],
     });
     const fixture = TestBed.createComponent(CheckoutComponent);
     const mock = TestBed.inject(MockApiService);
@@ -19,6 +24,11 @@ describe('CheckoutComponent', () => {
     fixture.componentInstance.customerName.set('Zé');
     fixture.componentInstance.customerEmail.set('ze@example.com');
     fixture.componentInstance.method.set('PIX');
+    fixture.componentInstance.start();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.error()).toContain('Aceite os termos');
+
+    fixture.componentInstance.legalAccepted.set(true);
     fixture.componentInstance.start();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -43,7 +53,11 @@ describe('CheckoutComponent', () => {
   it('offers hosted Asaas link for CARD (no card fields)', async () => {
     TestBed.configureTestingModule({
       imports: [CheckoutComponent],
-      providers: [MockApiService, { provide: API_PORT, useExisting: MockApiService }],
+      providers: [
+        provideRouter([]),
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
+      ],
     });
     const fixture = TestBed.createComponent(CheckoutComponent);
     fixture.detectChanges();
@@ -51,6 +65,7 @@ describe('CheckoutComponent', () => {
     fixture.componentInstance.customerName.set('Zé');
     fixture.componentInstance.customerEmail.set('ze@example.com');
     fixture.componentInstance.method.set('CARD');
+    fixture.componentInstance.legalAccepted.set(true);
     fixture.componentInstance.start();
     await fixture.whenStable();
     fixture.detectChanges();

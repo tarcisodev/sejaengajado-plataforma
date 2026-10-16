@@ -121,10 +121,11 @@
             </ng-template>
           </hlm-select>
         </div>
+        <app-legal-accept [(accepted)]="legalAccepted" />
         @if (error()) {
           <p class="text-sm text-destructive" role="alert">{{ error() }}</p>
         }
-        <button hlmBtn type="submit" [disabled]="busy()">
+        <button hlmBtn type="submit" [disabled]="busy() || !legalAccepted()">
           {{ busy() ? 'Gerando…' : 'Gerar cobrança' }}
         </button>
       </form>

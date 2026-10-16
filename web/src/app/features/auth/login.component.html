@@ -32,11 +32,12 @@
           required
         />
       </div>
+      <app-legal-accept [(accepted)]="legalAccepted" />
       <button
         hlmBtn
         class="h-11 w-full"
         type="submit"
-        [disabled]="pending()"
+        [disabled]="pending() || !legalAccepted()"
         [attr.aria-busy]="pending()"
       >
         Receber código

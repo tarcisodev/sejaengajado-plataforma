@@ -10,10 +10,19 @@ import { HlmInput } from '@spartan-ng/helm/input';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { LegalAcceptComponent } from '../legal/legal-accept.component';
 
 @Component({
   selector: 'app-login',
-  imports: [NgIcon, HlmAlertImports, HlmButton, HlmCardImports, HlmFieldImports, HlmInput],
+  imports: [
+    NgIcon,
+    HlmAlertImports,
+    HlmButton,
+    HlmCardImports,
+    HlmFieldImports,
+    HlmInput,
+    LegalAcceptComponent,
+  ],
   providers: [provideIcons({ lucideMoon, lucideSun, lucideTriangleAlert })],
   changeDetection: ChangeDetectionStrategy.Eager,
   host: { class: 'block w-full max-w-sm' },
@@ -29,6 +38,7 @@ export class LoginComponent {
   readonly codeSent = signal(false);
   readonly error = signal('');
   readonly pending = signal(false);
+  readonly legalAccepted = signal(false);
 
   inputValue(event: Event): string {
     return (event.target as HTMLInputElement).value;
@@ -39,6 +49,10 @@ export class LoginComponent {
     const email = this.email().trim();
     if (!email) {
       this.error.set('Informe o e-mail.');
+      return;
+    }
+    if (!this.legalAccepted()) {
+      this.error.set('Aceite os termos e políticas para continuar.');
       return;
     }
     this.pending.set(true);
@@ -56,6 +70,10 @@ export class LoginComponent {
 
   async verify(event: Event): Promise<void> {
     event.preventDefault();
+    if (!this.legalAccepted()) {
+      this.error.set('Aceite os termos e políticas para continuar.');
+      return;
+    }
     if (!this.code().trim()) {
       this.error.set('Informe o código.');
       return;

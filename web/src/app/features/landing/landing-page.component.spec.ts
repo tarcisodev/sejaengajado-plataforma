@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { API_PORT } from '../../core/api/api-port';
 import { MockApiService } from '../../mocks/mock-api.service';
@@ -11,7 +12,11 @@ describe('LandingPageComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [LandingPageComponent],
-      providers: [MockApiService, { provide: API_PORT, useExisting: MockApiService }],
+      providers: [
+        provideRouter([]),
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LandingPageComponent);
@@ -36,6 +41,21 @@ describe('LandingPageComponent', () => {
     expect(text).toContain('Primeiro ano de hospedagem incluso');
     expect(text.toLowerCase()).not.toContain('white label');
     expect(text.toLowerCase()).not.toMatch(/(?<!sub)domínio próprio/);
+  });
+
+  it('links legal documents in the footer', () => {
+    const hrefs = [...fixture.nativeElement.querySelectorAll('footer .legal-links a')].map(
+      (el) => (el as HTMLAnchorElement).getAttribute('href'),
+    );
+    expect(hrefs).toEqual(
+      jasmine.arrayContaining([
+        '/termos',
+        '/privacidade',
+        '/uso-aceitavel',
+        '/cobranca',
+        '/contrato-revenda',
+      ]),
+    );
   });
 
   it('links the call to action to WhatsApp and publishes SEO tags', () => {
