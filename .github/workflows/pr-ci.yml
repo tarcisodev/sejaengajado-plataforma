@@ -108,15 +108,16 @@ jobs:
           npm ci
           npx prisma generate
           npm test
-      - name: Chrome for Karma
-        id: chrome
-        uses: browser-actions/setup-chrome@v1
-      - name: Web unit
+      - name: Web unit (Chrome via puppeteer — self-hosted sem unzip)
         working-directory: web
-        env:
-          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           npm ci
+          # setup-chrome precisa de unzip; na VPS usamos o Chromium do puppeteer.
+          npx puppeteer browsers install chrome
+          export CHROME_BIN
+          CHROME_BIN="$(node -e "console.log(require('puppeteer').executablePath())")"
+          test -n "$CHROME_BIN" && test -x "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN"
           npm test -- --watch=false --browsers=ChromeHeadlessCI
 
   test-int:
