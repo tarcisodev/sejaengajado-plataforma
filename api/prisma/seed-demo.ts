@@ -1,9 +1,13 @@
 /**
- * Demo seed for Marco 1 (M1).
+ * Demo seed for Marco 1 (M1) — DEV / e2e only.
  * Prices are DEMO placeholders (P6) — UI must show "valor de exemplo".
- * No real customer/payment data.
+ * Production: use `npm run seed:showcase` (does not touch prices/config/users).
  */
 import { Prisma, PrismaClient, ProductCode, UserRole } from '@prisma/client';
+
+import { assertDemoSeedAllowed } from './demo-seed-guard';
+
+assertDemoSeedAllowed();
 
 const prisma = new PrismaClient();
 

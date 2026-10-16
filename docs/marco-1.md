@@ -9,12 +9,14 @@ Objetivo: admin cria revendedor → revendedor entra → cria cliente/biosite �
 3. Web: `cd web && npm start` (ou `serve:ssr:web` após build).
 4. Auth: Supabase local/dev com captura de e-mail (P16 — sem SMTP real). OTP + MFA aal2 para admin/revendedor.
 
-## Seed DEMO
+## Seed DEMO (só dev/e2e)
 
 ```bash
 cd api
 npm run seed:demo
 ```
+
+Em produção use `npm run seed:showcase` (ver `docs/GO-LIVE.md` §9) — `seed:demo` aborta se `NODE_ENV=production` ou se `DATABASE_URL` for o banco `sejaengajado` (salvo `ALLOW_DEMO_SEED=1`).
 
 - Admin: `SEED_ADMIN_EMAIL` (padrão `admin@sejaengajado.com.br`)
 - Revendedor demo: `SEED_DEMO_RESELLER_EMAIL` (padrão `demo.revenda@example.com`)

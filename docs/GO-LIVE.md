@@ -90,16 +90,21 @@ Ordem sugerida:
 
 > Migrations expand/contract **não** têm down em produção — rollback de código não reverte schema.
 
-## 9. Sites-modelo (demo)
+## 9. Sites-modelo (showcase)
 
-Após deploy + migrate na VPS (Atlas), criar/atualizar os 3 biosites de demonstração:
+**Não** rode `npm run seed:demo` em produção — ele sobrescreve `platform_config`, products, plans e cria admin/revenda demo. Em produção use só `seed:showcase`.
+
+Após deploy + migrate na VPS (Atlas), criar os 3 biosites de demonstração (idempotente; create-only — segunda execução não altera nada):
 
 ```bash
-# No serviço api (ou container com ADMIN_DATABASE_URL / DATABASE_URL de produção):
-cd /path/to/api && npm run seed:demo
+# Dentro do container api em execução (admin DB via secret):
+cid=$(docker ps -q -f name=sejaengajado_api | head -1)
+docker exec -u node "$cid" sh -c \
+  'export DATABASE_URL="$(tr -d "\n\r" < /run/secrets/se_admin_database_url)" && node dist/prisma/seed-showcase.js'
+# equivalente: … && npm run seed:showcase
 ```
 
-Idempotente (upsert por slug, não apaga dados). Slugs:
+Pré-requisitos: reseller `isPlatform` e pelo menos um `Plan` (ex.: PRONTO) já existentes. Abort se faltar o reseller plataforma.
 
 | Slug | URL |
 | --- | --- |
@@ -107,7 +112,7 @@ Idempotente (upsert por slug, não apaga dados). Slugs:
 | `demo-barbearia` | https://demo-barbearia.sejaengajado.com.br |
 | `demo-estudio` | https://demo-estudio.sejaengajado.com.br |
 
-Sites com `is_demo=true` (fora de cobrança e métricas). Cliente CRM: “Demonstração Seja Engajado” na revenda Plataforma.
+Sites com `is_demo=true` (fora de cobrança e métricas). Cliente CRM: “Demonstração Seja Engajado” na revenda Plataforma. `seed:demo` fica só para dev/e2e (`ALLOW_DEMO_SEED=1` se precisar apontar ao DB `sejaengajado`).
 
 ## 10. Piloto
 
