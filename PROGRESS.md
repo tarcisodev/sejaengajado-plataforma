@@ -5,7 +5,7 @@
 | IK0 | DONE | d4dc2cc | 2026-10-16 |
 | AW2 | DONE | 8b30e2e | 2026-10-16 |
 | FF1 | DONE | a36aa8a | 2026-10-16 |
-| FF2 | DONE | pending | 2026-10-16 |
+| FF2 | DONE | 3451581 | 2026-10-16 |
 | FF3 | TODO | — | — |
 | FF4 | TODO | — | — |
 | FF5 | TODO | — | — |
