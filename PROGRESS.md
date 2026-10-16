@@ -3,7 +3,7 @@
 | Bloco | Status | Commit | Data |
 |---|---|---|---|
 | AW2 | DONE | 8b30e2e | 2026-10-16 |
-| AW3 | DONE | — | 2026-10-16 |
+| AW3 | DONE | 100de96 | 2026-10-16 |
 | AW4 | TODO | — | — |
 | AW5 | TODO | — | — |
 | AW6 | TODO | — | — |
