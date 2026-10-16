@@ -818,15 +818,21 @@ export class MockApiService implements ApiPort {
     return of({ items, nextCursor: null });
   }
 
+  private readonly saleByIdempotency = new Map<string, ResellerSaleDto>();
+
   recordResellerSale(
     items: { productId: string; qty: number; unitPriceCents: number }[],
-    _idempotencyKey: string,
+    idempotencyKey: string,
   ): Observable<ResellerSaleDto> {
+    const cached = this.saleByIdempotency.get(idempotencyKey);
+    if (cached) {
+      return of(structuredClone(cached));
+    }
     const predictedMarginCents = items.reduce(
       (sum, item) => sum + item.qty * Math.round(item.unitPriceCents * 0.35),
       0,
     );
-    return of({
+    const sale: ResellerSaleDto = {
       id: `sale_${Date.now()}`,
       resellerId: RESELLER_TRIANGULO,
       createdAt: new Date().toISOString(),
@@ -837,7 +843,9 @@ export class MockApiService implements ApiPort {
         unitCostCents: Math.round(item.unitPriceCents * 0.65),
         unitPriceCents: item.unitPriceCents,
       })),
-    });
+    };
+    this.saleByIdempotency.set(idempotencyKey, sale);
+    return of(structuredClone(sale));
   }
 
   getResellerLedger(_opts?: {

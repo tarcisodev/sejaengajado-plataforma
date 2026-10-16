@@ -4,7 +4,7 @@
 |---|---|---|---|
 | AW2 | DONE | 8b30e2e | 2026-10-16 |
 | AW3 | DONE | 100de96 | 2026-10-16 |
-| AW4 | TODO | — | — |
+| AW4 | DONE | — | 2026-10-16 |
 | AW5 | TODO | — | — |
 | AW6 | TODO | — | — |
 | AW7 | TODO | — | — |
@@ -22,10 +22,10 @@
 | HX | TODO | — | — |
 
 ## Último bloco
-AW3 — Revendedor: clientes e sites (criar e publicar). Wizard de sites; banner DELINQUENT via `AuthMe.resellerStatus` (JWT guard + `/auth/me`); ApiPort patch/unpublish; harness `se_admin` BYPASSRLS. DoD api+web verdes. Stash local preservado: `stash@{0}` WIP AW6 (admin B2).
+AW4 — Revendedor: registrar venda. Preço/custo congelados em R$ (API em centavos); `Idempotency-Key` estável com botão desabilitado em voo (duplo clique = 1 chamada); mock idempotente; specs AW4. Stash `stash@{0}` AW6 intacto.
 
 ## Próximo
-AW4 — próximo bloco do loop (ver plano B2).
+AW5 — Revendedor: financeiro e estoque de placas.
 
 ## Bloqueios / perguntas para o Tarciso
 - **BR1:** escolha de marca A, B ou C ainda pendente.
@@ -36,3 +36,4 @@ AW4 — próximo bloco do loop (ver plano B2).
 - P10 → pg-boss (já no código)
 - P12 → 404 entre tenants
 - P27 → impersonação somente leitura com audit
+- AW4 cupom: API `POST /reseller/sales` só aceita `items[]` (sem cupom); formulário cobre produto/placa + preço.
