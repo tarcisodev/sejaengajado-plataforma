@@ -150,6 +150,7 @@ export class ResellerInvoiceJob {
     const sites = await this.db.site.findMany({
       where: {
         resellerId,
+        isDemo: false,
         status: { in: ['PUBLISHED', 'READ_ONLY'] },
       },
       include: { plan: true },

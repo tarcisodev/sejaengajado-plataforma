@@ -70,6 +70,15 @@ export class CouponsService {
     return coupon;
   }
 
+  /** Soft-delete: desativa o cupom (código permanece único). */
+  async deactivate(id: string) {
+    await this.get(id);
+    return this.db.coupon.update({
+      where: { id },
+      data: { active: false },
+    });
+  }
+
   async create(body: unknown, idempotencyKey?: string) {
     const parsed = couponBodySchema.safeParse(body);
     if (!parsed.success) {

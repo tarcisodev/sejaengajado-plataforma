@@ -25,7 +25,8 @@ describe('AdminSitesService', () => {
     const sites = {
       create: jest.fn().mockResolvedValue({ id: 's-new', customerId, resellerId }),
     };
-    const service = new AdminSitesService(db as never, sites as never);
+    const byHostCache = { invalidateSlug: jest.fn() };
+    const service = new AdminSitesService(db as never, sites as never, byHostCache as never);
     return { db, sites, service };
   }
 

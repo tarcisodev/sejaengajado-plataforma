@@ -4,17 +4,24 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { z } from 'zod';
 
 import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../../common/cursor';
+import { ByHostCache } from '../../public/sites/by-host.cache';
 import { SitesService, createSiteSchema } from '../../reseller/sites/sites.service';
 import { ADMIN_PRISMA, type AdminPrisma } from '../../tenant/prisma.module';
 import { runWithTenantAsync } from '../../tenant/tenant.context';
+
+const statusSchema = z.object({
+  status: z.enum(['PUBLISHED', 'SUSPENDED']),
+});
 
 @Injectable()
 export class AdminSitesService {
   constructor(
     @Inject(ADMIN_PRISMA) private readonly db: AdminPrisma,
     private readonly sites: SitesService,
+    private readonly byHostCache: ByHostCache,
   ) {}
 
   async list(options: { limit?: number; cursor?: string } = {}) {
@@ -68,5 +75,44 @@ export class AdminSitesService {
       },
       () => this.sites.create(customer.resellerId, body),
     );
+  }
+
+  async setStatus(id: string, body: unknown) {
+    const parsed = statusSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Dados inválidos',
+        fields: parsed.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          code: issue.code,
+          message: issue.message,
+        })),
+      });
+    }
+    const existing = await this.db.site.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Recurso não encontrado' });
+    }
+    const updated = await this.db.site.update({
+      where: { id },
+      data: {
+        status: parsed.data.status,
+        publishedAt:
+          parsed.data.status === 'PUBLISHED'
+            ? (existing.publishedAt ?? new Date())
+            : existing.publishedAt,
+      },
+      include: { customer: true, plan: true, template: true },
+    });
+    this.byHostCache.invalidateSlug(updated.slug);
+    return updated;
+  }
+
+  listTemplates() {
+    return this.db.template.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+    });
   }
 }

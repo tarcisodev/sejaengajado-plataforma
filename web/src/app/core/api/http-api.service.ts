@@ -2,6 +2,8 @@ import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 
+import { AuthService } from '../auth/auth.service';
+
 import { environment } from '../../../environments/environment';
 import {
   AuditLog,
@@ -79,6 +81,7 @@ import type {
 @Injectable()
 export class HttpApiService implements ApiPort {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly base = environment.apiUrl.replace(/\/$/, '');
 
   getPlatformConfig(): Observable<PlatformConfig> {
@@ -102,7 +105,26 @@ export class HttpApiService implements ApiPort {
   }
 
   listTemplates(): Observable<Template[]> {
-    return of([]);
+    return this.http
+      .get<{ items?: { id: string; key: string; name: string; niche: string; schemaType?: string }[] }>(
+        this.url('/admin/templates'),
+      )
+      .pipe(
+        map((body) =>
+          (body.items ?? []).map(
+            (row): Template => ({
+              id: row.id,
+              key: row.key,
+              nome: row.name,
+              ramo: row.niche,
+              schemaType: (row.schemaType as Template['schemaType']) ?? 'LocalBusiness',
+              schema: {},
+              ativo: true,
+            }),
+          ),
+        ),
+        catchError(() => this.listCustomerTemplates()),
+      );
   }
 
   listCoupons(): Observable<Coupon[]> {
@@ -211,12 +233,14 @@ export class HttpApiService implements ApiPort {
       );
   }
 
-  quotePlaquePenalty(_siteId: string, _today: Date): Observable<PlaquePenaltyQuote> {
-    return throwError(() => unsupported('quotePlaquePenalty'));
+  quotePlaquePenalty(siteId: string, _today: Date): Observable<PlaquePenaltyQuote> {
+    return this.http.get<PlaquePenaltyQuote>(
+      this.url(`/customer/sites/${siteId}/plaque-penalty`),
+    );
   }
 
-  cancelSite(_siteId: string, _today: Date): Observable<Cancellation> {
-    return throwError(() => unsupported('cancelSite'));
+  cancelSite(siteId: string, _today: Date): Observable<Cancellation> {
+    return this.http.post<Cancellation>(this.url(`/customer/sites/${siteId}/cancel`), {});
   }
 
   getOrder(_orderId: string): Observable<Order | null> {
@@ -224,11 +248,14 @@ export class HttpApiService implements ApiPort {
   }
 
   closeResellerInvoice(
-    _resellerId: string,
-    _mes: string,
-    _closedAt: string,
+    resellerId: string,
+    mes: string,
+    closedAt: string,
   ): Observable<ResellerInvoice> {
-    return throwError(() => unsupported('closeResellerInvoice'));
+    return this.http.post<ResellerInvoice>(
+      this.url(`/admin/resellers/${resellerId}/invoices/close`),
+      { period: mes, closedAt },
+    );
   }
 
   recordNotice(_notice: NoticeLog): Observable<NoticeRecord> {
@@ -270,8 +297,10 @@ export class HttpApiService implements ApiPort {
       );
   }
 
-  setSiteStatus(_siteId: string, _status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site> {
-    return throwError(() => unsupported('setSiteStatus'));
+  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site> {
+    return this.http
+      .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/status`), { status })
+      .pipe(map((row) => siteFromResellerDto(row)));
   }
 
   savePlan(plan: Plan): Observable<Plan> {
@@ -311,16 +340,37 @@ export class HttpApiService implements ApiPort {
       .pipe(map(mapCoupon));
   }
 
-  deleteCoupon(_couponId: string): Observable<void> {
-    return throwError(() => unsupported('deleteCoupon'));
+  deleteCoupon(couponId: string): Observable<void> {
+    return this.http.delete<void>(this.url(`/admin/coupons/${couponId}`));
   }
 
-  requestCustomerOtp(_email: string): Observable<CustomerOtp> {
-    return throwError(() => unsupported('requestCustomerOtp'));
+  requestCustomerOtp(email: string): Observable<CustomerOtp> {
+    return new Observable((subscriber) => {
+      void this.auth
+        .signInWithOtp(email)
+        .then(() => {
+          subscriber.next({ delivered: true, previewCode: null });
+          subscriber.complete();
+        })
+        .catch((error: unknown) => subscriber.error(error));
+    });
   }
 
-  verifyCustomerOtp(_email: string, _code: string): Observable<User> {
-    return throwError(() => unsupported('verifyCustomerOtp'));
+  verifyCustomerOtp(email: string, code: string): Observable<User> {
+    return new Observable((subscriber) => {
+      void this.auth
+        .verifyOtp(email, code)
+        .then((me) => {
+          subscriber.next({
+            id: me.id,
+            supabaseId: me.id,
+            email: me.email,
+            role: me.role,
+          });
+          subscriber.complete();
+        })
+        .catch((error: unknown) => subscriber.error(error));
+    });
   }
 
   listMySites(): Observable<Site[]> {
@@ -378,12 +428,36 @@ export class HttpApiService implements ApiPort {
     return this.http.post<CustomerUploadPresign>(this.url('/customer/uploads/presign'), body);
   }
 
-  requestSiteChange(_siteId: string, _actorId: string, _note: string): Observable<AuditLog> {
-    return throwError(() => unsupported('requestSiteChange'));
+  requestSiteChange(siteId: string, _actorId: string, note: string): Observable<AuditLog> {
+    return this.http
+      .post<AuditLog>(this.url(`/customer/sites/${siteId}/request-change`), { note })
+      .pipe(
+        map((row) => ({
+          actor: String((row as { actor?: string }).actor ?? 'customer'),
+          acao: String((row as { acao?: string }).acao ?? 'customer.request_site_change'),
+          entidade: String((row as { entidade?: string }).entidade ?? `Site:${siteId}`),
+          diff: ((row as { diff?: Record<string, unknown> }).diff ?? {}) as Record<
+            string,
+            unknown
+          >,
+        })),
+      );
   }
 
-  requestMonthlyPlan(_siteId: string, _actorId: string): Observable<AuditLog> {
-    return throwError(() => unsupported('requestMonthlyPlan'));
+  requestMonthlyPlan(siteId: string, _actorId: string): Observable<AuditLog> {
+    return this.http
+      .post<AuditLog>(this.url(`/customer/sites/${siteId}/request-monthly-plan`), {})
+      .pipe(
+        map((row) => ({
+          actor: String((row as { actor?: string }).actor ?? 'customer'),
+          acao: String((row as { acao?: string }).acao ?? 'customer.request_monthly_plan'),
+          entidade: String((row as { entidade?: string }).entidade ?? `Site:${siteId}`),
+          diff: ((row as { diff?: Record<string, unknown> }).diff ?? {}) as Record<
+            string,
+            unknown
+          >,
+        })),
+      );
   }
 
   listAuditLogs(): Observable<AuditLog[]> {
@@ -423,7 +497,16 @@ export class HttpApiService implements ApiPort {
   }
 
   listMyInvoices(): Observable<MyResellerInvoice[]> {
-    return this.http.get<MyResellerInvoice[]>(this.url('/reseller/invoices'));
+    return this.http.get<MyResellerInvoice[]>(this.url('/reseller/invoices')).pipe(
+      catchError((error: unknown) => {
+        if (error instanceof HttpErrorResponse && (error.status === 403 || error.status === 404)) {
+          return this.http
+            .get<MyResellerInvoice[] | { items?: MyResellerInvoice[] }>(this.url('/admin/invoices'))
+            .pipe(map((body) => (Array.isArray(body) ? body : (body.items ?? []))));
+        }
+        return throwError(() => error);
+      }),
+    );
   }
 
   getMyInvoice(id: string): Observable<MyResellerInvoice> {

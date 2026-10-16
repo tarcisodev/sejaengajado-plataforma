@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Post } from '@nestjs/common';
 
 import { Audit } from '../../audit/audit.interceptor';
 import { Roles } from '../../auth/roles.decorator';
@@ -12,6 +12,12 @@ export class CouponsController {
   @Get()
   list() {
     return this.coupons.list().then((items) => ({ items }));
+  }
+
+  @Delete(':id')
+  @Audit({ action: 'coupon.deactivate', entity: 'Coupon', entityId: (_r, req) => req.params.id })
+  deactivate(@Param('id') id: string) {
+    return this.coupons.deactivate(id);
   }
 
   @Post('preview')

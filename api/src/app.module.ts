@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { PlatformConfigModule } from './admin/config/config.module';
 import { CouponsModule } from './admin/coupons/coupons.module';
 import { AdminCustomersModule } from './admin/customers/admin-customers.module';
+import { AdminInvoicesModule } from './admin/invoices/admin-invoices.module';
 import { AdminPaymentsModule } from './admin/payments/admin-payments.module';
 import { PlansModule } from './admin/plans/plans.module';
 import { ProductsModule } from './admin/products/products.module';
@@ -56,6 +57,7 @@ export class AppModule {
         AdminSitesModule,
         AdminCustomersModule,
         AdminPaymentsModule,
+        AdminInvoicesModule,
         WholesaleModule,
         LedgerModule,
         StockModule,

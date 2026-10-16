@@ -18,6 +18,7 @@ import { HlmTextarea } from '@spartan-ng/helm/textarea';
 import { forkJoin } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
+import { featureFlags } from '../../core/api/feature-flags';
 import { PlaquePenaltyQuote } from '../../core/api/plaque-penalty';
 import { AuthService } from '../../core/auth/auth.service';
 import { canEditSite, renewalLeadDays } from '../../core/customer/access';
@@ -194,7 +195,7 @@ export class CustomerStudioComponent {
     this.quote.set(null);
     this.changeSent.set(false);
     this.monthlySent.set(false);
-    if (site.plaqueFidelityEndsAt) {
+    if (featureFlags.customerPlaqueCancel && site.plaqueFidelityEndsAt) {
       this.api.quotePlaquePenalty(site.id, this.today).subscribe((quote) => this.quote.set(quote));
     }
   }
@@ -508,6 +509,9 @@ export class CustomerStudioComponent {
   confirmCancel(): void {
     const site = this.draft();
     if (!site) {
+      return;
+    }
+    if (!featureFlags.customerPlaqueCancel) {
       return;
     }
     this.api.cancelSite(site.id, this.today).subscribe((cancellation) => {
