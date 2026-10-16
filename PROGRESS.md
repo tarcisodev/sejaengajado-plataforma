@@ -17,17 +17,17 @@
 | LU3 | DONE | 7d43092 | 2026-10-16 |
 | LU1+ | DONE | 1cb2560 | 2026-10-16 |
 | LU5 | DONE | 5781005 | 2026-10-16 |
-| LU6 | TODO | — | — |
+| LU6 | DONE | 221e96a | 2026-10-16 |
 | SEO1 | TODO | — | — |
 | UI7 | TODO | — | — |
 | DOC1 | TODO | — | — |
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-LU5 — Layout revisado do biosite (5781005).
+LU6 — Lista /sites polish (221e96a).
 
 ## Proximo
-LU6 — Lista /sites do painel (Lumen B6 / 04-B7).
+SEO1 — SEO do biosite (JSON-LD nicho, openingHours, OG completo).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
