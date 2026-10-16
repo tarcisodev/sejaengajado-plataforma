@@ -15,7 +15,7 @@
 | BR1 | DONE | 7cfff66 | 2026-10-16 |
 | LU2 | DONE | 5add9a3 | 2026-10-16 |
 | LU3 | DONE | 7d43092 | 2026-10-16 |
-| LU1+ | TODO | — | — |
+| LU1+ | DONE | 1cb2560 | 2026-10-16 |
 | LU5 | TODO | — | — |
 | LU6 | TODO | — | — |
 | SEO1 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-LU3 — Faixa animada (7d43092).
+LU1+ — Temas por nicho (1cb2560).
 
 ## Proximo
-LU1+ — Temas por nicho restantes (barbearia, restaurante, moda, beleza, saude).
+LU5 — Layout revisado do biosite (Lumen B4 / 03-B5).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
