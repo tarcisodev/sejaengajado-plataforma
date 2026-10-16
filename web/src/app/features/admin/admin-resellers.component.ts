@@ -67,7 +67,12 @@ export class AdminResellersComponent {
       this.plans.set(plans);
       this.graceDays.set(config.resellerGraceDays);
       if (!this.resellerPlanId()) {
-        this.resellerPlanId.set(plans[0]?.id ?? '');
+        const fundadorId = '00000000-0000-4000-8000-000000000002';
+        const preferred =
+          plans.find((plan) => plan.id === fundadorId) ??
+          plans.find((plan) => /fundador/i.test(plan.nome)) ??
+          plans[0];
+        this.resellerPlanId.set(preferred?.id ?? '');
       }
       this.ready.set(true);
       const selected = this.selectedId();

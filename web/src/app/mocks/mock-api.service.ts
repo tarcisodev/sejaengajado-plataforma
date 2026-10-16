@@ -816,6 +816,7 @@ export class MockApiService implements ApiPort {
     doc?: string;
     whatsapp?: string;
     city?: string;
+    email?: string;
   }): Observable<ResellerCustomerDto> {
     const customer: Customer = {
       id: `cust_created_${this.state.customers.length + 1}`,

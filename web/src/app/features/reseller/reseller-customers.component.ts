@@ -28,6 +28,17 @@ import { AuthService } from '../../core/auth/auth.service';
           <input hlmInput class="h-11" name="name" required [disabled]="!operable()" />
         </label>
         <label class="grid gap-1 text-sm">
+          E-mail (convite /conta)
+          <input
+            hlmInput
+            class="h-11"
+            name="email"
+            type="email"
+            required
+            [disabled]="!operable()"
+          />
+        </label>
+        <label class="grid gap-1 text-sm">
           WhatsApp
           <input hlmInput class="h-11" name="whatsapp" [disabled]="!operable()" />
         </label>
@@ -93,14 +104,23 @@ export class ResellerCustomersComponent {
     this.api
       .createResellerCustomer({
         name: String(data.get('name') ?? ''),
+        email: String(data.get('email') ?? '').trim().toLowerCase(),
         whatsapp: String(data.get('whatsapp') ?? ''),
         doc: String(data.get('doc') ?? ''),
         city: String(data.get('city') ?? ''),
       })
-      .subscribe(() => {
-        toast.success('Cliente criado.');
-        (event.target as HTMLFormElement).reset();
-        this.reload();
+      .subscribe({
+        next: (created) => {
+          const link = (created as { inviteActionLink?: string | null }).inviteActionLink;
+          toast.success(
+            link
+              ? 'Cliente convidado. Link de acesso disponível na resposta da API.'
+              : 'Cliente criado e convidado por e-mail.',
+          );
+          (event.target as HTMLFormElement).reset();
+          this.reload();
+        },
+        error: () => toast.error('Não foi possível criar o cliente.'),
       });
   }
 }

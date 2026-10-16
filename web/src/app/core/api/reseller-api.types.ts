@@ -35,6 +35,8 @@ export interface ResellerCustomerDto {
   doc: string;
   whatsapp: string;
   city: string;
+  email?: string | null;
+  inviteActionLink?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -445,6 +445,7 @@ export class HttpApiService implements ApiPort {
     doc?: string;
     whatsapp?: string;
     city?: string;
+    email?: string;
   }): Observable<ResellerCustomerDto> {
     return this.http.post<ResellerCustomerDto>(this.url('/reseller/customers'), body);
   }

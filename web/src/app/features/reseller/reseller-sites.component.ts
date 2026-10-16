@@ -210,24 +210,15 @@ export class ResellerSitesComponent {
     this.busy.set(true);
     const customer = this.customers().find((row) => row.id === this.customerId());
     const businessName = customer?.name || this.slug();
-    const content: SiteContent = {
-      businessName,
-      profile: {
-        nome: businessName,
-        cidade: customer?.city || 'Uberaba',
-        uf: 'MG',
-      },
-      theme: defaultPreviewTheme(),
-      whatsapp: customer?.whatsapp
-        ? { numero: customer.whatsapp, mensagem: 'Olá! Vim pelo site.' }
-        : undefined,
+    const reviewUrl = this.googleReviewUrl().trim();
+    // Payload alinhado ao siteContentSchema da Nest (não ao SiteContent do mock).
+    const content: Record<string, unknown> = {
+      theme: { niche: 'generico', brandColor: '#1e3a5f' },
       pix: {
-        chave: this.pixKey().trim() || 'exemplo-chave-pix',
-        nome: 'exemplo',
+        key: this.pixKey().trim() || '',
+        receiverName: businessName,
       },
-      google: this.googleReviewUrl().trim()
-        ? { placeId: this.googleReviewUrl().trim() }
-        : undefined,
+      ...(reviewUrl ? { googleReviewUrl: reviewUrl } : {}),
     };
     this.api
       .createResellerSite({
@@ -235,7 +226,7 @@ export class ResellerSitesComponent {
         slug: this.slug(),
         planId: this.planId(),
         templateId: this.templateId(),
-        content: content as unknown as Record<string, unknown>,
+        content,
       })
       .subscribe({
         next: (site) => {

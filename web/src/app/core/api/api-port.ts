@@ -184,6 +184,7 @@ export interface ApiPort {
     doc?: string;
     whatsapp?: string;
     city?: string;
+    email?: string;
   }): Observable<ResellerCustomerDto>;
   listResellerSites(cursor?: string | null): Observable<CursorPage<ResellerSiteDto>>;
   createResellerSite(body: {

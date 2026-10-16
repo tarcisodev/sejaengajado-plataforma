@@ -69,6 +69,22 @@ async function main(): Promise<void> {
     },
   });
 
+  /** Plano Fundador (produção / go-live) — id estável usado pelo admin ao convidar. */
+  await prisma.resellerPlan.upsert({
+    where: { id: '00000000-0000-4000-8000-000000000002' },
+    create: {
+      id: '00000000-0000-4000-8000-000000000002',
+      name: 'Fundador',
+      monthlyFeeCents: 0,
+      siteLimit: null,
+    },
+    update: {
+      name: 'Fundador',
+      monthlyFeeCents: 0,
+      siteLimit: null,
+    },
+  });
+
   const platform = await prisma.reseller.upsert({
     where: { id: '00000000-0000-4000-8000-000000000010' },
     create: {
@@ -162,16 +178,53 @@ async function main(): Promise<void> {
     create: {
       key: 'personalizado',
       name: 'Personalizado',
-      niche: 'personalizado',
+      niche: 'generico',
       schemaType: 'LocalBusiness',
       schema: { type: 'object' },
       active: true,
     },
     update: {
       name: 'Personalizado',
+      niche: 'generico',
       active: true,
     },
   });
+
+  for (const template of [
+    {
+      key: 'restaurante',
+      name: 'Restaurante / Lanchonete',
+      niche: 'restaurante',
+      schemaType: 'Restaurant',
+    },
+    {
+      key: 'barbearia',
+      name: 'Salão / Barbearia',
+      niche: 'barbearia',
+      schemaType: 'HairSalon',
+    },
+    {
+      key: 'loja-local',
+      name: 'Loja / Serviço local',
+      niche: 'generico',
+      schemaType: 'LocalBusiness',
+    },
+  ] as const) {
+    await prisma.template.upsert({
+      where: { key: template.key },
+      create: {
+        ...template,
+        schema: { type: 'object' },
+        active: true,
+      },
+      update: {
+        name: template.name,
+        niche: template.niche,
+        schemaType: template.schemaType,
+        active: true,
+      },
+    });
+  }
 
   await prisma.plan.upsert({
     where: { code: 'PRONTO' },

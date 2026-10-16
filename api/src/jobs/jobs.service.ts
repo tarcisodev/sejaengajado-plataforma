@@ -95,6 +95,7 @@ export class JobsService {
     const sites = await this.db.site.findMany({
       where: {
         status: { in: ['PUBLISHED', 'READ_ONLY', 'SUSPENDED'] },
+        isDemo: false,
       },
       include: {
         plan: true,

@@ -157,6 +157,7 @@ export class ReportsService {
           where: {
             ...(mode === 'admin' ? { resellerId } : {}),
             status: { in: ['PUBLISHED', 'READ_ONLY'] },
+            isDemo: false,
           },
         }),
         db.sale.findMany({

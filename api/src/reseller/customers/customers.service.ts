@@ -5,8 +5,10 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { UserRole, UserStatus } from '@prisma/client';
 import { z } from 'zod';
 
+import { SUPABASE_ADMIN, type SupabaseAdminClient } from '../../auth/supabase-admin';
 import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../../common/cursor';
 import { PRISMA, type TenantPrisma } from '../../tenant/prisma.module';
 import { assertResellerOperable } from '../reseller-status';
@@ -16,11 +18,16 @@ export const customerBodySchema = z.object({
   doc: z.string().default(''),
   whatsapp: z.string().default(''),
   city: z.string().default(''),
+  /** Quando informado, convida o cliente (GoTrue) e cria User CUSTOMER. */
+  email: z.union([z.string().email(), z.literal('')]).optional(),
 });
 
 @Injectable()
 export class CustomersService {
-  constructor(@Inject(PRISMA) private readonly db: TenantPrisma) {}
+  constructor(
+    @Inject(PRISMA) private readonly db: TenantPrisma,
+    @Inject(SUPABASE_ADMIN) private readonly supabaseAdmin: SupabaseAdminClient,
+  ) {}
 
   private async requireOperableReseller(resellerId: string) {
     const reseller = await this.db.reseller.findUnique({
@@ -73,15 +80,61 @@ export class CustomersService {
         })),
       });
     }
-    return this.db.customer.create({
+
+    const email = parsed.data.email?.trim().toLowerCase() || null;
+    if (!email) {
+      return this.db.customer.create({
+        data: {
+          resellerId,
+          name: parsed.data.name,
+          doc: parsed.data.doc,
+          whatsapp: parsed.data.whatsapp,
+          city: parsed.data.city,
+        },
+      });
+    }
+
+    const existing = await this.db.customer.findFirst({ where: { email } });
+    if (existing) {
+      throw new ConflictException({
+        code: 'CONFLICT',
+        message: 'E-mail de cliente já cadastrado',
+      });
+    }
+
+    const invited = await this.supabaseAdmin.inviteUserByEmail(email);
+    let inviteActionLink: string | null = null;
+    try {
+      const recovery = await this.supabaseAdmin.generateRecoveryLink(email);
+      inviteActionLink = recovery.actionLink;
+    } catch {
+      inviteActionLink = null;
+    }
+
+    const user = await this.db.user.create({
+      data: {
+        supabaseId: invited.id,
+        email,
+        role: UserRole.CUSTOMER,
+        status: UserStatus.ACTIVE,
+        resellerId,
+      },
+    });
+
+    const customer = await this.db.customer.create({
       data: {
         resellerId,
         name: parsed.data.name,
         doc: parsed.data.doc,
         whatsapp: parsed.data.whatsapp,
         city: parsed.data.city,
+        email,
+        userId: user.id,
       },
+      include: { user: true },
     });
+
+    return { ...customer, inviteActionLink };
   }
 
   async update(id: string, body: unknown) {
@@ -98,9 +151,10 @@ export class CustomersService {
         })),
       });
     }
+    const { email: _email, ...data } = parsed.data;
     return this.db.customer.update({
       where: { id },
-      data: parsed.data,
+      data,
     });
   }
 
