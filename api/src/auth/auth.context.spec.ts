@@ -14,6 +14,7 @@ const adminAal2: AuthUser = {
   role: 'ADMIN',
   resellerId: null,
   status: 'ACTIVE',
+  resellerStatus: null,
   aal: 'aal2',
 };
 
@@ -24,6 +25,7 @@ const reseller: AuthUser = {
   role: 'RESELLER',
   resellerId: 'res-1',
   status: 'ACTIVE',
+  resellerStatus: 'ACTIVE',
   aal: 'aal1',
 };
 

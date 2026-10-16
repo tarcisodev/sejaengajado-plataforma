@@ -1,0 +1,260 @@
+@if (!operable()) {
+  <div hlmAlert variant="destructive" class="mb-4" data-reseller-locked>
+    Conta inadimplente ou bloqueada: criação e publicação de sites estão pausadas.
+  </div>
+}
+
+@if (wizardOpen()) {
+  <section hlmCard class="p-4 md:p-6" data-site-wizard>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="font-display text-xl">Novo site</h2>
+      <button hlmBtn type="button" variant="outline" class="h-11" (click)="closeWizard()">
+        Fechar
+      </button>
+    </div>
+    <ol class="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground" data-wizard-steps>
+      <li [class.text-foreground]="step() === 'cliente'">1. Cliente</li>
+      <li [class.text-foreground]="step() === 'template'">2. Template</li>
+      <li [class.text-foreground]="step() === 'conteudo'">3. Conteúdo</li>
+      <li [class.text-foreground]="step() === 'slug'">4. Slug</li>
+      <li [class.text-foreground]="step() === 'previa'">5. Prévia</li>
+    </ol>
+
+    @switch (step()) {
+      @case ('cliente') {
+        <label class="mt-4 grid max-w-md gap-1 text-sm">
+          Cliente
+          <select
+            class="h-11 rounded-lg border border-input bg-background px-3"
+            data-wizard-customer
+            [value]="customerId()"
+            (change)="onCustomerChange($event)"
+          >
+            @for (customer of customers(); track customer.id) {
+              <option [value]="customer.id">{{ customer.name }}</option>
+            }
+          </select>
+        </label>
+        <button hlmBtn class="mt-4 h-11" type="button" (click)="nextFromCliente()">
+          Continuar
+        </button>
+      }
+      @case ('template') {
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1 text-sm">
+            Plano
+            <select
+              class="h-11 rounded-lg border border-input bg-background px-3"
+              [value]="planId()"
+              (change)="onPlanChange($event)"
+            >
+              @for (plan of options()?.plans ?? []; track plan.id) {
+                <option [value]="plan.id">
+                  {{ plan.name }} ({{ formatBrl(plan.priceCents) }})
+                </option>
+              }
+            </select>
+          </label>
+          <label class="grid gap-1 text-sm">
+            Template
+            <select
+              class="h-11 rounded-lg border border-input bg-background px-3"
+              data-wizard-template
+              [value]="templateId()"
+              (change)="onTemplateChange($event)"
+            >
+              @for (template of options()?.templates ?? []; track template.id) {
+                <option [value]="template.id">{{ template.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button hlmBtn class="h-11" type="button" variant="outline" (click)="step.set('cliente')">
+            Voltar
+          </button>
+          <button hlmBtn class="h-11" type="button" (click)="nextFromTemplate()">Continuar</button>
+        </div>
+      }
+      @case ('conteudo') {
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1 text-sm">
+            Chave Pix (exemplo)
+            <input
+              hlmInput
+              class="h-11"
+              data-wizard-pix
+              [value]="pixKey()"
+              (input)="pixKey.set($any($event.target).value)"
+              placeholder="exemplo"
+            />
+          </label>
+          <label class="grid gap-1 text-sm">
+            Link avaliação Google (opcional)
+            <input
+              hlmInput
+              class="h-11"
+              [value]="googleReviewUrl()"
+              (input)="googleReviewUrl.set($any($event.target).value)"
+            />
+          </label>
+        </div>
+        <p class="mt-2 text-xs text-muted-foreground">
+          Valores fictícios devem ficar rotulados como exemplo até a configuração real.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            hlmBtn
+            class="h-11"
+            type="button"
+            variant="outline"
+            (click)="step.set('template')"
+          >
+            Voltar
+          </button>
+          <button hlmBtn class="h-11" type="button" (click)="nextFromConteudo()">Continuar</button>
+        </div>
+      }
+      @case ('slug') {
+        <label class="mt-4 grid max-w-md gap-1 text-sm">
+          Slug do subdomínio
+          <input
+            hlmInput
+            class="h-11"
+            data-wizard-slug
+            [value]="slug()"
+            (input)="onSlugInput($event)"
+            (blur)="checkSlug()"
+            autocomplete="off"
+          />
+          @if (slugHint()) {
+            <span
+              class="text-xs"
+              data-slug-hint
+              [class.text-destructive]="!slugOk()"
+              [class.text-muted-foreground]="slugOk()"
+            >
+              {{ slugHint() }}
+            </span>
+          }
+        </label>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            hlmBtn
+            class="h-11"
+            type="button"
+            variant="outline"
+            (click)="step.set('conteudo')"
+          >
+            Voltar
+          </button>
+          <button
+            hlmBtn
+            class="h-11"
+            type="button"
+            data-wizard-create
+            [disabled]="!slugOk() || busy()"
+            (click)="createDraft()"
+          >
+            Criar rascunho
+          </button>
+        </div>
+      }
+      @case ('previa') {
+        @if (draft(); as site) {
+          <div class="mt-4 grid gap-2 text-sm" data-wizard-preview>
+            <p>
+              Endereço:
+              <a class="underline" [href]="publicUrl(site.slug)" target="_blank" rel="noopener">
+                {{ publicUrl(site.slug) }}
+              </a>
+            </p>
+            <p>Status: {{ site.status }}</p>
+            <p>Cliente: {{ site.customer?.name ?? site.customerId }}</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button hlmBtn class="h-11" type="button" variant="outline" (click)="step.set('slug')">
+              Voltar
+            </button>
+            <button
+              hlmBtn
+              class="h-11"
+              type="button"
+              data-wizard-publish
+              [disabled]="busy() || !operable()"
+              (click)="publishDraft()"
+            >
+              Publicar
+            </button>
+          </div>
+        }
+      }
+    }
+  </section>
+} @else {
+  <div class="mb-4 flex justify-end">
+    <button
+      hlmBtn
+      class="h-11"
+      type="button"
+      data-open-wizard
+      [disabled]="!operable()"
+      (click)="openWizard()"
+    >
+      Criar site
+    </button>
+  </div>
+}
+
+<section class="mt-6 overflow-x-auto">
+  <table hlmTable class="w-full min-w-[36rem]">
+    <thead>
+      <tr hlmTr>
+        <th hlmTh>Slug</th>
+        <th hlmTh>Cliente</th>
+        <th hlmTh>Status</th>
+        <th hlmTh></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr hlmTr [attr.data-site-id]="row.id" [attr.data-reseller-id]="row.resellerId">
+          <td hlmTd>
+            <a class="underline" [href]="publicUrl(row.slug)">{{ row.slug }}</a>
+          </td>
+          <td hlmTd>{{ row.customer?.name ?? row.customerId }}</td>
+          <td hlmTd>
+            <span hlmBadge variant="secondary">{{ row.status }}</span>
+          </td>
+          <td hlmTd>
+            <div class="flex flex-wrap gap-2">
+              @if (row.status === 'DRAFT' || row.status === 'READ_ONLY') {
+                <button
+                  hlmBtn
+                  class="h-11"
+                  type="button"
+                  variant="outline"
+                  [disabled]="!operable()"
+                  (click)="publish(row.id)"
+                >
+                  Publicar
+                </button>
+              }
+              @if (row.status === 'PUBLISHED') {
+                <button
+                  hlmBtn
+                  class="h-11"
+                  type="button"
+                  variant="outline"
+                  (click)="unpublish(row.id)"
+                >
+                  Despublicar
+                </button>
+              }
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>

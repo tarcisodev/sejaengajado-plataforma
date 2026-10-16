@@ -81,6 +81,15 @@ export async function bootHarnessPostgres(): Promise<HarnessStateFile> {
     stdio: 'inherit',
   });
 
+  // Migrations cannot set BYPASSRLS (needs superuser). Mirror production bootstrap.
+  const bootstrap = new PrismaClient({ datasources: { db: { url: adminUrl } } });
+  try {
+    await bootstrap.$executeRawUnsafe(`ALTER ROLE se_admin WITH BYPASSRLS`);
+    await bootstrap.$executeRawUnsafe(`ALTER ROLE se_app WITH NOBYPASSRLS`);
+  } finally {
+    await bootstrap.$disconnect();
+  }
+
   const state: HarnessStateFile = {
     adminUrl,
     appUrl,

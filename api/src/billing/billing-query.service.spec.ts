@@ -84,6 +84,7 @@ describe('BillingQueryService', () => {
           role: 'RESELLER',
           resellerId,
           status: 'ACTIVE',
+          resellerStatus: 'ACTIVE',
           aal: 'aal1',
         }),
     );
@@ -106,6 +107,7 @@ describe('BillingQueryService', () => {
           role: 'RESELLER',
           resellerId,
           status: 'ACTIVE',
+          resellerStatus: 'ACTIVE',
           aal: 'aal1',
         }),
       ),

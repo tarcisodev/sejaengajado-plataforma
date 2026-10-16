@@ -1,5 +1,5 @@
 import { PlatformLocation } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -12,6 +12,7 @@ import {
   lucideSun,
   lucideUsers,
 } from '@ng-icons/lucide';
+import { HlmAlert } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmToaster } from '@spartan-ng/helm/sonner';
 import { filter } from 'rxjs';
@@ -31,6 +32,7 @@ import { ResellerSitesComponent } from './reseller-sites.component';
   imports: [
     RouterLink,
     NgIcon,
+    HlmAlert,
     HlmButton,
     HlmToaster,
     ResellerDashboardComponent,
@@ -61,6 +63,20 @@ export class ResellerShellComponent {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly section = signal<ResellerSection>(resellerSection(this.location.pathname));
+  readonly resellerLocked = computed(() => {
+    const status = this.auth.me()?.resellerStatus;
+    return status === 'DELINQUENT' || status === 'BLOCKED';
+  });
+  readonly lockMessage = computed(() => {
+    const status = this.auth.me()?.resellerStatus;
+    if (status === 'BLOCKED') {
+      return 'Revendedor bloqueado: criação de sites e publicações estão suspensas.';
+    }
+    if (status === 'DELINQUENT') {
+      return 'Revendedor inadimplente: novos sites e publicações ficam bloqueados até a regularização.';
+    }
+    return '';
+  });
   readonly nav: {
     section: ResellerSection;
     href: string;

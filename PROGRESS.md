@@ -3,7 +3,7 @@
 | Bloco | Status | Commit | Data |
 |---|---|---|---|
 | AW2 | DONE | 8b30e2e | 2026-10-16 |
-| AW3 | TODO | — | — |
+| AW3 | DONE | — | 2026-10-16 |
 | AW4 | TODO | — | — |
 | AW5 | TODO | — | — |
 | AW6 | TODO | — | — |
@@ -22,10 +22,10 @@
 | HX | TODO | — | — |
 
 ## Último bloco
-AW2 — HttpApi + sessão: `Idempotency-Key` no checkout; interceptor 401 com `refreshSession` compartilhado + retry; toasts 403/404; specs `HttpTestingController` (Bearer, idempotência, erros). Push `origin master` autorizado (deploy só com aprovação manual no environment production). Stash local preservado: `stash@{0}` WIP AW6 (admin B2).
+AW3 — Revendedor: clientes e sites (criar e publicar). Wizard de sites; banner DELINQUENT via `AuthMe.resellerStatus` (JWT guard + `/auth/me`); ApiPort patch/unpublish; harness `se_admin` BYPASSRLS. DoD api+web verdes. Stash local preservado: `stash@{0}` WIP AW6 (admin B2).
 
 ## Próximo
-AW3 — Revendedor: clientes e sites (criar e publicar).
+AW4 — próximo bloco do loop (ver plano B2).
 
 ## Bloqueios / perguntas para o Tarciso
 - **BR1:** escolha de marca A, B ou C ainda pendente.

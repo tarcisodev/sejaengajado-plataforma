@@ -723,6 +723,7 @@ export class MockApiService implements ApiPort {
     slug: string;
     templateId: string;
     planId: string;
+    content?: Record<string, unknown>;
   }): Observable<ResellerSiteDto> {
     return this.createSite({
       customerId: body.customerId,
@@ -735,8 +736,36 @@ export class MockApiService implements ApiPort {
     }).pipe(map((site) => this.toResellerSiteDto(site)));
   }
 
+  patchResellerSite(
+    siteId: string,
+    body: {
+      templateId?: string;
+      planId?: string;
+      slug?: string;
+      content?: Record<string, unknown>;
+    },
+  ): Observable<ResellerSiteDto> {
+    const site = this.state.sites.find((item) => item.id === siteId);
+    if (!site) {
+      return throwError(() => new Error('not found'));
+    }
+    if (body.templateId) site.templateId = body.templateId;
+    if (body.planId) site.planId = body.planId;
+    if (body.slug) site.slug = body.slug;
+    return of(this.toResellerSiteDto(site));
+  }
+
   publishResellerSite(siteId: string): Observable<ResellerSiteDto> {
     return this.publishSite(siteId).pipe(map((site) => this.toResellerSiteDto(site)));
+  }
+
+  unpublishResellerSite(siteId: string): Observable<ResellerSiteDto> {
+    const site = this.state.sites.find((item) => item.id === siteId);
+    if (!site) {
+      return throwError(() => new Error('not found'));
+    }
+    site.status = 'DRAFT';
+    return of(this.toResellerSiteDto(site));
   }
 
   checkResellerSlug(slug: string): Observable<SlugCheckDto> {

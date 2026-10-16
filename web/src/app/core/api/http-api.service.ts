@@ -377,12 +377,29 @@ export class HttpApiService implements ApiPort {
     slug: string;
     templateId: string;
     planId: string;
+    content?: Record<string, unknown>;
   }): Observable<ResellerSiteDto> {
     return this.http.post<ResellerSiteDto>(this.url('/reseller/sites'), body);
   }
 
+  patchResellerSite(
+    siteId: string,
+    body: {
+      templateId?: string;
+      planId?: string;
+      slug?: string;
+      content?: Record<string, unknown>;
+    },
+  ): Observable<ResellerSiteDto> {
+    return this.http.patch<ResellerSiteDto>(this.url(`/reseller/sites/${siteId}`), body);
+  }
+
   publishResellerSite(siteId: string): Observable<ResellerSiteDto> {
     return this.http.post<ResellerSiteDto>(this.url(`/reseller/sites/${siteId}/publish`), {});
+  }
+
+  unpublishResellerSite(siteId: string): Observable<ResellerSiteDto> {
+    return this.http.post<ResellerSiteDto>(this.url(`/reseller/sites/${siteId}/unpublish`), {});
   }
 
   checkResellerSlug(slug: string): Observable<SlugCheckDto> {

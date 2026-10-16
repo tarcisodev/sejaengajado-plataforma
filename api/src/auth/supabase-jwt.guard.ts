@@ -87,6 +87,15 @@ export class SupabaseJwtGuard implements CanActivate {
       });
     }
 
+    let resellerStatus: string | null = null;
+    if (user.role === 'RESELLER' && user.resellerId) {
+      const reseller = await this.systemPrisma.reseller.findUnique({
+        where: { id: user.resellerId },
+        select: { status: true },
+      });
+      resellerStatus = reseller?.status ?? null;
+    }
+
     const authUser: AuthUser = {
       id: user.id,
       supabaseId: user.supabaseId,
@@ -94,6 +103,7 @@ export class SupabaseJwtGuard implements CanActivate {
       role: user.role,
       resellerId: user.resellerId,
       status: user.status,
+      resellerStatus,
       aal,
     };
     req.user = authUser;

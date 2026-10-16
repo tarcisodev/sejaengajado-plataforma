@@ -1,6 +1,6 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { firstValueFrom, of } from 'rxjs';
@@ -157,6 +157,20 @@ describe('Reseller AUTH-WEB part 2 (e2e-style)', () => {
       imports: [ResellerSitesComponent],
       providers: [
         {
+          provide: AuthService,
+          useValue: {
+            me: signal({
+              id: 'u1',
+              email: 'r@example.com',
+              role: 'RESELLER',
+              resellerId: 'reseller-a',
+              status: 'ACTIVE',
+              resellerStatus: 'ACTIVE',
+              aal: 'aal2',
+            }),
+          },
+        },
+        {
           provide: API_PORT,
           useValue: {
             listResellerSites: () =>
@@ -185,6 +199,8 @@ describe('Reseller AUTH-WEB part 2 (e2e-style)', () => {
             checkResellerSlug: () => of({ slug: '', available: true }),
             createResellerSite: () => of({}),
             publishResellerSite: () => of({}),
+            unpublishResellerSite: () => of({}),
+            patchResellerSite: () => of({}),
           },
         },
       ],

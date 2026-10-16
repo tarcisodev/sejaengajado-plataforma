@@ -44,6 +44,7 @@ function ctx(authorization?: string, isPublic = false) {
 describe('SupabaseJwtGuard', () => {
   const systemPrisma = {
     user: { findUnique: jest.fn() },
+    reseller: { findUnique: jest.fn() },
   };
   const env = {
     SUPABASE_URL: supabaseUrl,
@@ -53,6 +54,7 @@ describe('SupabaseJwtGuard', () => {
 
   beforeEach(() => {
     systemPrisma.user.findUnique.mockReset();
+    systemPrisma.reseller.findUnique.mockReset();
   });
 
   it('allows public routes without token', async () => {
@@ -142,7 +144,28 @@ describe('SupabaseJwtGuard', () => {
       systemPrisma as never,
     );
     await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(req.user).toMatchObject({ role: 'ADMIN', aal: 'aal2' });
+    expect(req.user).toMatchObject({ role: 'ADMIN', aal: 'aal2', resellerStatus: null });
     expect(req.tenantActor).toMatchObject({ userId: '1', role: 'ADMIN' });
+  });
+
+  it('loads resellerStatus for RESELLER users', async () => {
+    const jwt = await token({ sub: 'u2', aal: 'aal1' });
+    systemPrisma.user.findUnique.mockResolvedValue({
+      id: '2',
+      supabaseId: 'u2',
+      email: 'r@x.com',
+      role: 'RESELLER',
+      resellerId: 'res-1',
+      status: 'ACTIVE',
+    });
+    systemPrisma.reseller.findUnique.mockResolvedValue({ status: 'DELINQUENT' });
+    const { context, reflector, req } = ctx(`Bearer ${jwt}`);
+    const guard = new SupabaseJwtGuard(
+      reflector as unknown as Reflector,
+      env as never,
+      systemPrisma as never,
+    );
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(req.user).toMatchObject({ role: 'RESELLER', resellerStatus: 'DELINQUENT' });
   });
 });

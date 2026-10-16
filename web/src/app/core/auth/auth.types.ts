@@ -9,5 +9,7 @@ export interface AuthMe {
   role: UserRole;
   resellerId: string | null;
   status: string;
+  /** Status do tenant revendedor (ACTIVE | DELINQUENT | BLOCKED); null fora de RESELLER. */
+  resellerStatus?: string | null;
   aal: AalLevel;
 }

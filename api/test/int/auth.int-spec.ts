@@ -91,8 +91,36 @@ describe('supabase auth guard', () => {
         id: user.id,
         role: 'RESELLER',
         resellerId: reseller.id,
+        resellerStatus: 'ACTIVE',
       });
       expect(me.body.role).not.toBe('ADMIN');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('exposes resellerStatus DELINQUENT on /auth/me for banner gating', async () => {
+    const { adminPrisma } = getHarnessPostgres();
+    const plan = await adminPrisma.resellerPlan.create({
+      data: { name: 'P2', monthlyFeeCents: 1 },
+    });
+    const reseller = await adminPrisma.reseller.create({
+      data: {
+        name: 'Atrasado',
+        resellerPlanId: plan.id,
+        status: 'DELINQUENT',
+        delinquentSince: new Date(),
+      },
+    });
+    const user = await insertUser('RESELLER', { resellerId: reseller.id });
+    const session = loginAs('RESELLER', { supabaseId: user.supabaseId });
+    const { app } = await createTestApp();
+    try {
+      const me = await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${session.token}`)
+        .expect(200);
+      expect(me.body.resellerStatus).toBe('DELINQUENT');
     } finally {
       await app.close();
     }

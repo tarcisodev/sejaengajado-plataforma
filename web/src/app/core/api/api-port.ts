@@ -145,8 +145,19 @@ export interface ApiPort {
     slug: string;
     templateId: string;
     planId: string;
+    content?: Record<string, unknown>;
   }): Observable<ResellerSiteDto>;
+  patchResellerSite(
+    siteId: string,
+    body: {
+      templateId?: string;
+      planId?: string;
+      slug?: string;
+      content?: Record<string, unknown>;
+    },
+  ): Observable<ResellerSiteDto>;
   publishResellerSite(siteId: string): Observable<ResellerSiteDto>;
+  unpublishResellerSite(siteId: string): Observable<ResellerSiteDto>;
   checkResellerSlug(slug: string): Observable<SlugCheckDto>;
   listResellerSiteOptions(): Observable<SiteOptionsDto>;
   listResellerSales(cursor?: string | null): Observable<CursorPage<ResellerSaleDto>>;

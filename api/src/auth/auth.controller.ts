@@ -52,6 +52,7 @@ export class AuthController {
       role: user.role,
       resellerId: user.resellerId,
       status: user.status,
+      resellerStatus: user.resellerStatus,
       aal: user.aal,
     };
   }

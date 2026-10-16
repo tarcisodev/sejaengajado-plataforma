@@ -133,6 +133,7 @@ describe('ADMIN_PRISMA gate', () => {
         role: 'RESELLER',
         resellerId: user.resellerId ?? null,
         status: 'ACTIVE',
+        resellerStatus: 'ACTIVE',
         aal: 'aal1',
       };
       enterAuthUser(actor);
@@ -146,6 +147,7 @@ describe('ADMIN_PRISMA gate', () => {
         role: 'CUSTOMER',
         resellerId: null,
         status: 'ACTIVE',
+        resellerStatus: null,
         aal: 'aal1',
       });
       expect(() => adminPrisma.user.findMany()).toThrow(ForbiddenException);
@@ -166,6 +168,7 @@ describe('ADMIN_PRISMA gate', () => {
         role: 'ADMIN',
         resellerId: null,
         status: 'ACTIVE',
+        resellerStatus: null,
         aal: 'aal2',
       });
       await expect(adminPrisma.resellerPlan.findMany()).resolves.toBeDefined();
