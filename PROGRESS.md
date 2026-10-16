@@ -29,8 +29,7 @@
 FLUXO-FELIZ M0 - bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
 
 ## Proximo
-P0 #16 biosite SSR_PUBLIC_SITE (REQUEST_CONTEXT) — PR urgente após d7249c7.
-PROMPT-PIPELINE B/C (#13/#14). FLUXO-FELIZ M1+ (#8).
+#18 na `feat/18-vendedor-login-biosite`: P0 biosite (retry 404 + CDN no-store); vendedor; login senha+MFA; admin total; biosite FORMULA. PROMPT-PIPELINE B/C (#13/#14).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1-#6)_

@@ -204,6 +204,22 @@ export class HttpApiService implements ApiPort {
         slug: command.slug,
         templateId: command.templateId,
         planId: command.planId,
+        content: {
+          businessName: command.businessName,
+          phone: command.phone,
+          profile: {
+            nome: command.businessName,
+            cidade: command.address.cidade,
+            uf: command.address.uf,
+          },
+          address: {
+            logradouro: command.address.logradouro,
+            cidade: command.address.cidade,
+            uf: command.address.uf,
+            cep: command.address.cep,
+          },
+          theme: { niche: 'generico' },
+        },
       })
       .pipe(map((row) => siteFromResellerDto(row)));
   }
@@ -296,9 +312,50 @@ export class HttpApiService implements ApiPort {
       );
   }
 
-  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site> {
+  setSiteStatus(
+    siteId: string,
+    status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED',
+  ): Observable<Site> {
     return this.http
       .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/status`), { status })
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  getAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .get<ResellerSiteDto>(this.url(`/admin/sites/${siteId}`))
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  updateAdminSiteContent(
+    siteId: string,
+    content: SiteContent,
+    templateId?: string,
+  ): Observable<Site> {
+    const body: Record<string, unknown> = { content };
+    if (templateId) {
+      body['templateId'] = templateId;
+    }
+    return this.http
+      .patch<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/content`), body)
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  publishAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/publish`), {})
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  unpublishAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/unpublish`), {})
+      .pipe(map((row) => siteFromResellerDto(row)));
+  }
+
+  archiveAdminSite(siteId: string): Observable<Site> {
+    return this.http
+      .post<ResellerSiteDto>(this.url(`/admin/sites/${siteId}/archive`), {})
       .pipe(map((row) => siteFromResellerDto(row)));
   }
 
@@ -560,6 +617,10 @@ export class HttpApiService implements ApiPort {
 
   unpublishResellerSite(siteId: string): Observable<ResellerSiteDto> {
     return this.http.post<ResellerSiteDto>(this.url(`/reseller/sites/${siteId}/unpublish`), {});
+  }
+
+  deleteResellerSite(siteId: string): Observable<ResellerSiteDto | { ok: true }> {
+    return this.http.delete<ResellerSiteDto | { ok: true }>(this.url(`/reseller/sites/${siteId}`));
   }
 
   checkResellerSlug(slug: string): Observable<SlugCheckDto> {

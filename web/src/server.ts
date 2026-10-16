@@ -43,13 +43,22 @@ const supabaseAnonKey = (process.env['SUPABASE_ANON_KEY'] ?? '').trim();
 const apiPublicUrl = (process.env['API_PUBLIC_URL'] ?? '/api').trim() || '/api';
 
 if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    release: sentryRelease || undefined,
-    environment: process.env['NODE_ENV'] || 'production',
-    beforeSend: (event) => scrubSentryEvent(event),
-    ...({ sendDefaultPii: false } as object),
-  });
+  try {
+    Sentry.init({
+      dsn: sentryDsn,
+      release: sentryRelease || undefined,
+      environment: process.env['NODE_ENV'] || 'production',
+      beforeSend: (event) => scrubSentryEvent(event),
+      // Avoid optional `@sentry/server-runtime-injection` resolution failures in the image.
+      ...({
+        sendDefaultPii: false,
+        registerEsmLoaderHooks: false,
+        skipOpenTelemetrySetup: true,
+      } as object),
+    });
+  } catch (err) {
+    console.error('Sentry.init failed (SSR continues without Sentry)', err);
+  }
 }
 
 const app = express();

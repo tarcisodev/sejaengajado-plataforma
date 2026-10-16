@@ -105,20 +105,27 @@ export class AuthService {
     return data.currentLevel === 'aal2' ? 'aal2' : 'aal1';
   }
 
-  private bootstrapWithTimeout(): Promise<void> {
-    return Promise.race([
-      this.bootstrap(),
-      new Promise<void>((resolve) => {
-        setTimeout(() => {
-          if (this.sessionStatus() === 'loading') {
-            this.me.set(null);
-            this.sessionStatus.set('anonymous');
-          }
-          this.ready.set(true);
-          resolve();
-        }, BOOT_TIMEOUT_MS);
-      }),
-    ]);
+  /**
+   * Await bootstrap; only fall back to anonymous if it still has not finished
+   * within BOOT_TIMEOUT_MS. Do not resolve ensureReady early — that raced
+   * guards to /entrar while /api/auth/me was still in flight (broke F5).
+   */
+  private async bootstrapWithTimeout(): Promise<void> {
+    let finished = false;
+    const timer = setTimeout(() => {
+      if (!finished && this.sessionStatus() === 'loading') {
+        this.me.set(null);
+        this.sessionStatus.set('anonymous');
+        this.ready.set(true);
+      }
+    }, BOOT_TIMEOUT_MS);
+    try {
+      await this.bootstrap();
+    } finally {
+      finished = true;
+      clearTimeout(timer);
+      this.ready.set(true);
+    }
   }
 
   private async bootstrap(): Promise<void> {

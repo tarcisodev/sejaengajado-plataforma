@@ -479,13 +479,48 @@ export class MockApiService implements ApiPort {
     return of(structuredClone(log));
   }
 
-  setSiteStatus(siteId: string, status: 'PUBLISHED' | 'SUSPENDED'): Observable<Site> {
+  setSiteStatus(
+    siteId: string,
+    status: 'PUBLISHED' | 'SUSPENDED' | 'DRAFT' | 'ARCHIVED',
+  ): Observable<Site> {
     const site = this.requireSite(siteId);
-    if (site.status === 'ARCHIVED' || site.status === 'DRAFT') {
+    if (site.status === 'ARCHIVED' && status !== 'ARCHIVED') {
       throw new Error('site cannot change status');
     }
     site.status = status;
+    if (status === 'PUBLISHED') {
+      site.publishedAt = site.publishedAt ?? toCivilDate(new Date());
+    }
     return of(structuredClone(site));
+  }
+
+  getAdminSite(siteId: string): Observable<Site> {
+    return of(structuredClone(this.requireSite(siteId)));
+  }
+
+  updateAdminSiteContent(
+    siteId: string,
+    content: SiteContent,
+    templateId?: string,
+  ): Observable<Site> {
+    const site = this.requireSite(siteId);
+    site.content = structuredClone(content);
+    if (templateId) {
+      site.templateId = templateId;
+    }
+    return of(structuredClone(site));
+  }
+
+  publishAdminSite(siteId: string): Observable<Site> {
+    return this.setSiteStatus(siteId, 'PUBLISHED');
+  }
+
+  unpublishAdminSite(siteId: string): Observable<Site> {
+    return this.setSiteStatus(siteId, 'DRAFT');
+  }
+
+  archiveAdminSite(siteId: string): Observable<Site> {
+    return this.setSiteStatus(siteId, 'ARCHIVED');
   }
 
   savePlan(plan: Plan): Observable<Plan> {
@@ -892,6 +927,15 @@ export class MockApiService implements ApiPort {
       return throwError(() => new Error('not found'));
     }
     site.status = 'DRAFT';
+    return of(this.toResellerSiteDto(site));
+  }
+
+  deleteResellerSite(siteId: string): Observable<ResellerSiteDto | { ok: true }> {
+    const site = this.state.sites.find((item) => item.id === siteId);
+    if (!site) {
+      return throwError(() => new Error('not found'));
+    }
+    site.status = 'ARCHIVED';
     return of(this.toResellerSiteDto(site));
   }
 

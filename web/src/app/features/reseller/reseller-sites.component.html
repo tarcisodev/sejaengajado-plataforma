@@ -4,7 +4,31 @@
   </div>
 }
 
-@if (wizardOpen()) {
+@if (editing(); as site) {
+  <div class="mb-4 flex flex-wrap items-center gap-2">
+    <button
+      hlmBtn
+      type="button"
+      variant="outline"
+      class="h-11"
+      data-back-sites
+      (click)="closeEditor()"
+    >
+      Voltar à lista
+    </button>
+  </div>
+  <app-site-editor
+    [site]="site"
+    [busy]="editorBusy()"
+    [canPublish]="operable() && site.status !== 'PUBLISHED' && site.status !== 'ARCHIVED'"
+    [canUnpublish]="site.status === 'PUBLISHED'"
+    [canArchive]="site.status !== 'ARCHIVED'"
+    (saved)="onEditorSave($event)"
+    (published)="onEditorPublish()"
+    (unpublished)="onEditorUnpublish()"
+    (archived)="onEditorArchive()"
+  />
+} @else if (wizardOpen()) {
   <section hlmCard class="p-4 md:p-6" data-site-wizard>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="font-display text-xl">Novo site</h2>
@@ -269,7 +293,7 @@
   </p>
 }
 
-@if (!wizardOpen()) {
+@if (!wizardOpen() && !editing()) {
   <ul class="mt-4 grid gap-3 md:hidden" data-sites-cards>
     @if (visibleRows().length === 0) {
       <li hlmCard class="p-4 text-sm text-muted-foreground">Nenhum site ainda.</li>
@@ -288,6 +312,18 @@
             }}</span>
           </div>
           <div class="flex flex-wrap gap-2">
+            <button
+              hlmBtn
+              class="h-11 min-w-28"
+              type="button"
+              variant="outline"
+              data-edit-site
+              aria-label="Editar site"
+              title="Editar"
+              (click)="openEditor(row)"
+            >
+              Editar
+            </button>
             <a
               hlmBtn
               class="h-11 min-w-28"
@@ -369,6 +405,18 @@
             </td>
             <td hlmTd>
               <div class="flex flex-wrap gap-2">
+                <button
+                  hlmBtn
+                  class="h-11 min-w-28"
+                  type="button"
+                  variant="outline"
+                  data-edit-site
+                  aria-label="Editar site"
+                  title="Editar"
+                  (click)="openEditor(row)"
+                >
+                  Editar
+                </button>
                 <a
                   hlmBtn
                   class="h-11 min-w-28"

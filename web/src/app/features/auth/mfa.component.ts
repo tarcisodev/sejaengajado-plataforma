@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTriangleAlert } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
@@ -22,6 +22,7 @@ import { ensureSupabaseBrowser } from '../../core/auth/supabase-browser';
 export class MfaComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly qr = signal<string | null>(null);
   readonly secret = signal<string | null>(null);
@@ -72,7 +73,12 @@ export class MfaComponent implements OnInit {
         throw verified.error;
       }
       const me = await this.auth.refreshMe();
-      await this.router.navigateByUrl(this.auth.homePathForRole(me.role));
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim() ?? '';
+      const dest =
+        returnUrl.startsWith('/') && !returnUrl.startsWith('//')
+          ? returnUrl
+          : this.auth.homePathForRole(me.role);
+      await this.router.navigateByUrl(dest);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Código MFA inválido.');
     } finally {
