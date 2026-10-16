@@ -91,7 +91,6 @@ export class AdminInvoicesService {
     });
 
     const monthly = reseller.plan.monthlyFeeCents;
-    // Snapshot simples alinhado ao mock admin (mensalidade + sites ativos a 0 se sem custo no plano).
     const perSite = 0;
     const totalCents = monthly + activeSites.length * perSite;
 

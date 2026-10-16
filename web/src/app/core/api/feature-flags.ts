@@ -4,18 +4,16 @@ import { environment } from '../../../environments/environment';
 export const usesHttpApi = Boolean(environment.apiUrl?.trim());
 
 /**
- * Flags de superfície de UI. Em produção (HttpApi) todas as telas com backend
- * real ficam habilitadas — ver docs/no-mock-inventario.md.
+ * Superfície de UI ligada ao backend real. Em produção (`usesHttpApi`) todas
+ * ficam `true` — inventário em docs/no-mock-inventario.md. MockApi só em
+ * development/testes e nunca no bundle de produção (fileReplacements).
  */
 export const featureFlags = {
   adminCustomers: true,
   adminSites: true,
   adminRevenue: true,
   adminDashboard: true,
-  /** Admin: lista global de faturas (GET /admin/invoices). */
   adminFaturas: true,
-  /** Admin: DELETE /admin/coupons/:id (soft deactivate). */
   adminCouponDelete: true,
-  /** Cliente: GET/POST cancelamento + multa de placa. */
   customerPlaqueCancel: true,
 } as const;

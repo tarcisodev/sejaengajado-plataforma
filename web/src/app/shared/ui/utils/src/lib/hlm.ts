@@ -59,14 +59,11 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
 
     const element = elementRef.nativeElement;
 
-    // Create unique identifier for this source
     const sourceId = sourceCounter++;
 
-    // Get or create the class manager for this element
     let manager = elementClassManagers.get(element);
 
     if (!manager) {
-      // Initialize base classes from variation (host attribute 'class')
       const initialBaseClasses = new Set<string>();
 
       if (baseClasses) {
@@ -87,13 +84,10 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
       };
       elementClassManagers.set(element, manager);
 
-      // Setup global observer if needed and register this element
       setupGlobalObserver(platformId, zone);
       observedElements.add(element);
 
-      // Suppress transitions until the first effect writes correct classes and
-      // the browser has painted them. This prevents CSS transition animations
-      // during hydration when classes change from SSR state to client state.
+      // Evita flash de transição na hidratação (SSR → client).
       if (isPlatformBrowser(platformId)) {
         manager.previousTransition = element.style.getPropertyValue('transition');
         manager.previousTransitionPriority = element.style.getPropertyPriority('transition');
@@ -102,20 +96,16 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
       }
     }
 
-    // Assign order once at registration time
     const sourceOrder = manager.nextOrder++;
 
     function updateClasses(): void {
-      // Get the new classes from the computed function
       const newClasses = toClassList(computed());
 
-      // Update this source's classes, keeping the original order
       manager!.sources.set(sourceId, {
         classes: new Set(newClasses),
         order: sourceOrder,
       });
 
-      // Update the element
       updateElement(manager!);
 
       // Re-enable transitions after the first effect writes correct classes.
@@ -239,14 +229,12 @@ function updateElement(manager: ElementClassManager): void {
     // Get current classes on element (may include SSR classes)
     const currentClasses = toClassList(manager.element.className);
 
-    // Get all classes that will be applied by sources
     const allSourceClasses = new Set<string>();
     for (const source of manager.sources.values()) {
       source.classes.forEach((className) => allSourceClasses.add(className));
     }
 
-    // Only consider classes as "base" if they're not produced by any source
-    // This prevents SSR-rendered classes from being preserved as base classes
+    // Classes só do SSR (não produzidas por sources) viram base.
     currentClasses.forEach((className) => {
       if (!allSourceClasses.has(className)) {
         manager.baseClasses.add(className);
@@ -256,7 +244,6 @@ function updateElement(manager: ElementClassManager): void {
     manager.hasInitialized = true;
   }
 
-  // Get classes from all sources, sorted by registration order (later takes precedence)
   const sortedSources = Array.from(manager.sources.entries()).sort(
     ([, a], [, b]) => a.order - b.order,
   );
@@ -266,13 +253,11 @@ function updateElement(manager: ElementClassManager): void {
     allSourceClasses.push(...source.classes);
   }
 
-  // Combine base classes with all source classes, ensuring base classes take precedence
   const classesToApply =
     allSourceClasses.length > 0 || manager.baseClasses.size > 0
       ? hlm([...allSourceClasses, ...manager.baseClasses])
       : '';
 
-  // Apply the classes to the element
   if (manager.element.className !== classesToApply) {
     manager.element.className = classesToApply;
   }
