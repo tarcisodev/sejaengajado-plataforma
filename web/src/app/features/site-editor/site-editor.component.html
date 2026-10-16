@@ -1079,9 +1079,23 @@
                 hlmInput
                 class="h-11"
                 data-field="advSlug"
+                autocomplete="off"
+                inputmode="url"
+                aria-describedby="adv-slug-hint"
                 [value]="advSlug()"
-                (input)="advSlug.set(val($event))"
+                (input)="onAdvSlugInput($event)"
               />
+              <span
+                id="adv-slug-hint"
+                class="text-xs"
+                role="status"
+                aria-live="polite"
+                data-slug-hint
+                [attr.data-slug-state]="advSlugState()"
+                [class.text-destructive]="advSlugState() === 'unavailable' || advSlugState() === 'invalid'"
+                [class.text-muted-foreground]="advSlugState() !== 'unavailable' && advSlugState() !== 'invalid'"
+                >{{ advSlugHint() }}</span
+              >
             </label>
             <label class="grid gap-2 text-sm">
               Status

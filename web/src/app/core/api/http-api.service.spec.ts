@@ -132,22 +132,25 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
     expect(created.nome).toBe('Revenda Nova');
   });
 
-  it('maps by-host 410 to ARCHIVED and SUSPENDED flag (FF3)', async () => {
-    const gone = firstValueFrom(api.getSiteBySlug('arquivo'));
+  it('maps by-slug 410 to ARCHIVED, 404 to null and SUSPENDED flag (FF3)', async () => {
+    const gone = firstValueFrom(api.getSiteBySlug('Arquivo'));
     await Promise.resolve();
     http
-      .expectOne(
-        (r) =>
-          r.url.includes('/public/sites/by-host') &&
-          r.params.get('host') === 'arquivo.sejaengajado.com.br',
-      )
+      .expectOne((r) => r.url.endsWith('/public/sites/by-slug/arquivo') && r.method === 'GET')
       .flush({ code: 'GONE' }, { status: 410, statusText: 'Gone' });
     expect((await gone)?.status).toBe('ARCHIVED');
+
+    const draft = firstValueFrom(api.getSiteBySlug('rascunho'));
+    await Promise.resolve();
+    http
+      .expectOne((r) => r.url.endsWith('/public/sites/by-slug/rascunho'))
+      .flush({ code: 'NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+    expect(await draft).toBeNull();
 
     const suspended = firstValueFrom(api.getSiteBySlug('pausa'));
     await Promise.resolve();
     http
-      .expectOne((r) => r.url.includes('/public/sites/by-host'))
+      .expectOne((r) => r.url.endsWith('/public/sites/by-slug/pausa'))
       .flush({
         slug: 'pausa',
         status: 'SUSPENDED',
@@ -159,6 +162,32 @@ describe('HttpApiService (AUTH-WEB AW2)', () => {
         },
       });
     expect((await suspended)?.status).toBe('SUSPENDED');
+  });
+
+  it('checks admin slugs with excludeId and loads admin site options (#45)', async () => {
+    const check = firstValueFrom(api.checkAdminSlug('loja-nova', 'site-1'));
+    await Promise.resolve();
+    http
+      .expectOne(
+        (r) =>
+          r.url.endsWith('/admin/slugs/check') &&
+          r.params.get('slug') === 'loja-nova' &&
+          r.params.get('excludeId') === 'site-1',
+      )
+      .flush({ slug: 'loja-nova', available: true });
+    expect((await check).available).toBeTrue();
+
+    const noExclude = firstValueFrom(api.checkAdminSlug('loja-x'));
+    await Promise.resolve();
+    http
+      .expectOne((r) => r.url.endsWith('/admin/slugs/check') && !r.params.has('excludeId'))
+      .flush({ slug: 'loja-x', available: false, code: 'SLUG_TAKEN' });
+    expect((await noExclude).code).toBe('SLUG_TAKEN');
+
+    const options = firstValueFrom(api.listAdminSiteOptions());
+    await Promise.resolve();
+    http.expectOne((r) => r.url.endsWith('/admin/site-options')).flush({ plans: [], templates: [] });
+    expect((await options).plans).toEqual([]);
   });
 
   it('uses /customer/sites for self-service list/patch/publish (AW7)', async () => {

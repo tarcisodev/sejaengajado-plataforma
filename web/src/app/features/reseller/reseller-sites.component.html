@@ -234,7 +234,7 @@
             type="button"
             data-wizard-create
             aria-label="Salvar endereço e ver a prévia"
-            [disabled]="busy() || !slug()"
+            [disabled]="busy() || !slug() || (!!slugHint() && !slugOk())"
             (click)="confirmSlug()"
           >
             Ver prévia

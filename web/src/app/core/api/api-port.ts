@@ -161,6 +161,10 @@ export interface ApiPort {
   publishAdminSite(siteId: string): Observable<Site>;
   unpublishAdminSite(siteId: string): Observable<Site>;
   archiveAdminSite(siteId: string): Observable<Site>;
+  /** Admin: GET /admin/slugs/check?slug=&excludeId= (excludeId = site sendo editado). */
+  checkAdminSlug(slug: string, excludeId?: string | null): Observable<SlugCheckDto>;
+  /** Admin: GET /admin/site-options (planos + templates ativos para o wizard). */
+  listAdminSiteOptions(): Observable<SiteOptionsDto>;
   savePlan(plan: Plan): Observable<Plan>;
   saveCoupon(coupon: Coupon): Observable<Coupon>;
   deleteCoupon(couponId: string): Observable<void>;

@@ -24,6 +24,8 @@ export class PublicSitesController {
     @Query('host') host: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
+    // Set before lookup so 404/410 (e.g. DRAFT about to be published) are never cached.
+    res.setHeader('Cache-Control', 'private, no-store');
     if (!host?.trim()) {
       throw new NotFoundException({
         code: 'NOT_FOUND',
@@ -34,7 +36,6 @@ export class PublicSitesController {
     const { body, etag } = await this.sites.byHost(host);
     // no-store: SSR undici was revalidating with If-None-Match → 304 empty body →
     // Angular treated it as missing site (HTTP 200 + "não encontramos").
-    res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('ETag', etag);
     return body;
   }
@@ -46,6 +47,7 @@ export class PublicSitesController {
     @Param('slug') slug: string,
     @Res({ passthrough: true }) res: Response,
   ) {
+    res.setHeader('Cache-Control', 'private, no-store');
     const normalized = (slug ?? '').trim().toLowerCase();
     if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(normalized)) {
       throw new NotFoundException({
@@ -55,7 +57,6 @@ export class PublicSitesController {
     }
 
     const { body, etag } = await this.sites.byHost(`${normalized}.sejaengajado.com.br`);
-    res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('ETag', etag);
     return body;
   }

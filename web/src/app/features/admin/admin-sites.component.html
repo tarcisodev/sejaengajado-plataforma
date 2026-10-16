@@ -169,10 +169,24 @@
                 class="h-11"
                 name="slug"
                 data-create-field="slug"
+                autocomplete="off"
+                inputmode="url"
+                aria-describedby="create-slug-hint"
                 [value]="slug()"
-                (input)="slug.set(inputValue($event))"
+                (input)="onSlugInput($event)"
                 required
               />
+              <span
+                id="create-slug-hint"
+                class="text-xs"
+                role="status"
+                aria-live="polite"
+                data-slug-hint
+                [attr.data-slug-state]="slugState()"
+                [class.text-destructive]="slugState() === 'unavailable' || slugState() === 'invalid'"
+                [class.text-muted-foreground]="slugState() !== 'unavailable' && slugState() !== 'invalid'"
+                >{{ slugHint() }}</span
+              >
             </label>
             <div class="grid gap-2 text-sm">
               <span id="site-customer">Cliente</span>
@@ -205,7 +219,7 @@
                 </hlm-select-trigger>
                 <ng-template hlmSelectPortal>
                   <hlm-select-content>
-                    @for (template of templates(); track template.id) {
+                    @for (template of createTemplates(); track template.id) {
                       <hlm-select-item [value]="template.id">{{ template.nome }}</hlm-select-item>
                     }
                   </hlm-select-content>
@@ -224,7 +238,7 @@
                 </hlm-select-trigger>
                 <ng-template hlmSelectPortal>
                   <hlm-select-content>
-                    @for (plan of plans(); track plan.id) {
+                    @for (plan of createPlans(); track plan.id) {
                       <hlm-select-item [value]="plan.id">{{ plan.nome }}</hlm-select-item>
                     }
                   </hlm-select-content>
@@ -237,7 +251,14 @@
           }
         </div>
         <div hlmCardFooter class="flex flex-wrap gap-2">
-          <button hlmBtn class="h-11" type="submit">Salvar</button>
+          <button
+            hlmBtn
+            class="h-11"
+            type="submit"
+            [disabled]="slugBlocked()"
+          >
+            Salvar
+          </button>
           <button hlmBtn class="h-11" type="button" variant="outline" (click)="creating.set(false)">
             Voltar
           </button>

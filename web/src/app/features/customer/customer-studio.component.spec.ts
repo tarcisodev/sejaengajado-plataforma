@@ -111,11 +111,14 @@ describe('CustomerStudioComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-field="businessName"]')).toBeNull();
   });
 
-  it('updates niche and strip in the appearance editor and live preview', async () => {
+  it('uses the shared site-editor with live preview and keeps niche/strip in the draft (#45)', async () => {
     await render(customer('user_forno', 'forno@example.com'));
-    fixture.componentInstance.activate('aparencia');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-appearance-editor]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-studio-editor] [data-site-editor]'),
+    ).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-studio-editor] [data-editor-live-preview]'),
+    ).toBeTruthy();
 
     fixture.componentInstance.setNiche('barbearia');
     fixture.componentInstance.setStripEnabled(true);
@@ -125,7 +128,11 @@ describe('CustomerStudioComponent', () => {
     const draft = fixture.componentInstance.draft();
     expect(draft?.content.theme.niche).toBe('barbearia');
     expect(draft?.content.strip?.motif).toBe('tesoura');
-    expect(fixture.nativeElement.querySelector('[data-animated-strip]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-studio-editor] [data-editor-live-preview] [data-animated-strip]',
+      ),
+    ).toBeTruthy();
 
     fixture.componentInstance.resetAppearance();
     fixture.detectChanges();
