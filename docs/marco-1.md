@@ -48,10 +48,11 @@ Sem `E2E_HAPPY_PATH=1`, o Playwright só registra skip (não quebra CI).
 ## DoD do Marco 1
 
 - [x] `seed:demo` idempotente
-- [x] e2e sandbox (`api`) + spec Playwright happy-path
-- [ ] lint / test / test:int / build verdes na branch (rodar antes do merge)
+- [x] e2e sandbox (`api`) + spec Playwright happy-path (HX: biosite `?tenant=` + páginas jurídicas)
+- [x] lint / test / build web verdes no loop PROGRESS (2026-10-16)
+- [ ] test:int API verde na máquina local/CI antes do merge
 - [ ] **OK do Tarciso para o primeiro deploy de teste** (aprovação no environment `production` — não automatizar)
 
 ## Bloqueios restantes (Tarciso)
 
-Ver issues #1–#6 e `PROGRESS.md` › Bloqueios (SMTP, secrets, valores P6, textos jurídicos, RAM, OK deploy).
+Ver `PROGRESS.md` › Bloqueios. Issues #1–#6 fechados por decisão; deploy continua com aprovação manual no environment `production`.

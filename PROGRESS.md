@@ -20,14 +20,14 @@
 | LU6 | DONE | 221e96a | 2026-10-16 |
 | SEO1 | DONE | 1164d01 | 2026-10-16 |
 | UI7 | DONE | 9fd9d66 | 2026-10-16 |
-| DOC1 | TODO | — | — |
-| HX | TODO | — | — |
+| DOC1 | DONE | f8c73ef | 2026-10-16 |
+| HX | DONE | — | 2026-10-16 |
 
 ## Ultimo bloco
-UI7 — Editor de aparência (9fd9d66).
+HX — Happy-path e2e endurecido (Playwright + sandbox OK).
 
 ## Proximo
-DOC1 — Versionar plano de produção (`producao/PRODUCAO-*.md` + contribs).
+_(fila PROGRESS vazia — Marco 1 / go-live checklist em `docs/GO-LIVE.md`)_
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
