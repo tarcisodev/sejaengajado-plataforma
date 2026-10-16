@@ -7,7 +7,7 @@
 | FF1 | DONE | a36aa8a | 2026-10-16 |
 | FF2 | DONE | 3451581 | 2026-10-16 |
 | FF3 | DONE | 5c46b3e | 2026-10-16 |
-| FF4 | TODO | — | — |
+| FF4 | DONE | 0e4d9d5 | 2026-10-16 |
 | FF5 | TODO | — | — |
 | M1 | TODO | — | — |
 | AW6 | DONE | 379005c | 2026-10-16 |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-FF3 — Tema generico com --t-* (AA), catalogo em grid, Pix visivel com rotulo exemplo, nota Google "—"; SSR server.ts chama by-host (cache 60s), 503/Retry-After SUSPENDED, 410 ARCHIVED, 404; READ_ONLY segue como site.
+FF4 — Placa: OUT ASSIGN na API (Pronto + isolamento 404); painel no revendedor com link /avaliar, QR SVG/PNG, URL NFC, baixa estoque; SSR /avaliar → API; test:int ASSIGN + redirect ja existente.
 
 ## Proximo
-FF4 — Placa de avaliacao (link curto /avaliar, QR, NFC URL, PlaqueMovement).
+FF5 — Financeiro do revendedor (vendas, lucro, a pagar, ledger).
 
 ## Bloqueios / perguntas para o Tarciso
 - #5 P6 valores reais
