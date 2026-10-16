@@ -37,7 +37,7 @@ jobs:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
       - name: Expand/contract — block DROP/RENAME after production baseline
@@ -66,15 +66,15 @@ jobs:
             context: infra/backup
             file: infra/backup/Dockerfile
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push (SHA tag only)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
@@ -93,6 +93,7 @@ jobs:
     needs: [build]
     if: ${{ always() && (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '')) }}
     runs-on: [self-hosted, linux, vps]
+    timeout-minutes: 20
     environment: production
     env:
       IMAGE_TAG: ${{ inputs.rollback_tag || github.sha }}
@@ -102,13 +103,16 @@ jobs:
       ASAAS_BASE_URL: ${{ vars.ASAAS_BASE_URL }}
       SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Redeploy de SHA antigo: compose/scripts do commit de destino.
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '' && inputs.rollback_tag || github.sha }}
 
       - name: Login GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
 
       - name: Guarda de RAM
         run: |
@@ -137,7 +141,12 @@ jobs:
         run: |
           chmod +x infra/scripts/wait-oneoff.sh
           export IMAGE_TAG BACKUP_TAG S3_ENDPOINT SUPABASE_ANON_KEY
-          export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}"
+          # Alinha com infra/stack.yml: produção = api.asaas.com (nunca sandbox por omissão).
+          # Sandbox só via vars.ASAAS_BASE_URL explícito — e o gate abaixo bloqueia em production.
+          export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://api.asaas.com/v3}"
+          case "$ASAAS_BASE_URL" in
+            *sandbox*) echo "ASAAS_BASE_URL sandbox proibido no environment production" >&2; exit 1 ;;
+          esac
           docker service update --detach=true --with-registry-auth \
             --image "${REGISTRY}/sejaengajado-api:${IMAGE_TAG}" \
             --replicas 1 sejaengajado_migrate
@@ -147,7 +156,11 @@ jobs:
       - name: Stack deploy (SHA imutável)
         run: |
           export IMAGE_TAG BACKUP_TAG S3_ENDPOINT SUPABASE_ANON_KEY
-          export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}"
+          # Mesmo default de infra/stack.yml (produção). Ver runbook virar-asaas-producao.md.
+          export ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://api.asaas.com/v3}"
+          case "$ASAAS_BASE_URL" in
+            *sandbox*) echo "ASAAS_BASE_URL sandbox proibido no environment production" >&2; exit 1 ;;
+          esac
           test -n "$S3_ENDPOINT" || { echo "vars.S3_ENDPOINT obrigatório no environment production" >&2; exit 1; }
           # Fail closed if a :latest tag sneaks into the compose render.
           if docker stack config -c infra/stack.yml | grep -E ':latest([[:space:]]|$)'; then
