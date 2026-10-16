@@ -30,15 +30,13 @@ describe('ByHostMemoryCache', () => {
     jasmine.clock().uninstall();
   });
 
-  it('expires 404 within a few seconds so publish after miss recovers', () => {
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date('2026-10-16T12:00:00Z'));
+  it('does not store 404/304 so a miss cannot poison later publishes', () => {
     const cache = new ByHostMemoryCache();
     cache.set('demo-forno.sejaengajado.com.br', 404, null);
-    expect(cache.get('demo-forno.sejaengajado.com.br')?.status).toBe(404);
-    jasmine.clock().tick(BY_HOST_TTL_NEGATIVE_MS + 1);
     expect(cache.get('demo-forno.sejaengajado.com.br')).toBeNull();
-    jasmine.clock().uninstall();
+    cache.set('demo-forno.sejaengajado.com.br', 304, null);
+    expect(cache.get('demo-forno.sejaengajado.com.br')).toBeNull();
+    expect(BY_HOST_TTL_NEGATIVE_MS).toBeLessThan(10_000);
   });
 
   it('builds the canonical tenant host from a slug', () => {

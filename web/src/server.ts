@@ -12,6 +12,7 @@ import {
   businessNameFromBody,
   fetchPublicSiteBySlug,
 } from './app/core/ssr/fetch-public-site';
+import { SSR_PUBLIC_SITE } from './app/core/ssr/ssr-public-site';
 import { scrubSentryEvent } from './app/core/sentry/scrub';
 import bootstrap from './main.server';
 
@@ -130,10 +131,10 @@ function noticeHtml(title: string, body: string): string {
 app.get('**', async (req, res, next) => {
   const { protocol, originalUrl, baseUrl, headers } = req;
   const responseInit: ResponseInit = { status: 200 };
-  // Prefer X-Forwarded-Host behind Cloudflare → Traefik; fall back to Host.
   const host = requestHostFromHeaders(headers);
   const search = originalUrl.includes('?') ? originalUrl.slice(originalUrl.indexOf('?')) : '';
   const decision = resolveHost(host, search);
+  let ssrPublicSite: Record<string, unknown> | null = null;
 
   if (decision.kind === 'tenant') {
     const pathOnly = originalUrl.split('?')[0] ?? '/';
@@ -150,6 +151,7 @@ app.get('**', async (req, res, next) => {
       if (result.kind === 'not-found') {
         res
           .status(404)
+          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(
             noticeHtml('Negócio não encontrado', `O endereço ${decision.slug} não está publicado.`),
@@ -159,6 +161,7 @@ app.get('**', async (req, res, next) => {
       if (result.kind === 'archived') {
         res
           .status(410)
+          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(noticeHtml('Indisponível', 'Este site não está mais neste endereço.'));
         return;
@@ -168,6 +171,7 @@ app.get('**', async (req, res, next) => {
         res
           .status(503)
           .set('Retry-After', '3600')
+          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(
             noticeHtml('Temporariamente indisponível', `${name} está fora do ar por um momento.`),
@@ -177,10 +181,14 @@ app.get('**', async (req, res, next) => {
       if (result.kind === 'error') {
         res
           .status(502)
+          .set('Cache-Control', 'private, no-store')
           .type('html')
           .send(noticeHtml('Indisponível', 'Tente novamente em instantes.'));
         return;
       }
+      // Hand the already-fetched site to Angular — second HttpClient GET was
+      // racing Nest ETag/304 (Cache-Control: public) and rendering not-found at 200.
+      ssrPublicSite = result.body;
     } catch (err) {
       Sentry.captureException(err);
     }
@@ -198,9 +206,15 @@ app.get('**', async (req, res, next) => {
       providers: [
         { provide: APP_BASE_HREF, useValue: baseUrl },
         { provide: RESPONSE_INIT, useValue: responseInit },
+        { provide: SSR_PUBLIC_SITE, useValue: ssrPublicSite },
       ],
     })
-    .then((html) => res.status(responseInit.status ?? 200).send(html))
+    .then((html) => {
+      if (decision.kind === 'tenant') {
+        res.set('Cache-Control', 'private, no-store');
+      }
+      res.status(responseInit.status ?? 200).send(html);
+    })
     .catch((err) => {
       Sentry.captureException(err);
       next(err);

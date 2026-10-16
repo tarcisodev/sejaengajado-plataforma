@@ -1,8 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { API_PORT } from '../../core/api/api-port';
 import { Site, SiteContent } from '../../core/models/domain';
-import { MockApiService } from '../../mocks/mock-api.service';
 import { createUberabaSeed } from '../../mocks/uberaba-seed';
 import { SitePageComponent } from './site-page.component';
 
@@ -11,7 +9,6 @@ describe('SitePageComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [SitePageComponent],
-      providers: [MockApiService, { provide: API_PORT, useExisting: MockApiService }],
     });
     const fixture = TestBed.createComponent(SitePageComponent);
     fixture.componentInstance.site = site;
@@ -22,11 +19,13 @@ describe('SitePageComponent', () => {
   }
 
   function seedSite(slug: string): Site {
-    const site = createUberabaSeed().sites.find((item) => item.slug === slug);
+    const seed = createUberabaSeed();
+    const site = seed.sites.find((item) => item.slug === slug);
     if (!site) {
       throw new Error(slug);
     }
-    return site;
+    const template = seed.templates.find((item) => item.id === site.templateId);
+    return { ...site, schemaType: template?.schemaType };
   }
 
   it('renders the barbershop blocks and hides Pix when it is absent', async () => {

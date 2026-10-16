@@ -1,7 +1,13 @@
 import { requestHostFromHeaders, resolveHost, tenantPreviewUrl } from './resolve-host';
 
 describe('resolveHost', () => {
-  it('prefers X-Forwarded-Host over Host (Cloudflare → Traefik)', () => {
+  it('prefers a public Host over X-Forwarded-Host junk', () => {
+    expect(
+      requestHostFromHeaders({
+        host: 'demo-forno.sejaengajado.com.br',
+        'x-forwarded-host': 'web-ssr:4000',
+      }),
+    ).toBe('demo-forno.sejaengajado.com.br');
     expect(
       requestHostFromHeaders({
         host: 'web-ssr:4000',

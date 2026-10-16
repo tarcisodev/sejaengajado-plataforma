@@ -22,7 +22,6 @@ export class PublicSitesController {
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
   async byHost(
     @Query('host') host: string | undefined,
-    @Headers('if-none-match') ifNoneMatch: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
     if (!host?.trim()) {
@@ -33,12 +32,10 @@ export class PublicSitesController {
     }
 
     const { body, etag } = await this.sites.byHost(host);
-    res.setHeader('Cache-Control', 'public, max-age=60');
+    // no-store: SSR undici was revalidating with If-None-Match → 304 empty body →
+    // Angular treated it as missing site (HTTP 200 + "não encontramos").
+    res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('ETag', etag);
-    if (ifNoneMatch && ifNoneMatch === etag) {
-      res.status(304);
-      return;
-    }
     return body;
   }
 

@@ -11,17 +11,33 @@ const LOCAL_SUFFIX = '.localhost';
 
 /**
  * Host seen by Express behind Cloudflare → Traefik.
- * Prefer X-Forwarded-Host (first hop) when present; never invent a tenant from junk.
+ * Prefer Host when it already looks like our public hostname; X-Forwarded-Host
+ * only as fallback (some hops put junk / internal names in XFH first).
  */
 export function requestHostFromHeaders(headers: {
   host?: string | string[];
   'x-forwarded-host'?: string | string[];
 }): string {
+  const host = headerFirst(headers.host);
   const xf = headerFirst(headers['x-forwarded-host']);
-  if (xf) {
+  if (host && looksLikePublicHost(host)) {
+    return host;
+  }
+  if (xf && looksLikePublicHost(xf)) {
     return xf;
   }
-  return headerFirst(headers.host) ?? '';
+  return xf || host || '';
+}
+
+function looksLikePublicHost(value: string): boolean {
+  const host = hostnameOf(value);
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === 'sejaengajado.com.br' ||
+    host.endsWith('.sejaengajado.com.br') ||
+    host === '127.0.0.1'
+  );
 }
 
 function headerFirst(value: string | string[] | undefined): string | null {

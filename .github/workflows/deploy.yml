@@ -185,14 +185,29 @@ jobs:
             if curl -fsS --max-time 5 "https://app.sejaengajado.com.br/healthz" | grep -qx 'ok'; then
               web_hz=1
             fi
-            # Tenant SSR: 200 + business name (not Traefik bare 404 / Express "Negócio não encontrado").
-            tenant_body="$(mktemp)"
-            tenant_code=$(curl -sS --max-time 15 -o "$tenant_body" -w "%{http_code}" \
-              "https://demo-forno.sejaengajado.com.br/" || echo "000")
-            if [[ "$tenant_code" == "200" ]] && grep -Fq 'Forno' "$tenant_body"; then
-              tenant_ok=1
+            # Smoke somente-leitura (publico.spec): 3 demos 200+nome; slug inexistente 404 limpo.
+            tenant_ok=1
+            for pair in "demo-forno:Forno" "demo-barbearia:Barbearia" "demo-estudio:Luz"; do
+              slug="${pair%%:*}"
+              needle="${pair##*:}"
+              body="$(mktemp)"
+              code=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
+                "https://${slug}.sejaengajado.com.br/" || echo "000")
+              if [[ "$code" != "200" ]] || ! grep -Fq "$needle" "$body"; then
+                tenant_ok=0
+              fi
+              if grep -Eiq 'Negócio não encontrado|Não encontramos esse negócio' "$body"; then
+                tenant_ok=0
+              fi
+              rm -f "$body"
+            done
+            miss_body="$(mktemp)"
+            miss_code=$(curl -sS --max-time 10 -o "$miss_body" -w "%{http_code}" \
+              "https://slug-inexistente-fluxo-feliz.sejaengajado.com.br/" || echo "000")
+            if [[ "$miss_code" != "404" ]] || grep -Fqi '404 page not found' "$miss_body"; then
+              tenant_ok=0
             fi
-            rm -f "$tenant_body"
+            rm -f "$miss_body"
             # Running task count for web-ssr
             web_running=$(docker service ps sejaengajado_web-ssr --filter desired-state=running --format '{{.CurrentState}}' 2>/dev/null | grep -c '^Running' || true)
             [[ "${web_running:-0}" -ge 1 ]] && web_ready=1 || web_ready=0

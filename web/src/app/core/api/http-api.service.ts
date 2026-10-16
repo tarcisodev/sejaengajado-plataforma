@@ -38,6 +38,7 @@ import {
   toApiPlatformConfig,
   unsupported,
 } from './api-mappers';
+import { archivedPublicSite, siteFromPublicBody } from './public-site.mapper';
 import { endOfDaySaoPauloIso } from './coupon-date';
 import type {
   AdminPlaqueMoveCommand,
@@ -105,6 +106,8 @@ export class HttpApiService implements ApiPort {
   }
 
   listTemplates(): Observable<Template[]> {
+    // Admin-only. Do not fall back to /customer/templates — that looped 401/404
+    // on every public tenant SSR via SitePageComponent.
     return this.http
       .get<{ items?: { id: string; key: string; name: string; niche: string; schemaType?: string }[] }>(
         this.url('/admin/templates'),
@@ -123,7 +126,6 @@ export class HttpApiService implements ApiPort {
             }),
           ),
         ),
-        catchError(() => this.listCustomerTemplates()),
       );
   }
 
@@ -221,9 +223,10 @@ export class HttpApiService implements ApiPort {
     return this.http
       .get<Record<string, unknown>>(this.url('/public/sites/by-host'), {
         params: new HttpParams().set('host', host),
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
       })
       .pipe(
-        map((body) => publicSiteToDomain(body, slug)),
+        map((body) => siteFromPublicBody(body, slug)),
         catchError((error: unknown) => {
           if (error instanceof HttpErrorResponse && error.status === 410) {
             return of(archivedPublicSite(slug));
@@ -838,44 +841,6 @@ function siteFromResellerDto(row: ResellerSiteDto): Site {
     publishedAt: row.publishedAt,
     hostingRenewsAt: row.hostingRenewsAt,
     plaqueFidelityEndsAt: row.plaqueFidelityEndsAt,
-  };
-}
-
-function publicSiteToDomain(body: Record<string, unknown>, slug: string): Site {
-  const unavailable = Boolean(body['temporarilyUnavailable']);
-  const status = unavailable ? 'SUSPENDED' : ((body['status'] as Site['status']) ?? 'PUBLISHED');
-  return {
-    id: String(body['id'] ?? slug),
-    customerId: String(body['customerId'] ?? ''),
-    resellerId: (body['resellerId'] as string | null) ?? null,
-    slug: String(body['slug'] ?? slug),
-    customDomain: (body['customDomain'] as string | null) ?? null,
-    templateId: String(body['templateId'] ?? body['templateKey'] ?? ''),
-    content: (body['content'] as Site['content']) ?? emptySiteContent(slug),
-    status,
-    planId: String(body['planId'] ?? ''),
-    editable: Boolean(body['editable'] ?? false),
-    publishedAt: (body['publishedAt'] as string | null) ?? null,
-    hostingRenewsAt: (body['hostingRenewsAt'] as string | null) ?? null,
-    plaqueFidelityEndsAt: (body['plaqueFidelityEndsAt'] as string | null) ?? null,
-  };
-}
-
-function archivedPublicSite(slug: string): Site {
-  return {
-    id: slug,
-    customerId: '',
-    resellerId: null,
-    slug,
-    customDomain: null,
-    templateId: '',
-    content: emptySiteContent(slug),
-    status: 'ARCHIVED',
-    planId: '',
-    editable: false,
-    publishedAt: null,
-    hostingRenewsAt: null,
-    plaqueFidelityEndsAt: null,
   };
 }
 

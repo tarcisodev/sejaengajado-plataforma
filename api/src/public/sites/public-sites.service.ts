@@ -15,6 +15,8 @@ export interface PublicSiteBody {
   slug: string;
   status: string;
   templateKey: string;
+  /** JSON-LD type from Template — public tenants must not call /admin/templates. */
+  schemaType: string;
   content: unknown;
   temporarilyUnavailable: boolean;
 }
@@ -77,6 +79,7 @@ export class PublicSitesService {
       slug: site.slug,
       status: site.status,
       templateKey: site.template.key,
+      schemaType: site.template.schemaType || 'LocalBusiness',
       content: site.content,
       temporarilyUnavailable: site.status === 'SUSPENDED',
     };

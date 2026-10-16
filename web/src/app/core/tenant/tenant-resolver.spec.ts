@@ -1,8 +1,11 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
 import { API_PORT } from '../api/api-port';
+import { AuthService } from '../auth/auth.service';
 import { MockApiService } from '../../mocks/mock-api.service';
+import { SSR_PUBLIC_SITE } from '../ssr/ssr-public-site';
 import { TenantResolver } from './tenant-resolver';
 import { applyHttpStatus } from './tenant-view';
 
@@ -15,6 +18,14 @@ describe('TenantResolver', () => {
         TenantResolver,
         MockApiService,
         { provide: API_PORT, useExisting: MockApiService },
+        {
+          provide: AuthService,
+          useValue: {
+            me: signal(null),
+            sessionStatus: signal('anonymous'),
+            ready: signal(true),
+          },
+        },
       ],
     });
     resolver = TestBed.inject(TenantResolver);
@@ -69,5 +80,42 @@ describe('TenantResolver', () => {
     const response: ResponseInit = {};
     applyHttpStatus(response, view);
     expect(response.status).toBe(410);
+  });
+
+  it('reuses SSR_PUBLIC_SITE without calling the API', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        TenantResolver,
+        MockApiService,
+        { provide: API_PORT, useExisting: MockApiService },
+        {
+          provide: AuthService,
+          useValue: {
+            me: signal(null),
+            sessionStatus: signal('anonymous'),
+            ready: signal(true),
+          },
+        },
+        {
+          provide: SSR_PUBLIC_SITE,
+          useValue: {
+            status: 'PUBLISHED',
+            slug: 'demo-forno',
+            templateKey: 'restaurante',
+            schemaType: 'Restaurant',
+            content: { businessName: 'Forno da Praça', profile: { nome: 'Forno' }, theme: {} },
+            temporarilyUnavailable: false,
+          },
+        },
+      ],
+    });
+    const withSsr = TestBed.inject(TenantResolver);
+    const view = await firstValueFrom(withSsr.resolve('demo-forno.sejaengajado.com.br'));
+    expect(view.kind).toBe('site');
+    if (view.kind === 'site') {
+      expect(view.site.content.businessName).toContain('Forno');
+      expect(view.site.schemaType).toBe('Restaurant');
+    }
   });
 });

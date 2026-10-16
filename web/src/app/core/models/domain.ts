@@ -211,6 +211,8 @@ export interface Site {
   slug: string;
   customDomain: string | null;
   templateId: string;
+  /** From public by-host (template.schemaType) — no auth needed on tenant SSR. */
+  schemaType?: string;
   content: SiteContent;
   status: SiteStatus;
   planId: string;

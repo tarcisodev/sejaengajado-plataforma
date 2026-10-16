@@ -14,9 +14,10 @@ export const BY_HOST_TTL_NEGATIVE_MS = 3_000;
 const MAX_ENTRIES = 500;
 
 function ttlForStatus(status: number, body: Record<string, unknown> | null): number {
-  if (status >= 200 && status < 400 && body) {
+  if (status >= 200 && status < 300 && body) {
     return BY_HOST_TTL_OK_MS;
   }
+  // Negatives: keep brief (publish-after-miss must recover in seconds).
   return BY_HOST_TTL_NEGATIVE_MS;
 }
 
@@ -40,6 +41,10 @@ export class ByHostMemoryCache {
   }
 
   set(host: string, status: number, body: Record<string, unknown> | null): void {
+    // Never persist hard misses — Nest 304/empty or brief API blips must not stick.
+    if (status === 404 || status === 410 || status === 304) {
+      return;
+    }
     const key = normalizeHost(host);
     this.map.delete(key);
     this.map.set(key, {

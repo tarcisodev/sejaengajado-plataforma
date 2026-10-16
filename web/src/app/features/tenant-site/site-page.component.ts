@@ -14,9 +14,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
-import { Subscription } from 'rxjs';
 
-import { API_PORT } from '../../core/api/api-port';
 import { Site } from '../../core/models/domain';
 import { resolveTheme, themeToCssVars } from '../../core/theme/niche-themes';
 import {
@@ -49,13 +47,11 @@ import { SectionDividerComponent } from './ui/section-divider.component';
   styleUrl: './site-page.component.scss',
 })
 export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
-  private readonly api = inject(API_PORT);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
   private readonly document = inject(DOCUMENT);
   private readonly renderer = inject(Renderer2);
-  private templatesSub: Subscription | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private jsonLd: HTMLScriptElement | null = null;
 
@@ -91,16 +87,11 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
     this.syncTheme();
     this.refreshOpenNow();
     this.refreshClock();
+    // schemaType comes from public by-host — never call /admin or /customer/templates on tenant SSR.
+    this.schemaType.set(schemaTypeForContent(this.site.content, this.site.schemaType));
     if (!this.embed) {
       this.applyHead(this.schemaType());
     }
-    this.templatesSub = this.api.listTemplates().subscribe((templates) => {
-      const found = templates.find((item) => item.id === this.site.templateId);
-      this.schemaType.set(schemaTypeForContent(this.site.content, found?.schemaType));
-      if (!this.embed) {
-        this.applyHead(this.schemaType());
-      }
-    });
   }
 
   private syncTheme(): void {
@@ -171,7 +162,6 @@ export class SitePageComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.templatesSub?.unsubscribe();
     if (this.timer) {
       clearInterval(this.timer);
     }

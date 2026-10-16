@@ -12,7 +12,9 @@
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
     "e2e": "playwright test",
-    "e2e:happy": "playwright test e2e/happy-path.spec.ts"
+    "e2e:happy": "playwright test e2e/happy-path.spec.ts",
+    "e2e:fluxo-feliz": "playwright test e2e/fluxo-feliz",
+    "e2e:publico:prod": "node scripts/e2e-publico-prod.mjs"
   },
   "private": true,
   "overrides": {

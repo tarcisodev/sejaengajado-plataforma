@@ -58,9 +58,7 @@ describe('fetch-public-site (SSR tenant)', () => {
     expect(canonicalTenantHost('demo-forno')).toBe('demo-forno.sejaengajado.com.br');
   });
 
-  it('caches ok by-host for 60s and does not stick 404 for a minute', async () => {
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date('2026-10-16T12:00:00Z'));
+  it('does not cache 404 so publish after miss is visible on the next request', async () => {
     const cache = new ByHostMemoryCache();
 
     const miss = jasmine
@@ -69,13 +67,6 @@ describe('fetch-public-site (SSR tenant)', () => {
     const first = await fetchPublicSiteByHost('loja.sejaengajado.com.br', miss, cache);
     expect(first.kind).toBe('not-found');
     expect(miss).toHaveBeenCalledTimes(1);
-
-    // Still inside negative TTL — cached miss.
-    const second = await fetchPublicSiteByHost('loja.sejaengajado.com.br', miss, cache);
-    expect(second.kind).toBe('not-found');
-    expect(miss).toHaveBeenCalledTimes(1);
-
-    jasmine.clock().tick(BY_HOST_TTL_NEGATIVE_MS + 1);
 
     const hit = jasmine.createSpy('fetch-200').and.resolveTo(
       new Response(
@@ -90,8 +81,16 @@ describe('fetch-public-site (SSR tenant)', () => {
     const afterPublish = await fetchPublicSiteByHost('loja.sejaengajado.com.br', hit, cache);
     expect(afterPublish.kind).toBe('ok');
     expect(hit).toHaveBeenCalledTimes(1);
+    expect(BY_HOST_TTL_NEGATIVE_MS).toBeLessThan(10_000);
+  });
 
-    jasmine.clock().uninstall();
+  it('treats Nest 304 as transport error (not not-found)', async () => {
+    const cache = new ByHostMemoryCache();
+    const fetchImpl = jasmine
+      .createSpy('fetch-304')
+      .and.resolveTo(new Response(null, { status: 304 }));
+    const result = await fetchPublicSiteByHost('loja.sejaengajado.com.br', fetchImpl, cache);
+    expect(result.kind).toBe('error');
   });
 
   it('maps archived host to gone without body parse', async () => {

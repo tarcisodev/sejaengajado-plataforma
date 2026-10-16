@@ -72,8 +72,17 @@ export async function fetchPublicSiteByHost(
   const url = `${apiInternalBase()}/api/public/sites/by-host?host=${encodeURIComponent(normalized)}`;
   try {
     const response = await fetchImpl(url, {
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+      cache: 'no-store',
     });
+    // 304 without body must not be treated as "site missing".
+    if (response.status === 304) {
+      return { kind: 'error', status: 502 };
+    }
     let body: Record<string, unknown> | null = null;
     if (response.status !== 404 && response.status !== 410) {
       try {

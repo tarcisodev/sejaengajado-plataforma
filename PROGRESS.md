@@ -23,12 +23,13 @@
 | DOC1 | DONE | f8c73ef | 2026-10-16 |
 | HX | DONE | f1cfaac | 2026-10-16 |
 | TENANT-404 | DONE | 15f9658 / 2689e80 | 2026-10-16 |
+| FLUXO-FELIZ M0 | DONE | (push) | 2026-10-16 |
 
 ## Ultimo bloco
-TENANT-404 — SSR tenant: host canônico + TTL curto 404 + API_INTERNAL no SSR; gate demo-forno 200+Forno.
+FLUXO-FELIZ M0 — bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
 
 ## Proximo
-_(fila PROGRESS vazia — Marco 1 / go-live checklist em `docs/GO-LIVE.md`)_
+FLUXO-FELIZ M1 — admin-site.spec + site-editor + 0.e/f5/0.c/0.d (apos aprovacao do deploy M0).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1–#6)_
