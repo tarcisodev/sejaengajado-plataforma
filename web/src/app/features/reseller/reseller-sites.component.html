@@ -22,20 +22,53 @@
 
     @switch (step()) {
       @case ('cliente') {
-        <label class="mt-4 grid max-w-md gap-1 text-sm">
-          Cliente
-          <select
-            class="h-11 rounded-lg border border-input bg-background px-3"
-            data-wizard-customer
-            [value]="customerId()"
-            (change)="onCustomerChange($event)"
-          >
-            @for (customer of customers(); track customer.id) {
-              <option [value]="customer.id">{{ customer.name }}</option>
-            }
-          </select>
-        </label>
-        <button hlmBtn class="mt-4 h-11" type="button" (click)="nextFromCliente()">
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1 text-sm sm:col-span-2">
+            Cliente existente
+            <select
+              class="h-11 rounded-lg border border-input bg-background px-3"
+              data-wizard-customer
+              [value]="customerId()"
+              (change)="onCustomerChange($event)"
+            >
+              <option value="">— Novo negócio (manual) —</option>
+              @for (customer of customers(); track customer.id) {
+                <option [value]="customer.id">{{ customer.name }}</option>
+              }
+            </select>
+          </label>
+          @if (!customerId()) {
+            <label class="grid gap-1 text-sm">
+              Nome do negócio
+              <input
+                hlmInput
+                class="h-11"
+                data-wizard-new-customer-name
+                [value]="newCustomerName()"
+                (input)="newCustomerName.set($any($event.target).value)"
+              />
+            </label>
+            <label class="grid gap-1 text-sm">
+              WhatsApp
+              <input
+                hlmInput
+                class="h-11"
+                data-wizard-new-customer-whatsapp
+                [value]="newCustomerWhatsapp()"
+                (input)="newCustomerWhatsapp.set($any($event.target).value)"
+                placeholder="5534…"
+              />
+            </label>
+          }
+        </div>
+        <button
+          hlmBtn
+          class="mt-4 h-11"
+          type="button"
+          data-wizard-cliente-next
+          [disabled]="busy()"
+          (click)="nextFromCliente()"
+        >
           Continuar
         </button>
       }
@@ -162,30 +195,46 @@
       }
       @case ('previa') {
         @if (draft(); as site) {
-          <div class="mt-4 grid gap-2 text-sm" data-wizard-preview>
-            <p>
-              Endereço:
-              <a class="underline" [href]="publicUrl(site.slug)" target="_blank" rel="noopener">
-                {{ publicUrl(site.slug) }}
-              </a>
-            </p>
-            <p>Status: {{ site.status }}</p>
-            <p>Cliente: {{ site.customer?.name ?? site.customerId }}</p>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <button hlmBtn class="h-11" type="button" variant="outline" (click)="step.set('slug')">
-              Voltar
-            </button>
-            <button
-              hlmBtn
-              class="h-11"
-              type="button"
-              data-wizard-publish
-              [disabled]="busy() || !operable()"
-              (click)="publishDraft()"
-            >
-              Publicar
-            </button>
+          <div class="mt-4 grid gap-6 lg:grid-cols-2" data-wizard-preview>
+            <div class="grid gap-2 text-sm">
+              <p>
+                Endereço:
+                <a class="underline" [href]="publicUrl(site.slug)" target="_blank" rel="noopener">
+                  {{ publicUrl(site.slug) }}
+                </a>
+              </p>
+              <p>Status: {{ site.status }}</p>
+              <p>Cliente: {{ site.customer?.name ?? site.customerId }}</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  hlmBtn
+                  class="h-11"
+                  type="button"
+                  variant="outline"
+                  (click)="step.set('slug')"
+                >
+                  Voltar
+                </button>
+                <button
+                  hlmBtn
+                  class="h-11"
+                  type="button"
+                  data-wizard-publish
+                  [disabled]="busy() || !operable()"
+                  (click)="publishDraft()"
+                >
+                  Publicar
+                </button>
+              </div>
+            </div>
+            @if (previewSite(); as preview) {
+              <div
+                class="min-w-0 overflow-x-auto rounded-lg border border-border bg-background"
+                data-wizard-live-preview
+              >
+                <app-site-page [site]="preview" [embed]="true" />
+              </div>
+            }
           </div>
         }
       }

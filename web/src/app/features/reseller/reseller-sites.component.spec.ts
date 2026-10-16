@@ -1,13 +1,13 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
 import { API_PORT } from '../../core/api/api-port';
 import { AuthService } from '../../core/auth/auth.service';
 import { ResellerSitesComponent } from './reseller-sites.component';
 
-describe('ResellerSitesComponent (AW3)', () => {
-  function setup(resellerStatus: string): ComponentFixture<ResellerSitesComponent> {
+describe('ResellerSitesComponent (AW3/FF2)', () => {
+  function setup(resellerStatus: string) {
     const checkSlug = jasmine.createSpy('checkResellerSlug').and.callFake((slug: string) =>
       of({
         slug,
@@ -15,21 +15,48 @@ describe('ResellerSitesComponent (AW3)', () => {
         code: slug === 'loja-livre' ? undefined : 'SLUG_TAKEN',
       }),
     );
-    const createSite = jasmine.createSpy('createResellerSite').and.returnValue(
+    const draftSite = {
+      id: 'site-new',
+      resellerId: 'r1',
+      customerId: 'c1',
+      slug: 'loja-livre',
+      templateId: 't1',
+      planId: 'p1',
+      status: 'DRAFT',
+      editable: true,
+      content: {
+        businessName: 'Cliente',
+        profile: { nome: 'Cliente', cidade: 'Uberaba', uf: 'MG' },
+        theme: {
+          p1: '#1e3a5f',
+          p2: '#3d5a4c',
+          p3: '#d5e2dc',
+          on3: '#102018',
+          hi: '#f4f7f6',
+          fontHeading: 'Fraunces, Palatino, serif',
+          fontBody: 'Literata, Georgia, serif',
+          fontScale: 1,
+          italic: 'normal',
+        },
+        pix: { chave: 'exemplo', nome: 'exemplo' },
+      },
+      publishedAt: null,
+      hostingRenewsAt: null,
+      plaqueFidelityEndsAt: null,
+      customer: { id: 'c1', name: 'Cliente' },
+    };
+    const createSite = jasmine.createSpy('createResellerSite').and.returnValue(of(draftSite));
+    const publishSite = jasmine
+      .createSpy('publishResellerSite')
+      .and.returnValue(of({ ...draftSite, status: 'PUBLISHED' }));
+    const createCustomer = jasmine.createSpy('createResellerCustomer').and.returnValue(
       of({
-        id: 'site-new',
+        id: 'c-new',
         resellerId: 'r1',
-        customerId: 'c1',
-        slug: 'loja-livre',
-        templateId: 't1',
-        planId: 'p1',
-        status: 'DRAFT',
-        editable: true,
-        content: {},
-        publishedAt: null,
-        hostingRenewsAt: null,
-        plaqueFidelityEndsAt: null,
-        customer: { id: 'c1', name: 'Cliente' },
+        name: 'Padaria Nova',
+        doc: '',
+        whatsapp: '5534999990000',
+        city: '',
       }),
     );
 
@@ -90,20 +117,22 @@ describe('ResellerSitesComponent (AW3)', () => {
               }),
             checkResellerSlug: checkSlug,
             createResellerSite: createSite,
-            publishResellerSite: () => of({}),
+            createResellerCustomer: createCustomer,
+            publishResellerSite: publishSite,
             unpublishResellerSite: () => of({}),
             patchResellerSite: () => of({}),
+            listTemplates: () => of([]),
           },
         },
       ],
     });
     const fixture = TestBed.createComponent(ResellerSitesComponent);
     fixture.detectChanges();
-    return fixture;
+    return { fixture, createCustomer, publishSite };
   }
 
   it('blocks opening the wizard when reseller is DELINQUENT', async () => {
-    const fixture = setup('DELINQUENT');
+    const { fixture } = setup('DELINQUENT');
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-reseller-locked]')).toBeTruthy();
@@ -113,7 +142,7 @@ describe('ResellerSitesComponent (AW3)', () => {
   });
 
   it('shows slug unavailable for taken or reserved values', async () => {
-    const fixture = setup('ACTIVE');
+    const { fixture } = setup('ACTIVE');
     await fixture.whenStable();
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-open-wizard]') as HTMLButtonElement).click();
@@ -139,8 +168,8 @@ describe('ResellerSitesComponent (AW3)', () => {
     ).toBeTrue();
   });
 
-  it('creates a draft after an available slug', async () => {
-    const fixture = setup('ACTIVE');
+  it('creates a draft after an available slug and shows live preview (FF2)', async () => {
+    const { fixture } = setup('ACTIVE');
     await fixture.whenStable();
     fixture.detectChanges();
     fixture.componentInstance.openWizard();
@@ -158,5 +187,23 @@ describe('ResellerSitesComponent (AW3)', () => {
 
     expect(fixture.componentInstance.step()).toBe('previa');
     expect(fixture.nativeElement.querySelector('[data-wizard-preview]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-wizard-live-preview]')).toBeTruthy();
+  });
+
+  it('creates a new customer from the wizard when none is selected (FF2)', async () => {
+    const { fixture, createCustomer } = setup('ACTIVE');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    fixture.componentInstance.openWizard();
+    fixture.componentInstance.customerId.set('');
+    fixture.componentInstance.newCustomerName.set('Padaria Nova');
+    fixture.componentInstance.newCustomerWhatsapp.set('5534999990000');
+    fixture.componentInstance.nextFromCliente();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(createCustomer).toHaveBeenCalled();
+    expect(fixture.componentInstance.customerId()).toBe('c-new');
+    expect(fixture.componentInstance.step()).toBe('template');
   });
 });

@@ -16,13 +16,23 @@ import type {
   SiteOptionsDto,
 } from '../../core/api/reseller-api.types';
 import { AuthService } from '../../core/auth/auth.service';
+import type { Site, SiteContent } from '../../core/models/domain';
+import { SitePageComponent } from '../tenant-site/site-page.component';
 import { formatBrl } from '../landing/landing-seo';
 
 type WizardStep = 'cliente' | 'template' | 'conteudo' | 'slug' | 'previa';
 
 @Component({
   selector: 'app-reseller-sites',
-  imports: [HlmAlert, HlmBadge, HlmButton, HlmCardImports, HlmInput, HlmTableImports],
+  imports: [
+    HlmAlert,
+    HlmBadge,
+    HlmButton,
+    HlmCardImports,
+    HlmInput,
+    HlmTableImports,
+    SitePageComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './reseller-sites.component.html',
 })
@@ -36,6 +46,8 @@ export class ResellerSitesComponent {
   readonly step = signal<WizardStep>('cliente');
   readonly wizardOpen = signal(false);
   readonly customerId = signal('');
+  readonly newCustomerName = signal('');
+  readonly newCustomerWhatsapp = signal('');
   readonly planId = signal('');
   readonly templateId = signal('');
   readonly niche = signal('generico');
@@ -46,6 +58,10 @@ export class ResellerSitesComponent {
   readonly slugOk = signal(false);
   readonly draft = signal<ResellerSiteDto | null>(null);
   readonly busy = signal(false);
+  readonly previewSite = computed(() => {
+    const draft = this.draft();
+    return draft ? toPreviewSite(draft) : null;
+  });
 
   readonly operable = computed(() => {
     const status = this.auth.me()?.resellerStatus ?? 'ACTIVE';
@@ -95,11 +111,35 @@ export class ResellerSitesComponent {
   }
 
   nextFromCliente(): void {
-    if (!this.customerId()) {
-      toast.error('Selecione um cliente.');
+    if (this.customerId()) {
+      this.step.set('template');
       return;
     }
-    this.step.set('template');
+    const name = this.newCustomerName().trim();
+    if (!name) {
+      toast.error('Selecione um cliente ou informe o nome do negócio.');
+      return;
+    }
+    this.busy.set(true);
+    this.api
+      .createResellerCustomer({
+        name,
+        whatsapp: this.newCustomerWhatsapp().trim() || undefined,
+      })
+      .subscribe({
+        next: (customer) => {
+          this.busy.set(false);
+          this.customers.update((rows) => [customer, ...rows]);
+          this.customerId.set(customer.id);
+          this.newCustomerName.set('');
+          this.newCustomerWhatsapp.set('');
+          this.step.set('template');
+        },
+        error: () => {
+          this.busy.set(false);
+          toast.error('Não foi possível criar o cliente.');
+        },
+      });
   }
 
   nextFromTemplate(): void {
@@ -144,25 +184,34 @@ export class ResellerSitesComponent {
       return;
     }
     this.busy.set(true);
-    const niche = this.niche() || 'generico';
-    const content: Record<string, unknown> = {
-      theme: { niche },
-      pix: {
-        key: this.pixKey().trim() || 'exemplo-chave-pix',
-        receiverName: 'exemplo',
+    const customer = this.customers().find((row) => row.id === this.customerId());
+    const businessName = customer?.name || this.slug();
+    const content: SiteContent = {
+      businessName,
+      profile: {
+        nome: businessName,
+        cidade: customer?.city || 'Uberaba',
+        uf: 'MG',
       },
+      theme: defaultPreviewTheme(),
+      whatsapp: customer?.whatsapp
+        ? { numero: customer.whatsapp, mensagem: 'Olá! Vim pelo site.' }
+        : undefined,
+      pix: {
+        chave: this.pixKey().trim() || 'exemplo-chave-pix',
+        nome: 'exemplo',
+      },
+      google: this.googleReviewUrl().trim()
+        ? { placeId: this.googleReviewUrl().trim() }
+        : undefined,
     };
-    const review = this.googleReviewUrl().trim();
-    if (review) {
-      content['googleReviewUrl'] = review;
-    }
     this.api
       .createResellerSite({
         customerId: this.customerId(),
         slug: this.slug(),
         planId: this.planId(),
         templateId: this.templateId(),
-        content,
+        content: content as unknown as Record<string, unknown>,
       })
       .subscribe({
         next: (site) => {
@@ -256,4 +305,71 @@ export class ResellerSitesComponent {
     }
     toast.error(fallback);
   }
+}
+
+function defaultPreviewTheme(): SiteContent['theme'] {
+  return {
+    p1: '#1e3a5f',
+    p2: '#3d5a4c',
+    p3: '#d5e2dc',
+    on3: '#102018',
+    hi: '#f4f7f6',
+    fontHeading: 'Fraunces, Palatino, serif',
+    fontBody: 'Literata, Georgia, serif',
+    fontScale: 1,
+    italic: 'normal',
+  };
+}
+
+function toPreviewSite(row: ResellerSiteDto): Site {
+  const raw = (row.content ?? {}) as Partial<SiteContent> & Record<string, unknown>;
+  const profile = (raw['profile'] ?? {}) as Partial<SiteContent['profile']>;
+  const themeRaw = (raw['theme'] ?? {}) as Partial<SiteContent['theme']>;
+  const pixRaw = (raw['pix'] ?? {}) as Record<string, unknown>;
+  const waRaw = (raw['whatsapp'] ?? {}) as Record<string, unknown>;
+  const businessName = String(raw['businessName'] ?? row.customer?.name ?? row.slug);
+  return {
+    id: row.id,
+    customerId: row.customerId,
+    resellerId: row.resellerId,
+    slug: row.slug,
+    customDomain: null,
+    templateId: row.templateId,
+    content: {
+      businessName,
+      profile: {
+        nome: String(profile?.nome ?? businessName),
+        cidade: String(profile?.cidade ?? ''),
+        uf: String(profile?.uf ?? ''),
+      },
+      theme: {
+        ...defaultPreviewTheme(),
+        ...themeRaw,
+        italic: themeRaw.italic === 'italic' ? 'italic' : 'normal',
+      },
+      whatsapp:
+        typeof waRaw['numero'] === 'string'
+          ? {
+              numero: waRaw['numero'],
+              mensagem: String(waRaw['mensagem'] ?? 'Olá! Vim pelo site.'),
+            }
+          : typeof waRaw['e164'] === 'string'
+            ? {
+                numero: String(waRaw['e164']),
+                mensagem: 'Olá! Vim pelo site.',
+              }
+            : undefined,
+      pix: {
+        chave: String(pixRaw['chave'] ?? pixRaw['key'] ?? 'exemplo-chave-pix'),
+        nome: String(pixRaw['nome'] ?? pixRaw['receiverName'] ?? 'exemplo'),
+      },
+      google: raw['google'] as SiteContent['google'],
+    },
+    status: row.status as Site['status'],
+    planId: row.planId,
+    editable: row.editable,
+    publishedAt: row.publishedAt,
+    hostingRenewsAt: row.hostingRenewsAt,
+    plaqueFidelityEndsAt: row.plaqueFidelityEndsAt,
+  };
 }

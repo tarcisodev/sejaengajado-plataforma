@@ -5,7 +5,7 @@
 | IK0 | DONE | d4dc2cc | 2026-10-16 |
 | AW2 | DONE | 8b30e2e | 2026-10-16 |
 | FF1 | DONE | a36aa8a | 2026-10-16 |
-| FF2 | TODO | — | — |
+| FF2 | DONE | pending | 2026-10-16 |
 | FF3 | TODO | — | — |
 | FF4 | TODO | — | — |
 | FF5 | TODO | — | — |
@@ -24,10 +24,10 @@
 | HX | TODO | — | — |
 
 ## Ultimo bloco
-FF1 — Admin cria revendedor + convite: API devolve inviteActionLink; UI mostra link; specs HttpApi + admin-resellers. OTP pelo Auth existente; MFA aal2 so no admin.
+FF2 — Wizard do revendedor: cria cliente manual, content SiteContent (Pix exemplo, tema padrao), previa ao vivo com SitePageComponent e Publicar. Specs: draft+preview e novo cliente.
 
 ## Proximo
-FF2 — Revendedor cria cliente + biosite por wizard (04-B3).
+FF3 — Biosite bonito minimo + SSR por Host (Lumen B1/B4 minimo, 03-B6).
 
 ## Bloqueios / perguntas para o Tarciso
 - #5 P6 valores reais
