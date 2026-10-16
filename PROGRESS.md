@@ -1,4 +1,4 @@
-﻿# PROGRESS — Seja Engajado
+# PROGRESS � Seja Engajado
 
 | Bloco | Status | Commit | Data |
 |---|---|---|---|
@@ -22,24 +22,24 @@
 | UI7 | DONE | 9fd9d66 | 2026-10-16 |
 | DOC1 | DONE | f8c73ef | 2026-10-16 |
 | HX | DONE | f1cfaac | 2026-10-16 |
-| TENANT-404 | DONE | (push) | 2026-10-16 |
+| TENANT-404 | DONE | 15f9658 / 2689e80 | 2026-10-16 |
 
 ## Ultimo bloco
-TENANT-404 — SSR tenant: host canônico + TTL curto 404 + API_INTERNAL no SSR; gate demo-forno 200+Forno.
+TENANT-404 � SSR tenant: host can�nico + TTL curto 404 + API_INTERNAL no SSR; gate demo-forno 200+Forno.
 
 ## Proximo
-_(fila PROGRESS vazia — Marco 1 / go-live checklist em `docs/GO-LIVE.md`)_
+_(fila PROGRESS vazia � Marco 1 / go-live checklist em `docs/GO-LIVE.md`)_
 
 ## Bloqueios / perguntas para o Tarciso
-_(nenhum dos #1–#6)_
+_(nenhum dos #1�#6)_
 
 ## Decisoes assumidas (recomendacao padrao)
-- P2/P2a → JWT HS256; P10 → pg-boss; P12 → 404 tenants; P27 → impersonacao read-only
-- Marca → opcao C; BR1 aplicar pack (já em web/public)
+- P2/P2a ? JWT HS256; P10 ? pg-boss; P12 ? 404 tenants; P27 ? impersonacao read-only
+- Marca ? opcao C; BR1 aplicar pack (j� em web/public)
 - FF3: LU1 reduzido a 1 tema (generico); demais nichos no LU1+
-- #4 → deploy teste OK (só push; aprovação manual no environment production)
-- #1 → SMTP Resend (`se_smtp_url_v1`)
-- #2 → secrets + Cloudflare/Traefik OK
-- #5 → precos-v1.md §4 (placa 10000, kit 15000)
-- #6 → juridico publicar agora; advogado depois (não bloqueia). Artefato: `producao/juridico-final.tgz`
-- #3 → VPS 8G/2vCPU OK para piloto
+- #4 ? deploy teste OK (s� push; aprova��o manual no environment production)
+- #1 ? SMTP Resend (`se_smtp_url_v1`)
+- #2 ? secrets + Cloudflare/Traefik OK
+- #5 ? precos-v1.md �4 (placa 10000, kit 15000)
+- #6 ? juridico publicar agora; advogado depois (n�o bloqueia). Artefato: `producao/juridico-final.tgz`
+- #3 ? VPS 8G/2vCPU OK para piloto
