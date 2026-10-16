@@ -1,0 +1,453 @@
+# PR CI — alvo < 5 min de relógio (ubuntu-latest paralelo).
+# VPS self-hosted fica só no deploy. Sem secrets de produção.
+name: pr-ci
+
+on:
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      docker: ${{ steps.filter.outputs.docker }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+            web:
+              - 'web/**'
+            docker:
+              - '**/Dockerfile'
+              - '**/Dockerfile.*'
+              - 'api/package.json'
+              - 'api/package-lock.json'
+              - 'web/package.json'
+              - 'web/package-lock.json'
+              - 'api/src/**'
+              - 'web/src/**'
+              - 'api/prisma/**'
+            e2e:
+              - 'api/**'
+              - 'web/**'
+              - 'docker-compose.dev.yml'
+              - 'scripts/dev-auth.mjs'
+              - '.env.local.example'
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!docs/**'
+              - '!PROGRESS.md'
+              - '!.github/ISSUE_TEMPLATE/**'
+
+  guards:
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Risk tier
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          HEAD_REF: ${{ github.sha }}
+        run: |
+          node scripts/ci/risk-tier.mjs --json | tee risk.json
+          tier=$(node -e "console.log(JSON.parse(require('fs').readFileSync('risk.json','utf8')).tier)")
+          echo "Trilho: $tier"
+      - name: Migration expand-only + Traefik HostRegexp
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+          MIGRATION_EXPAND_BASELINE: "20261015250000"
+        run: |
+          bash infra/scripts/check-migration-expand.sh
+          node infra/scripts/check-traefik-hostregexp.mjs
+      - name: Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            zricethezav/gitleaks:v8.21.2 \
+            detect --source=/repo --verbose --redact \
+            --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
+
+  quick-api:
+    needs: [changes]
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - uses: actions/cache@v4
+        id: nm
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - name: npm ci
+        if: steps.nm.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: prisma generate + lint + typecheck + unit
+        run: |
+          npx prisma generate
+          npm run lint
+          npm run lint:money
+          npm test
+
+  quick-web:
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/cache@v4
+        id: nm
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
+      - name: npm ci
+        if: steps.nm.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Chrome for Karma
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: lint + format + typecheck + unit
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          npm run lint
+          npm run format:check
+          npm run typecheck
+          npm test -- --watch=false --browsers=ChromeHeadlessCI
+
+  test-int:
+    needs: [changes]
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - uses: actions/cache@v4
+        id: nm
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - name: npm ci
+        if: steps.nm.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Integration (Testcontainers Postgres)
+        run: |
+          npx prisma generate
+          npm run test:int
+
+  build:
+    needs: [changes]
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - uses: actions/cache@v4
+        id: nm-api
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - uses: actions/cache@v4
+        id: nm-web
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
+      - name: npm ci api
+        if: steps.nm-api.outputs.cache-hit != 'true'
+        working-directory: api
+        run: npm ci
+      - name: npm ci web
+        if: steps.nm-web.outputs.cache-hit != 'true'
+        working-directory: web
+        run: npm ci
+      - name: Build API
+        working-directory: api
+        run: |
+          npx prisma generate
+          npm run build
+      - name: Build Web
+        working-directory: web
+        run: npm run build
+      - name: Bundle budget
+        run: node scripts/ci/bundle-budget.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: |
+            api/dist
+            api/dist-seed
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/web
+          retention-days: 1
+
+  docker-build:
+    needs: [changes]
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: api
+            context: api
+            file: api/Dockerfile
+          - app: web
+            context: web
+            file: web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          load: true
+          tags: se-pr-${{ matrix.app }}:${{ github.sha }}
+          cache-from: type=gha,scope=pr-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=pr-${{ matrix.app }}
+      - name: Smoke API image
+        if: matrix.app == 'api'
+        run: |
+          set -euo pipefail
+          img="se-pr-api:${{ github.sha }}"
+          docker run --rm --entrypoint sh "$img" -c 'test -f /app/dist/main.js && test -f /app/dist-seed/seed-showcase.js'
+          set +e
+          timeout 20s docker run --rm --entrypoint node "$img" -e "require('/app/dist/main.js')"
+          code=$?
+          set -e
+          echo "smoke api exit=$code"
+          if [ "$code" -eq 125 ] || [ "$code" -eq 126 ] || [ "$code" -eq 127 ]; then
+            exit 1
+          fi
+      - name: Smoke Web image
+        if: matrix.app == 'web'
+        run: |
+          docker run --rm --entrypoint sh "se-pr-web:${{ github.sha }}" -c 'test -f /app/dist/web/server/server.mjs'
+
+  e2e:
+    needs: [changes, build]
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pr-e2e-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-dev-only
+          POSTGRES_DB: sejaengajado
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sejaengajado"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - uses: actions/cache@v4
+        id: nm-api
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-nm-api-${{ hashFiles('api/package-lock.json') }}
+      - uses: actions/cache@v4
+        id: nm-web
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-nm-web-${{ hashFiles('web/package-lock.json') }}
+      - uses: actions/cache@v4
+        id: pw
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-pw-${{ hashFiles('web/package-lock.json') }}
+      - name: npm ci api
+        if: steps.nm-api.outputs.cache-hit != 'true'
+        working-directory: api
+        run: npm ci
+      - name: npm ci web
+        if: steps.nm-web.outputs.cache-hit != 'true'
+        working-directory: web
+        run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-dist
+          path: api
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/web
+      - name: Dev auth secrets (ephemeral)
+        run: |
+          cp .env.local.example .env.local
+          node scripts/dev-auth.mjs init
+      - name: API migrate + seed + start (artifact, sem rebuild)
+        working-directory: api
+        env:
+          DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          ADMIN_DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          ALLOW_DEMO_SEED: "1"
+          PORT: "3000"
+          NODE_ENV: development
+        run: |
+          set -a
+          # shellcheck disable=SC1091
+          . ../.env.local
+          set +a
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run seed:demo || true
+          npm run seed:showcase || node dist-seed/seed-showcase.js || true
+          export SUPABASE_JWT_SECRET_FILE="${SUPABASE_JWT_SECRET_FILE:-}"
+          if [ -z "$SUPABASE_JWT_SECRET_FILE" ] && [ -n "${SUPABASE_JWT_SECRET:-}" ]; then
+            mkdir -p ../.local/dev-secrets
+            printf '%s' "$SUPABASE_JWT_SECRET" > ../.local/dev-secrets/jwt
+            export SUPABASE_JWT_SECRET_FILE="$PWD/../.local/dev-secrets/jwt"
+          fi
+          nohup env \
+            DATABASE_URL="$DATABASE_URL" \
+            ADMIN_DATABASE_URL="$ADMIN_DATABASE_URL" \
+            SUPABASE_URL="${SUPABASE_URL:-http://localhost:9999}" \
+            SUPABASE_JWT_SECRET_FILE="$SUPABASE_JWT_SECRET_FILE" \
+            ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}" \
+            node dist/main.js > /tmp/se-api-e2e.log 2>&1 &
+          echo $! > /tmp/se-api-e2e.pid
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:3000/api/health/ready" && break
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:3000/api/health/ready"
+      - name: Web SSR + Playwright @smoke (artifact)
+        working-directory: web
+        env:
+          PORT: "4000"
+          API_INTERNAL_URL: http://127.0.0.1:3000
+          API_PUBLIC_URL: /api
+        run: |
+          if [ "${{ steps.pw.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install chromium --with-deps
+          else
+            npx playwright install-deps chromium || true
+          fi
+          nohup env PORT=4000 API_INTERNAL_URL=http://127.0.0.1:3000 npm run serve:ssr:web > /tmp/se-web-e2e.log 2>&1 &
+          echo $! > /tmp/se-web-e2e.pid
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null "http://127.0.0.1:4000/" && break
+            sleep 1
+          done
+          E2E_HAPPY_PATH=1 \
+          E2E_BASE_URL=http://127.0.0.1:4000 \
+          E2E_APEX=http://127.0.0.1:4000 \
+          E2E_APP_BASE=http://127.0.0.1:4000 \
+          E2E_API_BASE=http://127.0.0.1:3000 \
+          npm run e2e:fluxo-feliz:smoke
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ -f /tmp/se-api-e2e.pid ]; then kill "$(cat /tmp/se-api-e2e.pid)" || true; fi
+          if [ -f /tmp/se-web-e2e.pid ]; then kill "$(cat /tmp/se-web-e2e.pid)" || true; fi
+          tail -n 80 /tmp/se-api-e2e.log || true
+          tail -n 80 /tmp/se-web-e2e.log || true
+
+  pr-ci-ok:
+    if: always()
+    needs: [changes, guards, quick-api, quick-web, test-int, build, docker-build, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate
+        run: |
+          code="${{ needs.changes.outputs.code }}"
+          api="${{ needs.changes.outputs.api }}"
+          web="${{ needs.changes.outputs.web }}"
+          docker="${{ needs.changes.outputs.docker }}"
+          e2e="${{ needs.changes.outputs.e2e }}"
+          echo "code=$code api=$api web=$web docker=$docker e2e=$e2e"
+          echo "guards=${{ needs.guards.result }}"
+          echo "quick-api=${{ needs.quick-api.result }}"
+          echo "quick-web=${{ needs.quick-web.result }}"
+          echo "test-int=${{ needs.test-int.result }}"
+          echo "build=${{ needs.build.result }}"
+          echo "docker-build=${{ needs.docker-build.result }}"
+          echo "e2e=${{ needs.e2e.result }}"
+          test "${{ needs.changes.result }}" = "success" || exit 1
+          if [ "$code" != "true" ]; then
+            echo "docs-only — pr-ci-ok"
+            exit 0
+          fi
+          test "${{ needs.guards.result }}" = "success" || exit 1
+          if [ "$api" = "true" ]; then
+            test "${{ needs.quick-api.result }}" = "success" || exit 1
+            test "${{ needs.test-int.result }}" = "success" || exit 1
+          fi
+          if [ "$web" = "true" ]; then
+            test "${{ needs.quick-web.result }}" = "success" || exit 1
+          fi
+          if [ "$e2e" = "true" ]; then
+            test "${{ needs.build.result }}" = "success" || exit 1
+            test "${{ needs.e2e.result }}" = "success" || exit 1
+          fi
+          if [ "$docker" = "true" ]; then
+            test "${{ needs.docker-build.result }}" = "success" || exit 1
+          fi

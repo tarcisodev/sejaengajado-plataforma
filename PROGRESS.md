@@ -29,7 +29,7 @@
 FLUXO-FELIZ M0 - bugs 0.a/0.b (Nest 304 + SSR_PUBLIC_SITE; sem templates auth no tenant) + publico.spec + gate.
 
 ## Proximo
-FLUXO-FELIZ na `feat/8-fluxo-feliz` (#8): M1 UI/API ok (`site-editor`, confirm, admin/revenda); e2e happy path precisa stack local (`E2E_ADMIN_EMAIL` + `E2E_ADMIN_TOTP_SECRET` + Mailpit). Completar M2/M3 helpers e um PR unico — sem merge/deploy pelo agent.
+#16 biosite REQUEST_CONTEXT DONE (PR #17; smoke 20×3 demos 200). FLUXO-FELIZ #8 na `feat/8-fluxo-feliz`: M1 UI/API ok; completar M2/M3 e2e + PR unico — sem merge/deploy pelo agent. PROMPT-PIPELINE B/C (#13/#14).
 
 ## Bloqueios / perguntas para o Tarciso
 _(nenhum dos #1-#6)_

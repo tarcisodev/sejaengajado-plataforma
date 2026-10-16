@@ -18,7 +18,7 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
   test.skip(!prodSmoke && process.env['E2E_HAPPY_PATH'] !== '1', 'Set E2E_PUBLICO_PROD=1 or E2E_HAPPY_PATH=1');
 
   for (const demo of demos) {
-    test(`${demo.slug} returns 200 with business name`, async ({ request }) => {
+    test(`${demo.slug} returns 200 with business name @smoke`, async ({ request }) => {
       const url = prodSmoke
         ? `https://${demo.slug}.sejaengajado.com.br/`
         : `${apex}/?tenant=${demo.slug}`;
@@ -33,7 +33,26 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     });
   }
 
-  test('unknown subdomain returns a clean 404', async ({ request }) => {
+  test('SSR survives 20 consecutive GETs per demo (no false 404) @smoke', async ({
+    request,
+  }) => {
+    const rounds = 20;
+    for (const demo of demos) {
+      for (let i = 1; i <= rounds; i++) {
+        const url = prodSmoke
+          ? `https://${demo.slug}.sejaengajado.com.br/`
+          : `${apex}/?tenant=${demo.slug}`;
+        const res = await request.get(url, { maxRedirects: 0 });
+        const body = await res.text();
+        expect(res.status(), `${demo.slug} #${i}`).toBe(200);
+        expect(body, `${demo.slug} #${i}`).toMatch(demo.name);
+        expect(body, `${demo.slug} #${i}`).not.toMatch(/Negócio não encontrado/i);
+        expect(body, `${demo.slug} #${i}`).not.toMatch(/Não encontramos esse negócio/i);
+      }
+    }
+  });
+
+  test('unknown subdomain returns a clean 404 @smoke', async ({ request }) => {
     const url = prodSmoke
       ? 'https://slug-inexistente-fluxo-feliz.sejaengajado.com.br/'
       : `${apex}/?tenant=slug-inexistente-fluxo-feliz`;
@@ -49,13 +68,13 @@ test.describe('publico.spec (FLUXO-FELIZ M0)', () => {
     expect(body).toMatch(/não (encontr|está publicado)|Negócio não encontrado/i);
   });
 
-  test('API health ready', async ({ request }) => {
+  test('API health ready @smoke', async ({ request }) => {
     const healthBase = process.env['E2E_API_BASE'] ?? 'https://app.sejaengajado.com.br';
     const res = await request.get(`${healthBase.replace(/\/$/, '')}/api/health/ready`);
     expect(res.ok()).toBeTruthy();
   });
 
-  test('/entrar is reachable', async ({ page }) => {
+  test('/entrar is reachable @smoke', async ({ page }) => {
     // Chromium resolve *.localhost; o request API do Node no Windows às vezes não.
     const appBase = (process.env['E2E_APP_BASE'] ?? 'https://app.sejaengajado.com.br').replace(
       /\/$/,

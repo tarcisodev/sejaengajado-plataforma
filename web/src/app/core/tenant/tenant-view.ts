@@ -6,17 +6,23 @@ export type TenantView =
   | { kind: 'site'; site: Site }
   | { kind: 'suspended'; businessName: string }
   | { kind: 'archived'; businessName: string }
-  | { kind: 'not-found'; slug: string };
+  | { kind: 'not-found'; slug: string }
+  /** SSR missing prefetch — must become HTTP 502, never 404. */
+  | { kind: 'ssr-unavailable'; slug: string };
+
+function businessLabel(site: Site, slug: string): string {
+  return site.content?.businessName || site.content?.profile?.nome || slug;
+}
 
 export function viewForSite(site: Site | null, slug: string): TenantView {
-  if (!site || site.status === 'DRAFT') {
+  if (!site || !site.content || site.status === 'DRAFT') {
     return { kind: 'not-found', slug };
   }
   if (site.status === 'SUSPENDED') {
-    return { kind: 'suspended', businessName: site.content.businessName };
+    return { kind: 'suspended', businessName: businessLabel(site, slug) };
   }
   if (site.status === 'ARCHIVED') {
-    return { kind: 'archived', businessName: site.content.businessName };
+    return { kind: 'archived', businessName: businessLabel(site, slug) };
   }
   return { kind: 'site', site };
 }
@@ -24,6 +30,9 @@ export function viewForSite(site: Site | null, slug: string): TenantView {
 export function httpStatusFor(view: TenantView): number {
   if (view.kind === 'not-found') {
     return 404;
+  }
+  if (view.kind === 'ssr-unavailable') {
+    return 502;
   }
   if (view.kind === 'archived') {
     return 410;
@@ -53,12 +62,14 @@ export function titleFor(view: TenantView): string {
     case 'app':
       return 'Painel · Seja Engajado';
     case 'site':
-      return `${view.site.content.businessName} · Seja Engajado`;
+      return `${view.site.content?.businessName || view.site.content?.profile?.nome || view.site.slug} · Seja Engajado`;
     case 'suspended':
       return 'Temporariamente indisponível · Seja Engajado';
     case 'archived':
       return 'Indisponível · Seja Engajado';
     case 'not-found':
       return 'Negócio não encontrado · Seja Engajado';
+    case 'ssr-unavailable':
+      return 'Indisponível · Seja Engajado';
   }
 }

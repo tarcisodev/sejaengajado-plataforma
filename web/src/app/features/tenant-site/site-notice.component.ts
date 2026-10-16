@@ -2,7 +2,10 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 import { TenantView } from '../../core/tenant/tenant-view';
 
-type NoticeView = Extract<TenantView, { kind: 'suspended' | 'archived' | 'not-found' }>;
+type NoticeView = Extract<
+  TenantView,
+  { kind: 'suspended' | 'archived' | 'not-found' | 'ssr-unavailable' }
+>;
 
 @Component({
   selector: 'app-site-notice',
@@ -19,6 +22,9 @@ export class SiteNoticeComponent {
     }
     if (this.view.kind === 'archived') {
       return 'Encerrado';
+    }
+    if (this.view.kind === 'ssr-unavailable') {
+      return 'Indisponível';
     }
     return 'Sem dono';
   }

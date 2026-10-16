@@ -76,7 +76,7 @@ describe('public by-host and avaliar', () => {
       expect(resolved.body.slug).toBe('teste');
       expect(resolved.body.templateKey).toBe(seeded.template.key);
       expect(resolved.body.temporarilyUnavailable).toBe(false);
-      expect(resolved.headers['cache-control']).toContain('max-age=60');
+      expect(resolved.headers['cache-control']).toContain('no-store');
       expect(resolved.headers.etag).toBeTruthy();
 
       await request(app.getHttpServer())

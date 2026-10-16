@@ -109,22 +109,20 @@ export class HttpApiService implements ApiPort {
     // Admin-only. Do not fall back to /customer/templates — that looped 401/404
     // on every public tenant SSR via SitePageComponent.
     return this.http
-      .get<{ items?: { id: string; key: string; name: string; niche: string; schemaType?: string }[] }>(
-        this.url('/admin/templates'),
-      )
+      .get<{
+        items?: { id: string; key: string; name: string; niche: string; schemaType?: string }[];
+      }>(this.url('/admin/templates'))
       .pipe(
         map((body) =>
-          (body.items ?? []).map(
-            (row): Template => ({
-              id: row.id,
-              key: row.key,
-              nome: row.name,
-              ramo: row.niche,
-              schemaType: (row.schemaType as Template['schemaType']) ?? 'LocalBusiness',
-              schema: {},
-              ativo: true,
-            }),
-          ),
+          (body.items ?? []).map((row): Template => ({
+            id: row.id,
+            key: row.key,
+            nome: row.name,
+            ramo: row.niche,
+            schemaType: (row.schemaType as Template['schemaType']) ?? 'LocalBusiness',
+            schema: {},
+            ativo: true,
+          })),
         ),
       );
   }
@@ -253,9 +251,7 @@ export class HttpApiService implements ApiPort {
   }
 
   quotePlaquePenalty(siteId: string, _today: Date): Observable<PlaquePenaltyQuote> {
-    return this.http.get<PlaquePenaltyQuote>(
-      this.url(`/customer/sites/${siteId}/plaque-penalty`),
-    );
+    return this.http.get<PlaquePenaltyQuote>(this.url(`/customer/sites/${siteId}/plaque-penalty`));
   }
 
   cancelSite(siteId: string, _today: Date): Observable<Cancellation> {
@@ -496,10 +492,7 @@ export class HttpApiService implements ApiPort {
           actor: String((row as { actor?: string }).actor ?? 'customer'),
           acao: String((row as { acao?: string }).acao ?? 'customer.request_site_change'),
           entidade: String((row as { entidade?: string }).entidade ?? `Site:${siteId}`),
-          diff: ((row as { diff?: Record<string, unknown> }).diff ?? {}) as Record<
-            string,
-            unknown
-          >,
+          diff: ((row as { diff?: Record<string, unknown> }).diff ?? {}) as Record<string, unknown>,
         })),
       );
   }
@@ -512,10 +505,7 @@ export class HttpApiService implements ApiPort {
           actor: String((row as { actor?: string }).actor ?? 'customer'),
           acao: String((row as { acao?: string }).acao ?? 'customer.request_monthly_plan'),
           entidade: String((row as { entidade?: string }).entidade ?? `Site:${siteId}`),
-          diff: ((row as { diff?: Record<string, unknown> }).diff ?? {}) as Record<
-            string,
-            unknown
-          >,
+          diff: ((row as { diff?: Record<string, unknown> }).diff ?? {}) as Record<string, unknown>,
         })),
       );
   }

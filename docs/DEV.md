@@ -2,6 +2,8 @@
 
 Fluxo para entrar em `http://app.localhost:4200/entrar` **sem** usar o auth de produção.
 
+**Git:** a partir de agora, **todo trabalho vai em branch + PR para `master`**. Não faça push direto em `master`. Pipeline: [PIPELINE.md](./PIPELINE.md) · [ADR-003](./ADR-003-pipeline-autonoma.md).
+
 **Regra:** `SUPABASE_URL` no localhost é sempre `http://localhost:9999`. Nunca `https://auth.sejaengajado.com.br`.
 
 ## 1. Segredos de dev (uma vez)
