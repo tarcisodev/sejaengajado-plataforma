@@ -46,7 +46,7 @@ async function openReseller(page: Page, path: string): Promise<void> {
   } else {
     await page.goto(`${appBase}${path}`);
   }
-  await expect(page).toHaveURL(new RegExp(path.replace(/\//g, '\\/')), { timeout: 20_000 });
+  await expect(page).toHaveURL(new RegExp(escapeRegExp(path)), { timeout: 20_000 });
 }
 
 test.describe('novo-site-biosite.spec (#45 wizard + biosite)', () => {
