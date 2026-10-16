@@ -1,0 +1,279 @@
+# PR CI — ADR-003 etapa 1. Sem secrets de produção. Não altera deploy.yml.
+name: pr-ci
+
+on:
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  risk-tier:
+    runs-on: [self-hosted, linux, vps]
+    outputs:
+      tier: ${{ steps.tier.outputs.tier }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classificar trilho
+        id: tier
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          HEAD_REF: ${{ github.sha }}
+        run: |
+          node scripts/ci/risk-tier.mjs --json | tee risk.json
+          tier=$(node -e "console.log(JSON.parse(require('fs').readFileSync('risk.json','utf8')).tier)")
+          echo "tier=$tier" >> "$GITHUB_OUTPUT"
+          echo "Trilho: $tier"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: risk-tier
+          path: risk.json
+
+  migration-guard:
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Expand/contract — block DROP/RENAME after production baseline
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+          MIGRATION_EXPAND_BASELINE: "20261015250000"
+        run: bash infra/scripts/check-migration-expand.sh
+      - name: Traefik HostRegexp
+        run: node infra/scripts/check-traefik-hostregexp.mjs
+
+  gitleaks:
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            zricethezav/gitleaks:v8.21.2 \
+            detect --source=/repo --verbose --redact \
+            --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
+
+  lint:
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - name: API lint
+        working-directory: api
+        run: |
+          npm ci
+          npm run lint
+          npm run lint:money
+      - name: Web lint + format
+        working-directory: web
+        run: |
+          npm ci
+          npm run lint
+          npm run format:check
+
+  test:
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - name: API unit
+        working-directory: api
+        run: |
+          npm ci
+          npx prisma generate
+          npm test
+      - name: Web unit
+        working-directory: web
+        run: |
+          npm ci
+          npm test -- --watch=false --browsers=ChromeHeadless
+
+  test-int:
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Integration (Testcontainers Postgres)
+        working-directory: api
+        run: |
+          npm ci
+          npx prisma generate
+          npm run test:int
+
+  build:
+    runs-on: [self-hosted, linux, vps]
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - name: Build API
+        working-directory: api
+        run: |
+          npm ci
+          npx prisma generate
+          npm run build
+      - name: Build Web
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Bundle budget
+        run: node scripts/ci/bundle-budget.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/web/browser
+          retention-days: 3
+
+  e2e:
+    runs-on: [self-hosted, linux, vps]
+    needs: [build]
+    concurrency:
+      group: pr-e2e
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - name: Dev auth secrets (ephemeral, not production)
+        run: |
+          cp .env.local.example .env.local
+          node scripts/dev-auth.mjs init
+      - name: Compose Postgres + GoTrue + Mailpit
+        run: |
+          docker compose -f docker-compose.dev.yml --env-file .env.local down -v || true
+          docker compose -f docker-compose.dev.yml --env-file .env.local up -d
+          for i in $(seq 1 60); do
+            docker compose -f docker-compose.dev.yml --env-file .env.local exec -T postgres pg_isready -U postgres -d sejaengajado && break
+            sleep 2
+          done
+      - name: API migrate + seed + start
+        working-directory: api
+        env:
+          # Migrate/seed como superuser local; app usa o mesmo DB no CI (sem Swarm secrets).
+          DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          ADMIN_DATABASE_URL: postgresql://postgres:local-dev-only@127.0.0.1:5432/sejaengajado?schema=public
+          ALLOW_DEMO_SEED: "1"
+          PORT: "3000"
+          NODE_ENV: development
+        run: |
+          set -a
+          # shellcheck disable=SC1091
+          . ../.env.local
+          set +a
+          npm ci
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run build
+          npm run seed:demo || true
+          npm run seed:showcase || node dist-seed/seed-showcase.js || true
+          # JWT secret file gerado pelo dev-auth
+          export SUPABASE_JWT_SECRET_FILE="${SUPABASE_JWT_SECRET_FILE:-}"
+          if [ -z "$SUPABASE_JWT_SECRET_FILE" ] && [ -n "${SUPABASE_JWT_SECRET:-}" ]; then
+            mkdir -p ../.local/dev-secrets
+            printf '%s' "$SUPABASE_JWT_SECRET" > ../.local/dev-secrets/jwt
+            export SUPABASE_JWT_SECRET_FILE="$PWD/../.local/dev-secrets/jwt"
+          fi
+          nohup env \
+            DATABASE_URL="$DATABASE_URL" \
+            ADMIN_DATABASE_URL="$ADMIN_DATABASE_URL" \
+            SUPABASE_URL="${SUPABASE_URL:-http://localhost:9999}" \
+            SUPABASE_JWT_SECRET_FILE="$SUPABASE_JWT_SECRET_FILE" \
+            ASAAS_BASE_URL="${ASAAS_BASE_URL:-https://sandbox.asaas.com/api/v3}" \
+            node dist/main.js > /tmp/se-api-e2e.log 2>&1 &
+          echo $! > /tmp/se-api-e2e.pid
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:3000/api/health/ready" && break
+            sleep 2
+          done
+          curl -fsS "http://127.0.0.1:3000/api/health/ready"
+      - name: Web SSR + Playwright
+        working-directory: web
+        env:
+          PORT: "4000"
+          API_INTERNAL_URL: http://127.0.0.1:3000
+          API_PUBLIC_URL: /api
+        run: |
+          npm ci
+          npm run build
+          npx playwright install chromium
+          nohup env PORT=4000 API_INTERNAL_URL=http://127.0.0.1:3000 npm run serve:ssr:web > /tmp/se-web-e2e.log 2>&1 &
+          echo $! > /tmp/se-web-e2e.pid
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null "http://127.0.0.1:4000/" && break
+            sleep 2
+          done
+          E2E_HAPPY_PATH=1 \
+          E2E_BASE_URL=http://127.0.0.1:4000 \
+          E2E_APEX=http://127.0.0.1:4000 \
+          E2E_APP_BASE=http://127.0.0.1:4000 \
+          E2E_API_BASE=http://127.0.0.1:3000 \
+          npm run e2e:fluxo-feliz
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ -f /tmp/se-api-e2e.pid ]; then kill "$(cat /tmp/se-api-e2e.pid)" || true; fi
+          if [ -f /tmp/se-web-e2e.pid ]; then kill "$(cat /tmp/se-web-e2e.pid)" || true; fi
+          docker compose -f docker-compose.dev.yml --env-file .env.local down -v || true
+          tail -n 80 /tmp/se-api-e2e.log || true
+          tail -n 80 /tmp/se-web-e2e.log || true
+
+  pr-ci-ok:
+    if: always()
+    needs: [risk-tier, migration-guard, gitleaks, lint, test, test-int, build, e2e]
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - name: Aggregate
+        run: |
+          echo "risk=${{ needs.risk-tier.result }}"
+          echo "migration=${{ needs.migration-guard.result }}"
+          echo "gitleaks=${{ needs.gitleaks.result }}"
+          echo "lint=${{ needs.lint.result }}"
+          echo "test=${{ needs.test.result }}"
+          echo "test-int=${{ needs.test-int.result }}"
+          echo "build=${{ needs.build.result }}"
+          echo "e2e=${{ needs.e2e.result }}"
+          for r in ${{ needs.risk-tier.result }} ${{ needs.migration-guard.result }} ${{ needs.gitleaks.result }} ${{ needs.lint.result }} ${{ needs.test.result }} ${{ needs.test-int.result }} ${{ needs.build.result }} ${{ needs.e2e.result }}; do
+            test "$r" = "success" || exit 1
+          done
