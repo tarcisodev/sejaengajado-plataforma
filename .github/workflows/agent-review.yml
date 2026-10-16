@@ -63,8 +63,13 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts/review
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-          git fetch origin "refs/pull/${PR_NUMBER}/head"
+          # Checkout ficou na default branch; PR entra só como ref remota (não como working tree).
+          git fetch --no-tags origin "${BASE}:refs/remotes/origin/${BASE}" || git fetch --no-tags origin "${BASE}"
+          git fetch --no-tags origin "pull/${PR_NUMBER}/head:refs/remotes/pull/${PR_NUMBER}/head"
+          git rev-parse --verify "${SHA}^{commit}" >/dev/null
+          git merge-base "origin/${BASE}" "${SHA}" >/dev/null
           git diff "origin/${BASE}...${SHA}" > artifacts/review/diff.patch
+          test -s artifacts/review/diff.patch || echo "::warning::diff.patch vazio (possível PR sem mudanças de arquivo)"
           gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs" --jq '.jobs[] | {name, conclusion, steps: [.steps[] | {name, conclusion}]}' > artifacts/review/ci.json || echo '[]' > artifacts/review/ci.json
           node scripts/ci/risk-tier.mjs --base "origin/${BASE}" --head "${SHA}" --json > artifacts/review/risk.json
           echo "RISK_TIER=$(node -e "console.log(JSON.parse(require('fs').readFileSync('artifacts/review/risk.json','utf8')).tier)")" >> "$GITHUB_ENV"
