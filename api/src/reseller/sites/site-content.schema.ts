@@ -386,16 +386,28 @@ export function buildPsychologyStarterContent(opts: {
   const cidade = (opts.city || '').trim() || 'Uberaba';
   const uf = (opts.uf || '').trim() || 'MG';
   const wa = (opts.whatsapp || '').replace(/\D/g, '');
+  const assetBase = (
+    process.env.SEED_DEMO_ASSET_BASE ?? 'https://app.sejaengajado.com.br'
+  ).replace(/\/$/, '');
   const base: Record<string, unknown> = {
     theme: {
       niche: 'saude',
       brandColor: '#0f5c4c',
-      variante: 'f4',
+      p1: '#0f5c4c',
+      p2: '#2a8f7a',
+      p3: '#cfe6e0',
+      on3: '#10241f',
+      hi: '#f2f8f7',
+      bgImg: `${assetBase}/samples/clinica/hero-fimg.jpg`,
+      bgIntensidade: 0.28,
+      variante: 'f7',
     },
     businessName: nome,
     profile: {
       nome,
       slogan: 'Psicoterapia, acolhimento ético e saúde emocional — online e presencial',
+      logoUrl: `${assetBase}/samples/clinica/logo.webp`,
+      coverUrl: `${assetBase}/samples/clinica/hero-fimg.jpg`,
       cidade,
       uf,
       tags: ['psicologia', 'terapia', 'clínica', 'ansiedade', 'saúde mental'],
@@ -436,39 +448,59 @@ export function buildPsychologyStarterContent(opts: {
     products: [
       {
         nome: 'Sessão individual (50 min)',
-        precoTexto: 'Sob consulta',
+        precoTexto: 'Valores a combinar',
         rotuloBotao: 'Agendar sessão',
         tag: 'Presencial ou Online',
         categoria: 'Psicoterapia',
+        fotoUrl: `${assetBase}/samples/clinica/svc-01.jpg`,
       },
       {
         nome: 'Terapia de casal / familiar',
-        precoTexto: 'Sob consulta',
+        precoTexto: 'Valores a combinar',
         rotuloBotao: 'Agendar conversa',
         tag: '60 min',
         categoria: 'Casal & Família',
+        fotoUrl: `${assetBase}/samples/clinica/svc-02.jpg`,
       },
       {
-        nome: 'Acompanhamento mensal (4 sessões)',
-        precoTexto: 'Plano mensal',
+        nome: 'Ansiedade, estresse e burnout',
+        precoTexto: 'Acompanhamento semanal',
         rotuloBotao: 'Consultar disponibilidade',
         tag: 'Horário fixo semanal',
         categoria: 'Planos',
+        fotoUrl: `${assetBase}/samples/clinica/svc-03.jpg`,
       },
       {
-        nome: 'Avaliação & orientação psicológica',
-        precoTexto: 'Sob consulta',
+        nome: 'Atendimento psicológico online',
+        precoTexto: 'Vídeo com sigilo CRP',
         rotuloBotao: 'Solicitar informações',
-        categoria: 'Avaliação',
+        categoria: 'Online',
+        fotoUrl: `${assetBase}/samples/clinica/svc-04.jpg`,
       },
     ],
     servicos: [
-      { nome: 'Psicoterapia individual (adultos e adolescentes)' },
-      { nome: 'Ansiedade, estresse e esgotamento (burnout)' },
-      { nome: 'Autoconhecimento, autoestima e regulação emocional' },
-      { nome: 'Terapia de casal e conflitos de relacionamento' },
-      { nome: 'Orientação parental e familiar' },
-      { nome: 'Atendimento psicológico online (vídeo com sigilo)' },
+      {
+        nome: 'Psicoterapia individual (adultos e adolescentes)',
+        fotoUrl: `${assetBase}/samples/clinica/svc-01.jpg`,
+      },
+      {
+        nome: 'Terapia de casal e conflitos de relacionamento',
+        fotoUrl: `${assetBase}/samples/clinica/svc-02.jpg`,
+      },
+      {
+        nome: 'Ansiedade, estresse e esgotamento (burnout)',
+        fotoUrl: `${assetBase}/samples/clinica/svc-03.jpg`,
+      },
+      {
+        nome: 'Atendimento psicológico online (vídeo com sigilo)',
+        fotoUrl: `${assetBase}/samples/clinica/svc-04.jpg`,
+      },
+    ],
+    gallery: [
+      `${assetBase}/samples/clinica/svc-01.jpg`,
+      `${assetBase}/samples/clinica/svc-02.jpg`,
+      `${assetBase}/samples/clinica/svc-03.jpg`,
+      `${assetBase}/samples/clinica/svc-04.jpg`,
     ],
     hours: [
       { dias: 'seg–sex', abre: '08:00', fecha: '20:00' },

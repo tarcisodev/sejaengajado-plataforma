@@ -60,6 +60,12 @@
     <div class="demo-grid">
       @for (demo of demos; track demo.slug) {
         <article class="demo-card" [style.--demo-accent]="demo.accent" [attr.data-demo-slug]="demo.slug">
+          <img
+            class="demo-thumb"
+            [src]="demo.thumb"
+            [alt]="demo.name"
+            loading="lazy"
+          />
           <p class="demo-niche">{{ demo.niche }}</p>
           <h3>{{ demo.name }}</h3>
           <p class="demo-desc">{{ demo.desc }}</p>
