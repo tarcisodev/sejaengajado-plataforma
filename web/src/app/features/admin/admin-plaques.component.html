@@ -15,8 +15,9 @@
     </label>
     <ul class="mt-4 flex flex-wrap gap-4 text-sm" data-plaque-stock>
       @for (row of stock(); track row.plaqueType) {
-        <li>
-          {{ row.plaqueType }}: <span class="tabular-nums">{{ row.qty }}</span>
+        <li class="rounded-lg border border-border px-3 py-2">
+          <span class="font-medium">{{ plaqueLabel(row.plaqueType) }}</span> ({{ row.plaqueType }}):
+          <span class="font-display text-lg tabular-nums">{{ row.qty }}</span>
           @if (row.avgCostCents !== null) {
             <span class="text-muted-foreground">
               (custo médio {{ formatBrl(row.avgCostCents) }})
@@ -30,29 +31,55 @@
   </section>
 
   <section hlmCard class="p-4 md:p-6">
-    <h2 class="font-display text-xl">Entrada / ajuste</h2>
-    <form class="mt-4 grid gap-3 sm:grid-cols-2" data-plaque-in (submit)="moveIn($event)">
+    <h2 class="font-display text-xl">Alterar estoque do vendedor (adicionar ou subtrair)</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Adicione ou subtraia placas NFC + QR Code ou só QR Code do saldo do vendedor selecionado.
+    </p>
+    <form class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-plaque-in (submit)="moveIn($event)">
       <label class="grid gap-1 text-sm">
-        Tipo
+        Operação
+        <select
+          class="h-11 rounded-lg border border-input bg-background px-3"
+          name="direction"
+          data-plaque-direction
+          [value]="moveDirection()"
+          (change)="onDirection($event)"
+        >
+          <option value="IN">Adicionar ao estoque (+)</option>
+          <option value="OUT">Subtrair do estoque (−)</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-sm">
+        Modelo da placa
         <select class="h-11 rounded-lg border border-input bg-background px-3" name="plaqueType">
-          <option value="QR">QR</option>
-          <option value="NFC">NFC</option>
+          <option value="NFC">NFC + QR Code (placa completa)</option>
+          <option value="QR">Só QR Code</option>
+          <option value="BOTH">Ambas (NFC+QR e Só QR)</option>
         </select>
       </label>
       <label class="grid gap-1 text-sm">
         Quantidade
-        <input hlmInput class="h-11" name="qty" type="number" min="1" required />
+        <input hlmInput class="h-11" name="qty" type="number" min="1" value="1" required />
       </label>
-      <label class="grid gap-1 text-sm">
-        Custo unitário (centavos)
-        <input hlmInput class="h-11" name="unitCostCents" type="number" min="0" />
+      @if (moveDirection() === 'IN') {
+        <label class="grid gap-1 text-sm">
+          Custo unitário (centavos, opcional)
+          <input hlmInput class="h-11" name="unitCostCents" type="number" min="0" />
+        </label>
+      }
+      <label class="grid gap-1 text-sm sm:col-span-2">
+        Motivo / observação
+        <input
+          hlmInput
+          class="h-11"
+          name="reason"
+          placeholder="Ex.: envio lote inicial, correção de contagem, troca..."
+        />
       </label>
-      <label class="grid gap-1 text-sm">
-        Motivo
-        <input hlmInput class="h-11" name="reason" />
-      </label>
-      <div>
-        <button hlmBtn class="h-11" type="submit">Registrar entrada</button>
+      <div class="sm:col-span-2 lg:col-span-3">
+        <button hlmBtn class="h-11" type="submit">
+          {{ moveDirection() === 'OUT' ? 'Subtrair do estoque' : 'Adicionar ao estoque' }}
+        </button>
       </div>
     </form>
   </section>
@@ -73,10 +100,11 @@
         </select>
       </label>
       <label class="grid gap-1 text-sm">
-        Tipo
+        Modelo da placa
         <select class="h-11 rounded-lg border border-input bg-background px-3" name="plaqueType">
-          <option value="QR">QR</option>
-          <option value="NFC">NFC</option>
+          <option value="NFC">NFC + QR Code (placa completa)</option>
+          <option value="QR">Só QR Code</option>
+          <option value="BOTH">Ambas (NFC+QR e Só QR)</option>
         </select>
       </label>
       <label class="grid gap-1 text-sm">
@@ -95,7 +123,7 @@
       <thead>
         <tr hlmTr>
           <th hlmTh>Quando</th>
-          <th hlmTh>Tipo</th>
+          <th hlmTh>Operação</th>
           <th hlmTh>Placa</th>
           <th hlmTh>Qtd</th>
           <th hlmTh>Motivo</th>
@@ -105,9 +133,9 @@
         @for (row of movements(); track row.id) {
           <tr hlmTr>
             <td hlmTd>{{ row.createdAt | date: 'short' }}</td>
-            <td hlmTd>{{ row.type }}</td>
-            <td hlmTd>{{ row.plaqueType }}</td>
-            <td hlmTd class="tabular-nums">{{ row.qty }}</td>
+            <td hlmTd>{{ row.type === 'OUT' ? 'Saída (−)' : row.type === 'IN' ? 'Entrada (+)' : row.type }}</td>
+            <td hlmTd>{{ plaqueLabel(row.plaqueType) }}</td>
+            <td hlmTd class="tabular-nums">{{ row.type === 'OUT' ? '−' : '+' }}{{ row.qty }}</td>
             <td hlmTd>{{ row.reason ?? '—' }}</td>
           </tr>
         } @empty {

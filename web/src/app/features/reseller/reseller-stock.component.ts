@@ -16,6 +16,16 @@ import type {
 import { formatBrl } from '../landing/landing-seo';
 import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
 
+function plaqueLabel(type: string): string {
+  if (type === 'NFC') {
+    return 'Placa NFC + QR Code';
+  }
+  if (type === 'QR') {
+    return 'Placa QR Code';
+  }
+  return `Placa ${type}`;
+}
+
 @Component({
   selector: 'app-reseller-stock',
   imports: [DatePipe, HlmButton, HlmCardImports, HlmInput, HlmTableImports],
@@ -24,7 +34,9 @@ import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
     <section class="grid gap-4 sm:grid-cols-2" data-plaque-stock>
       @for (row of stock(); track row.plaqueType) {
         <article hlmCard class="p-4">
-          <p class="text-sm text-muted-foreground">Placa {{ row.plaqueType }}</p>
+          <p class="text-sm text-muted-foreground">
+            {{ plaqueLabel(row.plaqueType) }} ({{ row.plaqueType }})
+          </p>
           <p class="mt-1 font-display text-3xl" [attr.data-stock-qty]="row.plaqueType">
             {{ row.qty }}
           </p>
@@ -40,6 +52,9 @@ import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
 
     <section hlmCard class="mt-6 p-4 md:p-6">
       <h2 class="font-display text-xl">Entrada de placas</h2>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Sua placa pode ter NFC + QR Code na mesma peça (escolha NFC + QR Code) ou somente QR Code.
+      </p>
       <form class="mt-4 grid gap-3 sm:grid-cols-3" data-stock-in-form (submit)="recordIn($event)">
         <label class="grid gap-1 text-sm">
           Tipo
@@ -49,8 +64,9 @@ import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
             required
             [disabled]="submitting()"
           >
-            <option value="QR">QR</option>
-            <option value="NFC">NFC</option>
+            <option value="NFC">NFC + QR Code (na mesma placa)</option>
+            <option value="QR">Só QR Code</option>
+            <option value="BOTH">Ambas (1 lote de cada)</option>
           </select>
         </label>
         <label class="grid gap-1 text-sm">
@@ -117,8 +133,8 @@ import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
             required
             [disabled]="submitting()"
           >
-            <option value="QR">QR</option>
-            <option value="NFC">NFC</option>
+            <option value="NFC">NFC + QR Code (na mesma placa)</option>
+            <option value="QR">Só QR Code</option>
           </select>
         </label>
         <label class="grid gap-1 text-sm">
@@ -165,7 +181,7 @@ import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
             <tr hlmTr [attr.data-movement-id]="row.id" [attr.data-reseller-id]="row.resellerId">
               <td hlmTd>{{ row.createdAt | date: 'short' }}</td>
               <td hlmTd>{{ row.type }}</td>
-              <td hlmTd>{{ row.plaqueType }}</td>
+              <td hlmTd>{{ plaqueLabel(row.plaqueType) }}</td>
               <td hlmTd>{{ row.qty }}</td>
               <td hlmTd>
                 {{ row.unitCostCents === null ? '—' : formatBrl(row.unitCostCents) }}
@@ -184,6 +200,7 @@ import { brlInputToCents, centsToBrlInput } from './reseller-sales.component';
 export class ResellerStockComponent {
   private readonly api = inject(API_PORT);
   readonly formatBrl = formatBrl;
+  readonly plaqueLabel = plaqueLabel;
   readonly stock = signal<PlaqueStockItemDto[]>([]);
   readonly movements = signal<PlaqueMovementDto[]>([]);
   readonly sites = signal<ResellerSiteDto[]>([]);
@@ -217,9 +234,34 @@ export class ResellerStockComponent {
       return;
     }
     const data = new FormData(event.target as HTMLFormElement);
-    const plaqueType = String(data.get('plaqueType') ?? 'QR') as 'QR' | 'NFC';
+    const rawType = String(data.get('plaqueType') ?? 'NFC');
     const qty = Number(data.get('qty') ?? 1);
     const unitCostCents = brlInputToCents(String(data.get('unitCostBrl') ?? this.unitCostBrl()));
+
+    if (rawType === 'BOTH') {
+      this.submitting.set(true);
+      forkJoin([
+        this.api.recordResellerPlaqueMovement(
+          { type: 'IN', plaqueType: 'NFC', qty, unitCostCents, reason: 'compra' },
+          crypto.randomUUID(),
+        ),
+        this.api.recordResellerPlaqueMovement(
+          { type: 'IN', plaqueType: 'QR', qty, unitCostCents, reason: 'compra' },
+          crypto.randomUUID(),
+        ),
+      ])
+        .pipe(finalize(() => this.submitting.set(false)))
+        .subscribe({
+          next: () => {
+            toast.success('Entrada registrada (NFC + QR Code e Só QR).');
+            this.reload();
+          },
+          error: () => toast.error('Não foi possível registrar o movimento.'),
+        });
+      return;
+    }
+
+    const plaqueType: 'QR' | 'NFC' = rawType === 'QR' ? 'QR' : 'NFC';
     this.runMove(
       {
         type: 'IN',
@@ -239,7 +281,7 @@ export class ResellerStockComponent {
     }
     const data = new FormData(event.target as HTMLFormElement);
     const siteId = String(data.get('siteId') ?? '');
-    const plaqueType = String(data.get('plaqueType') ?? 'QR') as 'QR' | 'NFC';
+    const plaqueType: 'QR' | 'NFC' = String(data.get('plaqueType') ?? 'NFC') === 'QR' ? 'QR' : 'NFC';
     const qty = Number(data.get('qty') ?? 1);
     if (!siteId) {
       toast.error('Selecione um site.');

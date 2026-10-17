@@ -129,9 +129,15 @@ export async function runShowcaseSeed(db: ShowcasePrisma): Promise<ShowcaseSeedR
       niche: 'generico',
       schemaType: 'LocalBusiness',
     }),
+    psicologia: await upsertTemplateCreateOnly(db, 'psicologia-clinica', {
+      name: 'Psicologia / Clínica & Terapia',
+      niche: 'saude',
+      schemaType: 'MedicalClinic',
+    }),
   };
   for (const [key, row] of Object.entries(templates)) {
-    const templateKey = key === 'loja' ? 'loja-local' : key;
+    const templateKey =
+      key === 'loja' ? 'loja-local' : key === 'psicologia' ? 'psicologia-clinica' : key;
     if (row.created) {
       created.templates.push(templateKey);
     } else {

@@ -370,6 +370,175 @@ export const defaultSiteContent = (): SiteContent =>
   });
 
 /**
+ * Modelo completo inicial para Psicólogo, Clínica & Terapia (nicho `saude`).
+ * Campos já enviados pelo wizard/admin têm prioridade sobre os defaults.
+ */
+export function buildPsychologyStarterContent(opts: {
+  businessName?: string;
+  city?: string;
+  uf?: string;
+  whatsapp?: string;
+  phone?: string;
+  email?: string;
+  existing?: Record<string, unknown>;
+}): SiteContent {
+  const nome = (opts.businessName || '').trim() || 'Clínica & Psicologia Integrada';
+  const cidade = (opts.city || '').trim() || 'Uberaba';
+  const uf = (opts.uf || '').trim() || 'MG';
+  const wa = (opts.whatsapp || '').replace(/\D/g, '');
+  const base: Record<string, unknown> = {
+    theme: {
+      niche: 'saude',
+      brandColor: '#0f5c4c',
+      variante: 'f4',
+    },
+    businessName: nome,
+    profile: {
+      nome,
+      slogan: 'Psicoterapia, acolhimento ético e saúde emocional — online e presencial',
+      cidade,
+      uf,
+      tags: ['psicologia', 'terapia', 'clínica', 'ansiedade', 'saúde mental'],
+    },
+    ...(wa
+      ? {
+          whatsapp: {
+            numero: wa.length === 10 || wa.length === 11 ? `55${wa}` : wa,
+            mensagem: `Olá! Gostaria de agendar uma sessão em ${nome}.`,
+            introPedido: 'Olá! Tenho interesse nos seguintes atendimentos:',
+          },
+        }
+      : {}),
+    ...(opts.phone ? { phone: opts.phone } : {}),
+    ...(opts.email ? { email: opts.email } : {}),
+    links: [
+      ...(wa
+        ? [
+            {
+              tipo: 'whatsapp',
+              titulo: 'Agendar primeira sessão',
+              subtitulo: 'Atendimento presencial e online com sigilo ético',
+              url: `https://wa.me/${wa.length === 10 || wa.length === 11 ? `55${wa}` : wa}`,
+              icone: 'whatsapp',
+              destaque: true,
+              badge: 'Agenda aberta',
+            },
+          ]
+        : []),
+      {
+        tipo: 'url',
+        titulo: 'Como funciona a terapia',
+        subtitulo: 'Dúvidas frequentes, abordagem e duração das sessões',
+        url: '#faq',
+        icone: 'link',
+      },
+    ],
+    products: [
+      {
+        nome: 'Sessão individual (50 min)',
+        precoTexto: 'Sob consulta',
+        rotuloBotao: 'Agendar sessão',
+        tag: 'Presencial ou Online',
+        categoria: 'Psicoterapia',
+      },
+      {
+        nome: 'Terapia de casal / familiar',
+        precoTexto: 'Sob consulta',
+        rotuloBotao: 'Agendar conversa',
+        tag: '60 min',
+        categoria: 'Casal & Família',
+      },
+      {
+        nome: 'Acompanhamento mensal (4 sessões)',
+        precoTexto: 'Plano mensal',
+        rotuloBotao: 'Consultar disponibilidade',
+        tag: 'Horário fixo semanal',
+        categoria: 'Planos',
+      },
+      {
+        nome: 'Avaliação & orientação psicológica',
+        precoTexto: 'Sob consulta',
+        rotuloBotao: 'Solicitar informações',
+        categoria: 'Avaliação',
+      },
+    ],
+    servicos: [
+      { nome: 'Psicoterapia individual (adultos e adolescentes)' },
+      { nome: 'Ansiedade, estresse e esgotamento (burnout)' },
+      { nome: 'Autoconhecimento, autoestima e regulação emocional' },
+      { nome: 'Terapia de casal e conflitos de relacionamento' },
+      { nome: 'Orientação parental e familiar' },
+      { nome: 'Atendimento psicológico online (vídeo com sigilo)' },
+    ],
+    hours: [
+      { dias: 'seg–sex', abre: '08:00', fecha: '20:00' },
+      { dias: 'sáb', abre: '08:00', fecha: '12:00' },
+    ],
+    weeklyHours: {
+      mon: { open: '08:00', close: '20:00' },
+      tue: { open: '08:00', close: '20:00' },
+      wed: { open: '08:00', close: '20:00' },
+      thu: { open: '08:00', close: '20:00' },
+      fri: { open: '08:00', close: '20:00' },
+      sat: { open: '08:00', close: '12:00' },
+      sun: null,
+    },
+    seo: {
+      title: `${nome} | Psicologia e Terapia em ${cidade}`,
+      description: `Atendimento psicológico e clínico em ${cidade} (${uf}) e online. Espaço seguro, ético e acolhedor para cuidar da sua saúde mental.`,
+      about:
+        'Clínica e consultório de psicologia com foco em escuta qualificada, ética profissional (CRP) e acolhimento humanizado. Atendimento presencial com hora marcada e modalidade online.',
+    },
+    strip: {
+      enabled: false,
+      motif: 'none',
+      speed: 'slow',
+      direction: 'left',
+    },
+    faq: [
+      {
+        question: 'Como funciona a primeira sessão?',
+        answer:
+          'A primeira sessão é um momento de acolhimento e escuta inicial para entender sua demanda, explicar como o processo terapêutico funciona e alinhar frequência e horários.',
+      },
+      {
+        question: 'O atendimento pode ser online?',
+        answer:
+          'Sim. Realizamos sessões online por videochamada em ambiente reservado, seguindo as diretrizes e o sigilo do Conselho Federal de Psicologia (CFP/CRP).',
+      },
+      {
+        question: 'Qual a duração e frequência das sessões?',
+        answer:
+          'As sessões individuais têm duração média de 50 minutos e costumam ocorrer semanalmente, em dia e horário reservados para você.',
+      },
+      {
+        question: 'Atendem convênio ou emitem recibo para reembolso?',
+        answer:
+          'Atendemos particular e emitimos recibo/nota fiscal para solicitação de reembolso junto ao seu plano de saúde e declaração de Imposto de Renda.',
+      },
+    ],
+    timezone: 'America/Sao_Paulo',
+  };
+
+  const existing = opts.existing ?? {};
+  const merged: Record<string, unknown> = {
+    ...base,
+    ...existing,
+    theme: {
+      ...(base.theme as Record<string, unknown>),
+      ...((existing.theme as Record<string, unknown> | undefined) ?? {}),
+      niche: 'saude',
+    },
+    profile: {
+      ...(base.profile as Record<string, unknown>),
+      ...((existing.profile as Record<string, unknown> | undefined) ?? {}),
+      nome,
+    },
+  };
+  return siteContentSchema.parse(merged);
+}
+
+/**
  * Shallow-merges a partial draft (wizard step) over the stored content.
  * Top-level keys present in `patch` replace the stored ones; the rest is kept.
  */

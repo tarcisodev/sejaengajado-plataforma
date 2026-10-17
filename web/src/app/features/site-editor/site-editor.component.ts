@@ -177,7 +177,7 @@ export const NICHE_CHOICES: { value: NicheKey; label: string }[] = [
   { value: 'restaurante', label: 'Restaurante / Lanchonete' },
   { value: 'moda', label: 'Moda / Loja' },
   { value: 'beleza', label: 'Beleza / Estética' },
-  { value: 'saude', label: 'Saúde / Clínica' },
+  { value: 'saude', label: 'Psicologia / Clínica & Terapia (Saúde)' },
 ];
 
 export const BRAND_SWATCHES = [

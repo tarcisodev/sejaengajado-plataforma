@@ -5,11 +5,22 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmTableImports } from '@spartan-ng/helm/table';
+import { forkJoin } from 'rxjs';
 
 import type { PlaqueMovementDto, PlaqueStockRowDto } from '../../core/api/admin-api.types';
 import { API_PORT } from '../../core/api/api-port';
 import { Reseller } from '../../core/models/domain';
 import { formatBrl } from '../landing/landing-seo';
+
+export function plaqueTypeLabel(type: string): string {
+  if (type === 'NFC') {
+    return 'NFC + QR Code';
+  }
+  if (type === 'QR') {
+    return 'QR Code';
+  }
+  return type;
+}
 
 @Component({
   selector: 'app-admin-plaques',
@@ -20,8 +31,10 @@ import { formatBrl } from '../landing/landing-seo';
 export class AdminPlaquesComponent {
   private readonly api = inject(API_PORT);
   readonly formatBrl = formatBrl;
+  readonly plaqueLabel = plaqueTypeLabel;
   readonly resellers = signal<Reseller[]>([]);
   readonly resellerId = signal('');
+  readonly moveDirection = signal<'IN' | 'OUT'>('IN');
   readonly stock = signal<PlaqueStockRowDto[]>([]);
   readonly movements = signal<PlaqueMovementDto[]>([]);
 
@@ -40,6 +53,11 @@ export class AdminPlaquesComponent {
     this.reload();
   }
 
+  onDirection(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value;
+    this.moveDirection.set(val === 'OUT' ? 'OUT' : 'IN');
+  }
+
   reload(): void {
     const id = this.resellerId();
     if (!id) {
@@ -51,50 +69,71 @@ export class AdminPlaquesComponent {
 
   moveIn(event: Event): void {
     event.preventDefault();
-    const data = new FormData(event.target as HTMLFormElement);
-    const key = crypto.randomUUID();
-    this.api
-      .postAdminPlaqueMovement(
+    const form = event.target as HTMLFormElement;
+    const data = new FormData(form);
+    const direction = String(data.get('direction') ?? this.moveDirection()) === 'OUT' ? 'OUT' : 'IN';
+    const rawType = String(data.get('plaqueType') ?? 'NFC');
+    const types: ('QR' | 'NFC')[] = rawType === 'BOTH' ? ['NFC', 'QR'] : [rawType === 'QR' ? 'QR' : 'NFC'];
+    const qty = Number(data.get('qty') ?? 0);
+    const unitCostCents =
+      direction === 'IN' ? Number(data.get('unitCostCents') ?? 0) || undefined : undefined;
+    const reason =
+      String(data.get('reason') ?? '').trim() ||
+      (direction === 'OUT' ? 'ajuste_admin_saida' : 'ajuste_admin_entrada');
+
+    const calls = types.map((plaqueType) =>
+      this.api.postAdminPlaqueMovement(
         {
           resellerId: this.resellerId(),
-          type: 'IN',
-          plaqueType: String(data.get('plaqueType') ?? 'QR') as 'QR' | 'NFC',
-          qty: Number(data.get('qty') ?? 0),
-          unitCostCents: Number(data.get('unitCostCents') ?? 0) || undefined,
-          reason: String(data.get('reason') ?? '') || undefined,
+          type: direction,
+          plaqueType,
+          qty,
+          unitCostCents,
+          reason,
         },
-        key,
-      )
-      .subscribe({
-        next: () => {
-          toast.success('Entrada registrada.');
-          (event.target as HTMLFormElement).reset();
-          this.reload();
-        },
-        error: () => toast.error('Falha na entrada de estoque.'),
-      });
+        crypto.randomUUID(),
+      ),
+    );
+
+    forkJoin(calls).subscribe({
+      next: () => {
+        toast.success(
+          direction === 'OUT' ? 'Estoque subtraído.' : 'Estoque adicionado.',
+        );
+        form.reset();
+        this.moveDirection.set('IN');
+        this.reload();
+      },
+      error: (err: { error?: { code?: string } }) => {
+        if (err?.error?.code === 'STOCK_INSUFFICIENT') {
+          toast.error('Saldo insuficiente no estoque do vendedor para subtrair essa quantidade.');
+          return;
+        }
+        toast.error('Falha ao atualizar o estoque.');
+      },
+    });
   }
 
   transfer(event: Event): void {
     event.preventDefault();
-    const data = new FormData(event.target as HTMLFormElement);
-    const key = crypto.randomUUID();
-    this.api
-      .transferPlaques(
-        {
-          toResellerId: String(data.get('toResellerId') ?? ''),
-          plaqueType: String(data.get('plaqueType') ?? 'QR') as 'QR' | 'NFC',
-          qty: Number(data.get('qty') ?? 0),
-        },
-        key,
-      )
-      .subscribe({
-        next: () => {
-          toast.success('Transferência concluída.');
-          (event.target as HTMLFormElement).reset();
-          this.reload();
-        },
-        error: () => toast.error('Falha na transferência.'),
-      });
+    const form = event.target as HTMLFormElement;
+    const data = new FormData(form);
+    const rawType = String(data.get('plaqueType') ?? 'NFC');
+    const types: ('QR' | 'NFC')[] = rawType === 'BOTH' ? ['NFC', 'QR'] : [rawType === 'QR' ? 'QR' : 'NFC'];
+    const toResellerId = String(data.get('toResellerId') ?? '');
+    const qty = Number(data.get('qty') ?? 0);
+
+    forkJoin(
+      types.map((plaqueType) =>
+        this.api.transferPlaques({ toResellerId, plaqueType, qty }, crypto.randomUUID()),
+      ),
+    ).subscribe({
+      next: () => {
+        toast.success('Transferência concluída.');
+        form.reset();
+        this.reload();
+      },
+      error: () => toast.error('Falha na transferência.'),
+    });
   }
 }

@@ -13,7 +13,12 @@ import { decodeTimeIdCursor, encodeTimeIdCursor, paginate } from '../../common/c
 import { ByHostCache } from '../../public/sites/by-host.cache';
 import { PRISMA, type TenantPrisma } from '../../tenant/prisma.module';
 import { assertResellerOperable } from '../reseller-status';
-import { defaultSiteContent, mergeSiteContent, siteContentSchema } from './site-content.schema';
+import {
+  buildPsychologyStarterContent,
+  defaultSiteContent,
+  mergeSiteContent,
+  siteContentSchema,
+} from './site-content.schema';
 import {
   assertSlugFormat,
   assertSlugNotBrand,
@@ -158,6 +163,7 @@ export class SitesService {
 
   /** Planos e templates ativos para o formulário de criar site (não são tenant-scoped). */
   async siteOptions() {
+    await this.ensurePsychologyTemplate();
     const [plans, templates] = await Promise.all([
       this.db.plan.findMany({
         orderBy: { code: 'asc' },
@@ -170,6 +176,32 @@ export class SitesService {
       }),
     ]);
     return { plans, templates };
+  }
+
+  private async ensurePsychologyTemplate(): Promise<void> {
+    if (!this.db.template?.findUnique || !this.db.template?.create) {
+      return;
+    }
+    try {
+      const existing = await this.db.template.findUnique({
+        where: { key: 'psicologia-clinica' },
+        select: { id: true },
+      });
+      if (!existing) {
+        await this.db.template.create({
+          data: {
+            key: 'psicologia-clinica',
+            name: 'Psicologia / Clínica & Terapia',
+            niche: 'saude',
+            schemaType: 'MedicalClinic',
+            schema: { type: 'object' },
+            active: true,
+          },
+        });
+      }
+    } catch {
+      /* ignore race or read-only test mocks */
+    }
   }
 
   async create(resellerId: string, body: unknown) {
@@ -200,9 +232,40 @@ export class SitesService {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Recurso não encontrado' });
     }
 
-    const content = parsed.data.content
-      ? this.parseContent(parsed.data.content)
-      : defaultSiteContent();
+    const template = this.db.template?.findUnique
+      ? await this.db.template
+          .findUnique({
+            where: { id: parsed.data.templateId },
+            select: { key: true, niche: true },
+          })
+          .catch(() => null)
+      : null;
+
+    const isPsychologyOrHealth =
+      template?.key === 'psicologia-clinica' ||
+      template?.niche === 'saude' ||
+      parsed.data.content?.theme?.niche === 'saude';
+
+    const rawContent = parsed.data.content as Record<string, unknown> | undefined;
+    const hasCustomProducts =
+      Array.isArray(rawContent?.products) && rawContent.products.length > 0;
+    const hasCustomServicos =
+      Array.isArray(rawContent?.servicos) && rawContent.servicos.length > 0;
+
+    const content =
+      isPsychologyOrHealth && !hasCustomProducts && !hasCustomServicos
+        ? buildPsychologyStarterContent({
+            businessName:
+              (typeof rawContent?.businessName === 'string' && rawContent.businessName) ||
+              customer.name,
+            city: customer.city || undefined,
+            whatsapp: customer.whatsapp || undefined,
+            email: customer.email || undefined,
+            existing: rawContent,
+          })
+        : parsed.data.content
+          ? this.parseContent(parsed.data.content)
+          : defaultSiteContent();
 
     try {
       const site = await this.db.site.create({

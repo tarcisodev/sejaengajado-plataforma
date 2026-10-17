@@ -533,15 +533,15 @@
     <div class="mt-4 grid gap-4 lg:grid-cols-2">
       <div class="grid gap-3">
         <label class="grid gap-1 text-sm">
-          Tipo
+          Tipo da placa
           <select
             class="h-11 rounded-lg border border-input bg-background px-3"
             data-plaque-type
             [value]="plaqueType()"
             (change)="onPlaqueTypeChange($event)"
           >
-            <option value="QR">QR</option>
-            <option value="NFC">NFC</option>
+            <option value="NFC">NFC + QR Code (placa completa)</option>
+            <option value="QR">Só QR Code</option>
           </select>
         </label>
         <label class="grid gap-1 text-sm">

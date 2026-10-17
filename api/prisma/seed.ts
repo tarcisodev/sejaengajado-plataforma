@@ -209,6 +209,12 @@ async function main(): Promise<void> {
       niche: 'generico',
       schemaType: 'LocalBusiness',
     },
+    {
+      key: 'psicologia-clinica',
+      name: 'Psicologia / Clínica & Terapia',
+      niche: 'saude',
+      schemaType: 'MedicalClinic',
+    },
   ] as const) {
     await prisma.template.upsert({
       where: { key: template.key },
