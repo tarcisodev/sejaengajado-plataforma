@@ -7,7 +7,7 @@ import {
 import { createHash } from 'node:crypto';
 
 import { SYSTEM_PRISMA, type SystemPrisma } from '../../tenant/prisma.module';
-import { formulaDemoClinica } from '../../../prisma/showcase-formula-content';
+import { buildPsychologyStarterContent } from '../../reseller/sites/site-content.schema';
 import { AvaliarRateLimit, hashClientIp } from './avaliar-rate-limit';
 import { ByHostCache } from './by-host.cache';
 import { parseTenantSlugFromHost } from './host';
@@ -59,15 +59,18 @@ export class PublicSitesService {
     });
     if (!site) {
       if (slug.toLowerCase() === 'demo-clinica') {
-        const assetBase = (
-          process.env.SEED_DEMO_ASSET_BASE ?? 'https://app.sejaengajado.com.br'
-        ).replace(/\/$/, '');
         const body: PublicSiteBody = {
           slug: 'demo-clinica',
           status: 'PUBLISHED',
           templateKey: 'psicologia-clinica',
           schemaType: 'MedicalClinic',
-          content: formulaDemoClinica(assetBase),
+          content: buildPsychologyStarterContent({
+            businessName: 'Clínica Serenidade — Psicologia & Terapia',
+            city: 'Uberaba',
+            uf: 'MG',
+            whatsapp: '5534999990004',
+            phone: '3433337777',
+          }),
           temporarilyUnavailable: false,
         };
         const etag = weakEtag(body);
