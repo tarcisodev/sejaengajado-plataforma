@@ -37,10 +37,19 @@ jobs:
           cache-dependency-path: |
             api/package-lock.json
             web/package-lock.json
+      - name: Versão do @playwright/test (chave do cache de browsers)
+        id: pwv
+        run: |
+          v=$(node -p "require('./web/package-lock.json').packages['node_modules/@playwright/test']?.version")
+          if [ -z "$v" ] || [ "$v" = "undefined" ]; then
+            echo "::error::versão do @playwright/test não encontrada em web/package-lock.json" >&2
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-pw-${{ hashFiles('web/package-lock.json') }}
+          key: ${{ runner.os }}-pw-${{ steps.pwv.outputs.version }}
       - name: Dev auth + compose
         run: |
           cp .env.local.example .env.local

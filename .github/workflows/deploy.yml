@@ -24,9 +24,9 @@ concurrency:
   group: deploy-prod
   cancel-in-progress: false
 
+# Mínimo no topo; cada job declara o que precisa (packages: write só no build).
 permissions:
   contents: read
-  packages: write
 
 env:
   # Lowercase owner — must match infra/stack.yml (nunca :latest).
@@ -36,6 +36,9 @@ jobs:
   migration-guard:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,6 +56,10 @@ jobs:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
     needs: [migration-guard]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         include:
@@ -84,8 +91,10 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       - name: API image must keep dist/main.js (seed compiles to dist-seed/)
         if: matrix.app == 'api'
+        env:
+          IMAGE_SHA: ${{ github.sha }}
         run: |
-          img="${{ env.REGISTRY }}/sejaengajado-api:${{ github.sha }}"
+          img="${REGISTRY}/sejaengajado-api:${IMAGE_SHA}"
           docker pull "$img"
           docker run --rm --entrypoint sh "$img" -c 'test -f /app/dist/main.js && test -f /app/dist-seed/seed-showcase.js'
 
@@ -93,8 +102,14 @@ jobs:
     needs: [build]
     if: ${{ always() && (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '')) }}
     runs-on: [self-hosted, linux, vps]
-    timeout-minutes: 20
+    # Gate (≤ 12 min) + smoke (≤ 8 min) + observação (≤ 5 min) + migrations + rollback (~2 min).
+    # Cada step longo tem timeout próprio: estouro vira failure e o rollback roda.
+    timeout-minutes: 40
     environment: production
+    permissions:
+      contents: read
+      # Pull das imagens GHCR no Swarm (registry auth do stack deploy); push só no job build.
+      packages: read
     env:
       IMAGE_TAG: ${{ inputs.rollback_tag || github.sha }}
       BACKUP_TAG: ${{ inputs.rollback_tag || github.sha }}
@@ -171,6 +186,7 @@ jobs:
           echo "DEPLOYED=1" >> "$GITHUB_ENV"
 
       - name: Gate de saúde
+        timeout-minutes: 12
         run: |
           set -euo pipefail
           IMAGE_TAG="${IMAGE_TAG:?}"
@@ -270,13 +286,132 @@ jobs:
             exit 1
           fi
 
-      - name: Rollback automático (só se stack deploy já rodou)
-        if: failure() && env.DEPLOYED == '1' && env.PREV_TAG != ''
+      - name: Smoke pós-convergência (20 rodadas × 3 demos + 404, zero falhas)
+        timeout-minutes: 8
+        env:
+          SMOKE_ROUNDS: "20"
+          SMOKE_INTERVAL_S: "3"
+          SMOKE_MAX_TIME_S: "2"
+          UA_BROWSER: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+          UA_CURL: "curl/8.5.0"
         run: |
           set -euo pipefail
+          # slug|nome do negócio (api/prisma/showcase-formula-content.ts).
+          demos=(
+            "demo-forno|Forno da Praça"
+            "demo-barbearia|Barbearia do Centro"
+            "demo-estudio|Estúdio Luz Local"
+          )
+          missing_slug="slug-inexistente-smoke-ci"
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+
+          # $1=url $2=UA → imprime "code time_total" (curl nunca aborta o script).
+          probe() {
+            curl -sS -A "$2" --max-time 5 -o "$body" -w '%{http_code} %{time_total}\n' "$1" 2>/dev/null || echo "000 9.999"
+          }
+          slow() { awk -v t="$1" -v m="$SMOKE_MAX_TIME_S" 'BEGIN { exit !(t >= m) }'; }
+
+          fails=0
+          for ((r=1; r<=SMOKE_ROUNDS; r++)); do
+            for pair in "${demos[@]}"; do
+              slug="${pair%%|*}"
+              needle="${pair#*|}"
+              for ua in "$UA_BROWSER" "$UA_CURL"; do
+                ua_tag="browser"; [[ "$ua" == "$UA_CURL" ]] && ua_tag="curl"
+                read -r code t < <(probe "https://${slug}.sejaengajado.com.br/" "$ua")
+                if [[ "$code" != "200" ]]; then
+                  echo "::error::smoke r=$r slug=$slug ua=$ua_tag code=$code t=${t}s"; fails=$((fails + 1)); continue
+                fi
+                if ! grep -Fq "$needle" "$body" || grep -Eiq 'Negócio não encontrado|Não encontramos esse negócio' "$body"; then
+                  echo "::error::smoke r=$r slug=$slug ua=$ua_tag 200 sem \"$needle\" (soft 404?)"; fails=$((fails + 1)); continue
+                fi
+                if slow "$t"; then
+                  echo "::error::smoke r=$r slug=$slug ua=$ua_tag lento t=${t}s (limite ${SMOKE_MAX_TIME_S}s)"; fails=$((fails + 1)); continue
+                fi
+              done
+            done
+            read -r code t < <(probe "https://${missing_slug}.sejaengajado.com.br/" "$UA_BROWSER")
+            if [[ "$code" != "404" ]] || grep -Fqi '404 page not found' "$body"; then
+              # "404 page not found" = Traefik sem rota (HostRegexp quebrado), não o SSR.
+              echo "::error::smoke r=$r slug=$missing_slug code=$code (esperado 404 do SSR)"; fails=$((fails + 1))
+            elif slow "$t"; then
+              echo "::error::smoke r=$r slug=$missing_slug lento t=${t}s"; fails=$((fails + 1))
+            fi
+            echo "smoke rodada $r/$SMOKE_ROUNDS falhas_acumuladas=$fails"
+            if [[ "$fails" -gt 0 ]]; then
+              echo "smoke pós-convergência FALHOU (tolerância zero) — rollback" >&2
+              exit 1
+            fi
+            if [[ "$r" -lt "$SMOKE_ROUNDS" ]]; then sleep "$SMOKE_INTERVAL_S"; fi
+          done
+          echo "smoke pós-convergência OK: ${SMOKE_ROUNDS} rodadas × ${#demos[@]} demos × 2 UAs + 404"
+
+      - name: Janela de observação (réplicas estáveis, sem rollback do Swarm)
+        timeout-minutes: 5
+        env:
+          OBSERVE_SECONDS: "150"
+          OBSERVE_TICK_S: "10"
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="${IMAGE_TAG:?}"
+          services=(sejaengajado_api sejaengajado_web-ssr)
+          declare -A baseline
+          for svc in "${services[@]}"; do
+            baseline[$svc]=$(docker service ps "$svc" --filter desired-state=running -q | sort | tr '\n' ' ')
+            echo "baseline $svc tasks=[${baseline[$svc]}]"
+          done
+          end=$((SECONDS + OBSERVE_SECONDS))
+          tick=0
+          while [[ "$SECONDS" -lt "$end" ]]; do
+            tick=$((tick + 1))
+            for svc in "${services[@]}"; do
+              img=$(docker service inspect "$svc" --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+              upd=$(docker service inspect "$svc" --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}')
+              reps=$(docker service ls --format '{{.Name}} {{.Replicas}}' | awk -v s="$svc" '$1 == s { print $2 }')
+              tasks=$(docker service ps "$svc" --filter desired-state=running -q | sort | tr '\n' ' ')
+              echo "observe tick=$tick $svc reps=$reps upd=${upd:-none}"
+              if [[ "$img" != *":${IMAGE_TAG}"* ]]; then
+                echo "::error::$svc saiu do SHA ${IMAGE_TAG} (imagem atual: ${img##*/})"; exit 1
+              fi
+              if echo "$upd" | grep -Eiq 'rollback|paused'; then
+                echo "::error::$svc em estado de update '$upd'"; exit 1
+              fi
+              cur="${reps%%/*}"; want="${reps##*/}"; want="${want%% *}"
+              if [[ -z "$reps" || "$cur" != "$want" || "$want" == "0" ]]; then
+                echo "::error::$svc réplicas instáveis ($reps)"; exit 1
+              fi
+              if [[ "$tasks" != "${baseline[$svc]}" ]]; then
+                echo "::error::$svc trocou de task durante a observação (restart/crash): [${baseline[$svc]}] → [$tasks]"; exit 1
+              fi
+            done
+            curl -fsS --max-time 5 "https://app.sejaengajado.com.br/api/health/ready" >/dev/null \
+              || { echo "::error::api /health/ready falhou na observação"; exit 1; }
+            sleep "$OBSERVE_TICK_S"
+          done
+          echo "observação OK (${OBSERVE_SECONDS}s): api + web-ssr estáveis no SHA ${IMAGE_TAG}"
+
+      - name: Rollback automático (só se stack deploy já rodou)
+        # cancelled(): cancelamento manual ou timeout do job também volta para a tag anterior.
+        if: (failure() || cancelled()) && env.DEPLOYED == '1' && env.PREV_TAG != ''
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          if [[ "$PREV_TAG" == "$IMAGE_TAG" ]]; then
+            echo "::error::redeploy do mesmo SHA (${IMAGE_TAG}); sem rollback possível"
+            exit 1
+          fi
           echo "rollback Swarm → tag anterior ${PREV_TAG}"
-          docker service rollback sejaengajado_api
-          docker service rollback sejaengajado_web-ssr
+          for svc in sejaengajado_api sejaengajado_web-ssr; do
+            cur=$(docker service inspect "$svc" --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+            # Swarm (update_config.failure_action=rollback) pode já ter voltado sozinho;
+            # rollback de novo trocaria PreviousSpec e reaplicaria o SHA ruim.
+            if [[ "$cur" == *":${PREV_TAG}"* ]]; then
+              echo "$svc já está em ${PREV_TAG} — sem rollback adicional"
+            else
+              docker service rollback "$svc"
+            fi
+          done
           # Confere que a tag voltou (não engolir falha).
           for i in $(seq 1 24); do
             api_img=$(docker service inspect sejaengajado_api --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')

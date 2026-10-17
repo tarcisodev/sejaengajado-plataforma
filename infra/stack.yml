@@ -47,13 +47,35 @@ services:
     networks: [TarcisoDevNet, se_internal]
     logging: *logging
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/healthz"]
-      interval: 15s
-      timeout: 3s
-      retries: 3
-      start_period: 40s
+      # Readiness real: /healthz (liveness) + SSR renderizando o demo-forno via Host header
+      # (mesmo caminho de um tenant: resolve-host -> API by-slug -> Angular SSR).
+      # GNU wget (apk add wget no web/Dockerfile). Se a API interna (/api/health/ready)
+      # nao responde, o problema nao e do SSR: sai 0 para o Swarm nao reciclar o web-ssr
+      # por culpa da API (a API tem healthcheck proprio e o gate do deploy cobre o resto).
+      # Trocar/despublicar o demo-forno exige atualizar este check (ver deploy.yml smoke).
+      # Timing (M2): unhealthy so apos start_period 60s + 5 falhas x 30s (~3,5 min), bem acima
+      # do monitor 30s do update_config; regressao lenta e pega pelo gate/smoke/observacao
+      # do deploy.yml. timeout 25s >= soma dos -T (8+3+8).
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 8 -O /dev/null http://127.0.0.1:4000/healthz || exit 1; wget -q -T 3 -O /dev/null http://sejaengajado_api:3000/api/health/ready || exit 0; wget -q -T 8 -O - --header='Host: demo-forno.sejaengajado.com.br' http://127.0.0.1:4000/ | grep -q 'Forno da Pra'",
+        ]
+      interval: 30s
+      timeout: 25s
+      retries: 5
+      start_period: 60s
     deploy:
       <<: *deploy_common
+      # Override do anchor (merge raso): monitor 30s no web-ssr.
+      update_config:
+        {
+          parallelism: 1,
+          order: start-first,
+          failure_action: rollback,
+          monitor: 30s,
+          delay: 5s,
+        }
       replicas: 1
       resources:
         reservations: { memory: 256M }
