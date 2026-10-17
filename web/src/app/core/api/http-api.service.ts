@@ -39,7 +39,11 @@ import {
   toApiPlatformConfig,
   unsupported,
 } from './api-mappers';
-import { archivedPublicSite, siteFromPublicBody } from './public-site.mapper';
+import {
+  archivedPublicSite,
+  normalizeSiteContent,
+  siteFromPublicBody,
+} from './public-site.mapper';
 import { endOfDaySaoPauloIso } from './coupon-date';
 import type {
   AdminPlaqueMoveCommand,
@@ -977,30 +981,12 @@ function siteFromResellerDto(row: ResellerSiteDto): Site {
     slug: row.slug,
     customDomain: null,
     templateId: row.templateId,
-    content: (row.content as Site['content']) ?? emptySiteContent(row.slug),
+    content: normalizeSiteContent(row.content, row.customer?.name || row.slug),
     status: row.status as Site['status'],
     planId: row.planId,
     editable: row.editable,
     publishedAt: row.publishedAt,
     hostingRenewsAt: row.hostingRenewsAt,
     plaqueFidelityEndsAt: row.plaqueFidelityEndsAt,
-  };
-}
-
-function emptySiteContent(slug: string): Site['content'] {
-  return {
-    businessName: slug,
-    profile: { nome: slug, cidade: '', uf: '' },
-    theme: {
-      p1: '#1e3a5f',
-      p2: '#3d5a4c',
-      p3: '#d5e2dc',
-      on3: '#102018',
-      hi: '#f4f7f6',
-      fontHeading: 'Fraunces, Palatino, serif',
-      fontBody: 'Literata, Georgia, serif',
-      fontScale: 1,
-      italic: 'normal',
-    },
   };
 }

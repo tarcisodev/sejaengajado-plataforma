@@ -253,12 +253,18 @@ export class AdminSitesComponent {
   }
 
   visible(): Site[] {
-    const query = this.query().trim().toLowerCase();
+    const query = (this.query() ?? '').trim().toLowerCase();
     const status = this.status();
     return this.rows().filter((row) => {
-      const name = row.content.businessName.toLowerCase();
+      const name = (
+        row.content?.businessName ??
+        row.content?.profile?.nome ??
+        row.slug ??
+        ''
+      ).toLowerCase();
+      const slug = (row.slug ?? '').toLowerCase();
       return (
-        (!query || name.includes(query) || row.slug.includes(query)) &&
+        (!query || name.includes(query) || slug.includes(query)) &&
         (!status || row.status === status)
       );
     });
