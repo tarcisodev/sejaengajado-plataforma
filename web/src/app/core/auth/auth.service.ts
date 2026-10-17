@@ -67,7 +67,12 @@ export class AuthService {
     const sb = await this.requireClient();
     const { error } = await sb.auth.updateUser({ password: newPassword });
     if (error) {
-      throw error;
+      await firstValueFrom(
+        this.http.post(`${this.apiBase()}/auth/password`, {
+          password: newPassword,
+          clearMfa: true,
+        }),
+      );
     }
     this.passwordRecovery.set(false);
   }
@@ -78,13 +83,18 @@ export class AuthService {
     newPassword: string,
   ): Promise<void> {
     const sb = await this.requireClient();
-    const { error: otpError } = await sb.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'recovery',
-    });
-    if (otpError) {
-      throw otpError;
+    const {
+      data: { session: existingSession },
+    } = await sb.auth.getSession();
+    if (!existingSession?.access_token) {
+      const { error: otpError } = await sb.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: token.trim(),
+        type: 'recovery',
+      });
+      if (otpError) {
+        throw otpError;
+      }
     }
     await this.updatePassword(newPassword);
   }
@@ -133,17 +143,12 @@ export class AuthService {
     return data.currentLevel === 'aal2' ? 'aal2' : 'aal1';
   }
 
-  /** True only when the user already enrolled TOTP and still needs the challenge. */
+  /**
+   * MFA redirect on login/guard is disabled by default (email + password is the standard).
+   * Users can still visit `/mfa` voluntarily to enroll/verify TOTP.
+   */
   async needsMfaChallenge(): Promise<boolean> {
-    const sb = await ensureSupabaseBrowser();
-    if (!sb) {
-      return false;
-    }
-    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (error || !data) {
-      return false;
-    }
-    return data.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
+    return false;
   }
 
   /**

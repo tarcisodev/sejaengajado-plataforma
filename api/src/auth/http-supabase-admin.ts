@@ -79,6 +79,18 @@ export class HttpSupabaseAdminClient implements SupabaseAdminClient {
     return { removed };
   }
 
+  async updateUserPassword(supabaseUserId: string, password: string): Promise<void> {
+    const base = this.baseUrl.replace(/\/$/, '');
+    const response = await fetch(`${base}/auth/v1/admin/users/${supabaseUserId}`, {
+      method: 'PUT',
+      headers: this.headers(),
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) {
+      throw new Error(`Supabase update user password failed (${response.status})`);
+    }
+  }
+
   private headers(): Record<string, string> {
     return {
       Authorization: `Bearer ${this.serviceRoleKey}`,

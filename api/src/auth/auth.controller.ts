@@ -36,6 +36,11 @@ const resetSchema = z.object({
   email: z.string().email(),
 });
 
+const selfPasswordSchema = z.object({
+  password: z.string().min(8).max(128),
+  clearMfa: z.boolean().optional().default(true),
+});
+
 @Controller()
 export class AuthController {
   constructor(
@@ -56,6 +61,38 @@ export class AuthController {
       resellerStatus: user.resellerStatus,
       aal: user.aal,
     };
+  }
+
+  /**
+   * Self-service password update (and optional MFA cleanup) that works with an aal1
+   * recovery session even when GoTrue has an old TOTP factor enrolled.
+   */
+  @Post('auth/password')
+  @Roles('ADMIN', 'RESELLER', 'CUSTOMER')
+  @AllowAal1()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async updateOwnPassword(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+    const parsed = selfPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'A nova senha deve ter pelo menos 8 caracteres.',
+      });
+    }
+    try {
+      if (parsed.data.clearMfa) {
+        await this.supabaseAdmin.unenrollMfaFactors(user.supabaseId).catch(() => undefined);
+      }
+      if (this.supabaseAdmin.updateUserPassword) {
+        await this.supabaseAdmin.updateUserPassword(user.supabaseId, parsed.data.password);
+      }
+      return { ok: true };
+    } catch {
+      throw new ServiceUnavailableException({
+        code: 'UNAVAILABLE',
+        message: 'Não foi possível salvar a nova senha.',
+      });
+    }
   }
 
   @Get('admin/session/ping')
