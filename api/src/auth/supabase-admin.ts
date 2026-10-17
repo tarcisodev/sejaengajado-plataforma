@@ -14,4 +14,6 @@ export interface SupabaseAdminClient {
   generateRecoveryLink(email: string): Promise<RecoveryLink>;
   /** Remove all MFA factors for the user (admin reset). */
   unenrollMfaFactors(supabaseUserId: string): Promise<{ removed: number }>;
+  /** Set password via GoTrue Admin API (works even when session is aal1 with MFA enrolled). */
+  updateUserPassword?(supabaseUserId: string, password: string): Promise<void>;
 }
