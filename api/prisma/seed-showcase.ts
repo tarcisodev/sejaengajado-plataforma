@@ -6,6 +6,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 
 import {
   formulaDemoBarbearia,
+  formulaDemoClinica,
   formulaDemoEstudio,
   formulaDemoForno,
 } from './showcase-formula-content';
@@ -185,6 +186,11 @@ export async function runShowcaseSeed(db: ShowcasePrisma): Promise<ShowcaseSeedR
       slug: 'demo-estudio' as const,
       templateId: templates.loja.id,
       content: formulaDemoEstudio(base),
+    },
+    {
+      slug: 'demo-clinica' as const,
+      templateId: templates.psicologia.id,
+      content: formulaDemoClinica(base),
     },
   ];
 

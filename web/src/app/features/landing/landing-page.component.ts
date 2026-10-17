@@ -53,7 +53,7 @@ export class LandingPageComponent implements OnInit, OnDestroy {
     {
       n: '01',
       title: 'Escolhemos o ramo',
-      text: 'Barbearia, cozinha ou serviço: o modelo já nasce com os blocos do seu dia.',
+      text: 'Barbearia, cozinha, clínica ou serviço: o modelo já nasce com os blocos do seu dia.',
     },
     {
       n: '02',
@@ -64,6 +64,44 @@ export class LandingPageComponent implements OnInit, OnDestroy {
       n: '03',
       title: 'A placa vai para a porta',
       text: 'QR e NFC pedem a avaliação no Google. Cada leitura passa pelo seu endereço.',
+    },
+  ];
+  readonly demos = [
+    {
+      slug: 'demo-forno',
+      niche: 'Padaria & Restaurante',
+      name: 'Forno da Praça',
+      desc: 'Cardápio com pedido no WhatsApp, combo promocional com contagem, Pix e avaliação no Google.',
+      url: 'https://demo-forno.sejaengajado.com.br',
+      host: 'demo-forno.sejaengajado.com.br',
+      accent: '#8c3a2f',
+    },
+    {
+      slug: 'demo-barbearia',
+      niche: 'Barbearia & Salão',
+      name: 'Barbearia do Centro',
+      desc: 'Serviços com agendamento direto no WhatsApp, horários da semana, Pix e nota no Google.',
+      url: 'https://demo-barbearia.sejaengajado.com.br',
+      host: 'demo-barbearia.sejaengajado.com.br',
+      accent: '#1e3a5f',
+    },
+    {
+      slug: 'demo-clinica',
+      niche: 'Psicologia, Clínica & Terapia',
+      name: 'Clínica Serenidade',
+      desc: 'Acolhimento ético (CRP), agendamento presencial/online, especialidades, dúvidas frequentes e localização.',
+      url: 'https://demo-clinica.sejaengajado.com.br',
+      host: 'demo-clinica.sejaengajado.com.br',
+      accent: '#0f5c4c',
+    },
+    {
+      slug: 'demo-estudio',
+      niche: 'Estúdio & Serviços Locais',
+      name: 'Estúdio Luz Local',
+      desc: 'Portfólio, pacotes de serviço, vídeo embutido, orçamento rápido no WhatsApp e QR Pix.',
+      url: 'https://demo-estudio.sejaengajado.com.br',
+      host: 'demo-estudio.sejaengajado.com.br',
+      accent: '#0f766e',
     },
   ];
   readonly questions = [

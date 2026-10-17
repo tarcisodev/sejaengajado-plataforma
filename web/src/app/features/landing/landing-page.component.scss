@@ -131,10 +131,87 @@ h1 {
 }
 
 .steps,
+.demos,
 .plans,
 .faq,
 .plaque {
   padding: 2.5rem 7vw;
+}
+
+.demos-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.demos-sub {
+  margin: 0;
+  max-width: 30rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+.demo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 1.35rem 1.3rem 1.4rem;
+  background: rgba(255, 252, 247, 0.86);
+  border: 1px solid rgba(28, 25, 21, 0.14);
+  border-top: 4px solid var(--demo-accent, var(--seal));
+  box-shadow: 6px 8px 0 rgba(28, 25, 21, 0.06);
+}
+
+.demo-niche {
+  margin: 0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--demo-accent, var(--seal));
+}
+
+.demo-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 560;
+}
+
+.demo-desc {
+  margin: 0.15rem 0 0.4rem;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.demo-host {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  opacity: 0.78;
+}
+
+.demo-cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--demo-accent, var(--seal));
+  color: #f7f1e6;
+  text-decoration: none;
+  font-weight: 560;
+  font-size: 0.92rem;
 }
 
 h2 {
@@ -316,6 +393,7 @@ a:focus-visible {
   .hero,
   .plaque,
   .steps ol,
+  .demo-grid,
   .plan-grid {
     grid-template-columns: 1fr;
   }

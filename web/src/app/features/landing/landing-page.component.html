@@ -6,6 +6,7 @@
   </a>
   <nav aria-label="Seções">
     <a href="#como-funciona">Como funciona</a>
+    <a href="#exemplos">Exemplos</a>
     <a href="#placa">A placa</a>
     <a href="#planos">Planos</a>
     <a href="#faq">Perguntas</a>
@@ -43,6 +44,38 @@
         </li>
       }
     </ol>
+  </section>
+
+  <section id="exemplos" class="demos" aria-labelledby="exemplos-titulo" data-landing-demos>
+    <div class="demos-head">
+      <div>
+        <p class="eyebrow">Modelos reais publicados</p>
+        <h2 id="exemplos-titulo">Veja os sites de demonstração no ar</h2>
+      </div>
+      <p class="demos-sub">
+        Abra no celular ou no computador para testar o catálogo, o pedido no WhatsApp, o Pix e o
+        fluxo de avaliação.
+      </p>
+    </div>
+    <div class="demo-grid">
+      @for (demo of demos; track demo.slug) {
+        <article class="demo-card" [style.--demo-accent]="demo.accent" [attr.data-demo-slug]="demo.slug">
+          <p class="demo-niche">{{ demo.niche }}</p>
+          <h3>{{ demo.name }}</h3>
+          <p class="demo-desc">{{ demo.desc }}</p>
+          <p class="demo-host">{{ demo.host }}</p>
+          <a
+            class="demo-cta"
+            [href]="demo.url"
+            target="_blank"
+            rel="noopener"
+            [attr.aria-label]="'Abrir demonstração ' + demo.name"
+          >
+            Abrir site demo ↗
+          </a>
+        </article>
+      }
+    </div>
   </section>
 
   <section id="placa" class="plaque" aria-labelledby="placa-titulo">
