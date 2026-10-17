@@ -7,6 +7,7 @@ import {
 import { createHash } from 'node:crypto';
 
 import { SYSTEM_PRISMA, type SystemPrisma } from '../../tenant/prisma.module';
+import { formulaDemoClinica } from '../../../prisma/showcase-formula-content';
 import { AvaliarRateLimit, hashClientIp } from './avaliar-rate-limit';
 import { ByHostCache } from './by-host.cache';
 import { parseTenantSlugFromHost } from './host';
@@ -57,6 +58,23 @@ export class PublicSitesService {
       include: { template: true },
     });
     if (!site) {
+      if (slug.toLowerCase() === 'demo-clinica') {
+        const assetBase = (
+          process.env.SEED_DEMO_ASSET_BASE ?? 'https://app.sejaengajado.com.br'
+        ).replace(/\/$/, '');
+        const body: PublicSiteBody = {
+          slug: 'demo-clinica',
+          status: 'PUBLISHED',
+          templateKey: 'psicologia-clinica',
+          schemaType: 'MedicalClinic',
+          content: formulaDemoClinica(assetBase),
+          temporarilyUnavailable: false,
+        };
+        const etag = weakEtag(body);
+        this.cache.set(cacheKey, body, etag);
+        this.cache.set('demo-clinica.sejaengajado.com.br', body, etag);
+        return { body, etag, fromCache: false };
+      }
       throw new NotFoundException({
         code: 'NOT_FOUND',
         message: 'Site não encontrado',

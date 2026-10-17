@@ -6,6 +6,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 
 import {
   formulaDemoBarbearia,
+  formulaDemoClinica,
   formulaDemoEstudio,
   formulaDemoForno,
 } from './showcase-formula-content';
@@ -129,9 +130,15 @@ export async function runShowcaseSeed(db: ShowcasePrisma): Promise<ShowcaseSeedR
       niche: 'generico',
       schemaType: 'LocalBusiness',
     }),
+    psicologia: await upsertTemplateCreateOnly(db, 'psicologia-clinica', {
+      name: 'Psicologia / Clínica & Terapia',
+      niche: 'saude',
+      schemaType: 'MedicalClinic',
+    }),
   };
   for (const [key, row] of Object.entries(templates)) {
-    const templateKey = key === 'loja' ? 'loja-local' : key;
+    const templateKey =
+      key === 'loja' ? 'loja-local' : key === 'psicologia' ? 'psicologia-clinica' : key;
     if (row.created) {
       created.templates.push(templateKey);
     } else {
@@ -179,6 +186,11 @@ export async function runShowcaseSeed(db: ShowcasePrisma): Promise<ShowcaseSeedR
       slug: 'demo-estudio' as const,
       templateId: templates.loja.id,
       content: formulaDemoEstudio(base),
+    },
+    {
+      slug: 'demo-clinica' as const,
+      templateId: templates.psicologia.id,
+      content: formulaDemoClinica(base),
     },
   ];
 

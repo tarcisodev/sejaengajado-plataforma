@@ -66,7 +66,7 @@ export interface PlaqueMovementDto {
 
 export interface AdminPlaqueMoveCommand {
   resellerId: string;
-  type: 'IN' | 'ADJUST';
+  type: 'IN' | 'OUT' | 'ADJUST';
   plaqueType: 'QR' | 'NFC';
   qty: number;
   unitCostCents?: number;

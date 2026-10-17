@@ -27,7 +27,7 @@ const PRO_PLAN_CODES = new Set(['ENGAJADO_PRO', 'SITE_PRO']);
 
 export const adminMovementSchema = z.object({
   resellerId: z.string().uuid(),
-  type: z.enum(['IN', 'ADJUST']),
+  type: z.enum(['IN', 'OUT', 'ADJUST']),
   plaqueType: z.enum(['QR', 'NFC']),
   qty: z.number().int().positive(),
   unitCostCents: z.number().int().nonnegative().optional(),

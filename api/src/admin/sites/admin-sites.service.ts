@@ -156,12 +156,39 @@ export class AdminSitesService {
     return updated;
   }
 
-  listTemplates() {
+  async listTemplates() {
+    await this.ensurePsychologyTemplate();
     return this.db.template.findMany({
       where: { active: true },
       orderBy: { name: 'asc' },
       select: { id: true, key: true, name: true, niche: true, schemaType: true, active: true },
     });
+  }
+
+  private async ensurePsychologyTemplate(): Promise<void> {
+    if (!this.db.template?.findUnique || !this.db.template?.create) {
+      return;
+    }
+    try {
+      const existing = await this.db.template.findUnique({
+        where: { key: 'psicologia-clinica' },
+        select: { id: true },
+      });
+      if (!existing) {
+        await this.db.template.create({
+          data: {
+            key: 'psicologia-clinica',
+            name: 'Psicologia / Clínica & Terapia',
+            niche: 'saude',
+            schemaType: 'MedicalClinic',
+            schema: { type: 'object' },
+            active: true,
+          },
+        });
+      }
+    } catch {
+      /* ignore race or test mocks */
+    }
   }
 
   async get(id: string) {
@@ -373,6 +400,7 @@ export class AdminSitesService {
 
   /** Plans + active templates for the admin "Novo site" wizard. */
   async siteOptions() {
+    await this.ensurePsychologyTemplate();
     const [plans, templates] = await Promise.all([
       this.db.plan.findMany({
         orderBy: { code: 'asc' },

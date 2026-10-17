@@ -32,6 +32,13 @@ describe('LandingPageComponent', () => {
       'na porta e na internet',
     );
     expect(fixture.nativeElement.querySelectorAll('#como-funciona li').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('[data-landing-demos] .demo-card').length).toBe(
+      4,
+    );
+    expect(text).toContain('demo-forno.sejaengajado.com.br');
+    expect(text).toContain('demo-barbearia.sejaengajado.com.br');
+    expect(text).toContain('demo-clinica.sejaengajado.com.br');
+    expect(text).toContain('demo-estudio.sejaengajado.com.br');
     expect(text).toContain('A placa que conta a visita');
     expect(text).toContain('configuráveis no painel');
     expect(text).toContain(formatBrl(34_700).replace(/\u00a0/g, ' '));
