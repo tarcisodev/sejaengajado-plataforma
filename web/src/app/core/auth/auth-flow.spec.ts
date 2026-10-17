@@ -55,6 +55,7 @@ describe('AUTH-WEB flows (e2e-style)', () => {
             ready: signal(true),
             ensureReady: async () => undefined,
             getAuthenticatorAssuranceLevel: async () => mfaLevel,
+            needsMfaChallenge: async () => false,
             homePathForRole: (role: AuthMe['role']) => {
               if (role === 'ADMIN') return '/admin';
               if (role === 'RESELLER') return '/revenda';
@@ -104,10 +105,10 @@ describe('AUTH-WEB flows (e2e-style)', () => {
     expect(asTree(result)).toBe('/entrar');
   });
 
-  it('ADMIN without aal2 → /mfa (aal2Guard)', async () => {
+  it('ADMIN without MFA enrolled → allow (aal2Guard optional)', async () => {
     configure({ platform: 'browser', role: 'ADMIN', mfaLevel: 'aal1' });
     const result = await TestBed.runInInjectionContext(() => aal2Guard({} as never, {} as never));
-    expect(asTree(result)).toBe('/mfa');
+    expect(asTree(result)).toBe('ALLOW');
   });
 
   it('anonymous / on SSR → /entrar (homeRedirectGuard)', async () => {

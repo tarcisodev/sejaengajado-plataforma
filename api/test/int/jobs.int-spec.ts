@@ -265,7 +265,7 @@ describe('jobs overdue lifecycle', () => {
     }
   });
 
-  it('blocks admin without aal2', async () => {
+  it('allows admin with aal1 (MFA optional)', async () => {
     const seeded = await seedJobsWorld();
     const aal1 = loginAs('ADMIN', {
       supabaseId: seeded.admin.supabaseId,
@@ -277,7 +277,7 @@ describe('jobs overdue lifecycle', () => {
         .post('/api/admin/jobs/run')
         .set('Authorization', `Bearer ${aal1.token}`)
         .send({})
-        .expect(403);
+        .expect(201);
     } finally {
       await app.close();
     }

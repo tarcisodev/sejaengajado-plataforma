@@ -58,7 +58,10 @@ export function roleGuard(...roles: UserRole[]): CanActivateFn {
   };
 }
 
-/** ADMIN: exige aal2 (TOTP via mfa.getAuthenticatorAssuranceLevel). Caso contrário → /mfa. */
+/**
+ * MFA opcional: só redireciona a /mfa se o usuário já tiver TOTP enrolado
+ * e ainda precisar do desafio (nextLevel aal2). Sem fator, e-mail+senha basta.
+ */
 export const aal2Guard: CanActivateFn = async (_route, state) => {
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
@@ -70,8 +73,7 @@ export const aal2Guard: CanActivateFn = async (_route, state) => {
   if (auth.sessionStatus() !== 'authenticated' || !auth.me()) {
     return toEntrar(router, state.url);
   }
-  const level = await auth.getAuthenticatorAssuranceLevel();
-  if (level !== 'aal2') {
+  if (await auth.needsMfaChallenge()) {
     const returnUrl = safeReturnUrl(state.url);
     return returnUrl
       ? router.createUrlTree(['/mfa'], { queryParams: { returnUrl } })

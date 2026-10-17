@@ -5,8 +5,8 @@ import { totpCode } from './totp';
 const appBase = (process.env['E2E_APP_BASE'] ?? 'http://app.localhost:4200').replace(/\/$/, '');
 
 /**
- * E-mail + senha + MFA TOTP for admin.
- * Env: E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, E2E_ADMIN_TOTP_SECRET.
+ * E-mail + senha for admin (MFA only if already enrolled).
+ * Env: E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, E2E_ADMIN_TOTP_SECRET (se MFA enrolado).
  */
 export async function loginAdminWithMfa(page: Page): Promise<void> {
   const email = (process.env['E2E_ADMIN_EMAIL'] ?? '').trim();

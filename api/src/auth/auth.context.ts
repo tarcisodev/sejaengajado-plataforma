@@ -21,7 +21,7 @@ export function getAuthUser(): AuthUser | undefined {
 
 export function requireAdminPrismaAccess(): AuthUser {
   const user = storage.getStore();
-  if (!user || user.role !== 'ADMIN' || user.aal !== 'aal2') {
+  if (!user || user.role !== 'ADMIN') {
     throw new AdminPrismaForbiddenError();
   }
   return user;
@@ -29,7 +29,7 @@ export function requireAdminPrismaAccess(): AuthUser {
 
 export class AdminPrismaForbiddenError extends Error {
   constructor() {
-    super('ADMIN_PRISMA só pode ser usado em rotas @Roles(ADMIN) com aal2');
+    super('ADMIN_PRISMA só pode ser usado em rotas @Roles(ADMIN)');
     this.name = 'AdminPrismaForbiddenError';
   }
 }

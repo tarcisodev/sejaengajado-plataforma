@@ -17,6 +17,7 @@ describe('auth guards (UX-BOOT)', () => {
       me: () => opts.me ?? null,
       ensureReady: async () => undefined,
       getAuthenticatorAssuranceLevel: async () => opts.aal ?? null,
+      needsMfaChallenge: async () => opts.aal === 'aal1',
       homePathForRole: (role: string) =>
         role === 'ADMIN' ? '/admin' : role === 'RESELLER' ? '/revenda' : '/conta',
     };
@@ -67,7 +68,7 @@ describe('auth guards (UX-BOOT)', () => {
     expect(result).toEqual(router.createUrlTree(['/admin']));
   });
 
-  it('aal2Guard sends aal1 to /mfa', async () => {
+  it('aal2Guard sends to /mfa only when challenge is needed', async () => {
     const { router } = setup({
       sessionStatus: 'authenticated',
       me: { role: 'ADMIN' },
@@ -75,5 +76,15 @@ describe('auth guards (UX-BOOT)', () => {
     });
     const result = await TestBed.runInInjectionContext(() => aal2Guard({} as never, {} as never));
     expect(result).toEqual(router.createUrlTree(['/mfa']));
+  });
+
+  it('aal2Guard allows when MFA is not enrolled', async () => {
+    setup({
+      sessionStatus: 'authenticated',
+      me: { role: 'ADMIN' },
+      aal: null,
+    });
+    const result = await TestBed.runInInjectionContext(() => aal2Guard({} as never, {} as never));
+    expect(result).toBe(true);
   });
 });

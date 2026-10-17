@@ -52,9 +52,9 @@ describe('RolesGuard', () => {
     ).toThrow(ForbiddenException);
   });
 
-  it('requires aal2 for ADMIN-only routes', () => {
+  it('allows ADMIN with aal1 (MFA optional)', () => {
     reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    try {
+    expect(
       guard.canActivate(
         ctx({
           id: '1',
@@ -66,14 +66,8 @@ describe('RolesGuard', () => {
           resellerStatus: null,
           aal: 'aal1',
         }),
-      );
-      fail('expected throw');
-    } catch (error) {
-      expect(error).toBeInstanceOf(ForbiddenException);
-      expect((error as ForbiddenException).getResponse()).toMatchObject({
-        code: 'AUTH_MFA_REQUIRED',
-      });
-    }
+      ),
+    ).toBe(true);
   });
 
   it('allows ADMIN with aal2', () => {

@@ -170,7 +170,7 @@ export class AdminResellersComponent {
     this.api.resetResellerMfa(id).subscribe({
       next: (result) => {
         this.message.set(
-          `MFA resetado (${result.removed} fator(es) removido(s)). No próximo login o vendedor configura de novo.`,
+          `MFA resetado (${result.removed} fator(es) removido(s)). Login volta a ser só e-mail + senha.`,
         );
       },
       error: () => toast.error('Não foi possível resetar o MFA.'),
@@ -284,7 +284,7 @@ export class AdminResellersComponent {
           this.inviteActionLink.set(created.inviteActionLink ?? null);
           this.message.set(
             created.inviteActionLink
-              ? 'Revendedor criado. Use o link abaixo para definir a senha (primeiro acesso). Depois entre com e-mail + senha + MFA.'
+              ? 'Revendedor criado. Use o link abaixo para definir a senha (primeiro acesso). Depois entre com e-mail + senha.'
               : 'Revendedor criado (convite por e-mail para definir senha).',
           );
           this.reload();

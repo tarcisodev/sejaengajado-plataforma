@@ -43,15 +43,15 @@ describe('auth.context', () => {
     });
   });
 
-  it('requireAdminPrismaAccess allows ADMIN aal2 only', () => {
+  it('requireAdminPrismaAccess allows ADMIN at aal1 or aal2', () => {
     runWithAuthUser(adminAal2, () => {
+      expect(requireAdminPrismaAccess().id).toBe('a1');
+    });
+    runWithAuthUser({ ...adminAal2, aal: 'aal1' }, () => {
       expect(requireAdminPrismaAccess().id).toBe('a1');
     });
     expect(() =>
       runWithAuthUser(reseller, () => requireAdminPrismaAccess()),
-    ).toThrow(AdminPrismaForbiddenError);
-    expect(() =>
-      runWithAuthUser({ ...adminAal2, aal: 'aal1' }, () => requireAdminPrismaAccess()),
     ).toThrow(AdminPrismaForbiddenError);
     expect(() => requireAdminPrismaAccess()).toThrow(AdminPrismaForbiddenError);
   });

@@ -25,7 +25,7 @@ export function setupOpenApi(app: INestApplication): void {
         'Validação: `code=VALIDATION_FAILED` e `fields:[{path,code,message}]`.',
         'Paginação: `{ items, nextCursor }` (cursor base64url de `createdAt,id`, limite ≤ 100).',
         'Escritas críticas (venda, estorno, estoque): header `Idempotency-Key`.',
-        'Rotas ADMIN exigem JWT Supabase com `aal2`.',
+        'Rotas ADMIN exigem JWT Supabase (MFA/TOTP opcional; `aal2` quando enrolado).',
       ].join('\n\n'),
     )
     .setVersion('1.0.0')
