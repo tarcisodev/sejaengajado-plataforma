@@ -47,6 +47,7 @@ export class LoginComponent implements OnInit {
   readonly mode = signal<'login' | 'forgot' | 'reset'>('login');
   readonly email = signal('');
   readonly password = signal('');
+  readonly recoveryToken = signal('');
   readonly newPassword = signal('');
   readonly error = signal('');
   readonly notice = signal('');
@@ -114,8 +115,10 @@ export class LoginComponent implements OnInit {
     try {
       await this.auth.ensureReady();
       await this.auth.requestPasswordReset(email);
-      this.notice.set('Se a conta existir, enviamos um link para redefinir a senha.');
-      this.mode.set('login');
+      this.notice.set(
+        'Enviamos um link/código por e-mail. Abra o link ou informe o código abaixo e defina a nova senha.',
+      );
+      this.mode.set('reset');
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Não foi possível enviar o link.');
     } finally {
@@ -130,13 +133,24 @@ export class LoginComponent implements OnInit {
       this.error.set('A nova senha deve ter pelo menos 8 caracteres.');
       return;
     }
+    const token = this.recoveryToken().trim();
+    const hasSession = this.auth.sessionStatus() === 'authenticated' || this.auth.passwordRecovery();
+    if (!hasSession && (!this.email().trim() || !token)) {
+      this.error.set('Informe o e-mail e o código recebido (ou abra o link do e-mail).');
+      return;
+    }
     this.pending.set(true);
     this.error.set('');
     this.notice.set('');
     try {
       await this.auth.ensureReady();
-      await this.auth.updatePassword(next);
+      if (token && !hasSession) {
+        await this.auth.verifyRecoveryCodeAndSetPassword(this.email(), token, next);
+      } else {
+        await this.auth.updatePassword(next);
+      }
       this.newPassword.set('');
+      this.recoveryToken.set('');
       const me = this.auth.me() ?? (await this.auth.refreshMe().catch(() => null));
       if (me) {
         if (await this.auth.needsMfaChallenge()) {

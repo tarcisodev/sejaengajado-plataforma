@@ -72,6 +72,23 @@ export class AuthService {
     this.passwordRecovery.set(false);
   }
 
+  async verifyRecoveryCodeAndSetPassword(
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<void> {
+    const sb = await this.requireClient();
+    const { error: otpError } = await sb.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'recovery',
+    });
+    if (otpError) {
+      throw otpError;
+    }
+    await this.updatePassword(newPassword);
+  }
+
   async refreshMe(): Promise<AuthMe> {
     const profile = await firstValueFrom(this.http.get<AuthMe>(`${this.apiBase()}/auth/me`));
     this.me.set(profile);
