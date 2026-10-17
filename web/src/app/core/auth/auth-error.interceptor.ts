@@ -109,7 +109,7 @@ async function refreshSessionOnce(): Promise<boolean> {
   return !error && Boolean(data.session?.access_token);
 }
 
-/** API 403 when the session is aal1 but the route needs TOTP (aal2). */
+/** Legacy API 403 codes if a route still demands TOTP (MFA is optional by default). */
 function isMfaRequired(error: HttpErrorResponse): boolean {
   const code = (error.error as { code?: string } | null)?.code;
   return code === 'MFA_REQUIRED' || code === 'AUTH_MFA_REQUIRED';

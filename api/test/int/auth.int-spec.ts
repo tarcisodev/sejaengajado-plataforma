@@ -126,16 +126,15 @@ describe('supabase auth guard', () => {
     }
   });
 
-  it('blocks admin with aal1 on ADMIN routes', async () => {
+  it('allows admin with aal1 on ADMIN routes (MFA optional)', async () => {
     const admin = await insertUser('ADMIN');
     const session = loginAs('ADMIN', { supabaseId: admin.supabaseId, aal: 'aal1' });
     const { app } = await createTestApp();
     try {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get('/api/admin/session/ping')
         .set('Authorization', `Bearer ${session.token}`)
-        .expect(403);
-      expect(res.body.code).toBe('AUTH_MFA_REQUIRED');
+        .expect(200);
     } finally {
       await app.close();
     }

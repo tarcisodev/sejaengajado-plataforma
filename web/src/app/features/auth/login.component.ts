@@ -89,8 +89,7 @@ export class LoginComponent implements OnInit {
     try {
       await this.auth.ensureReady();
       const me = await this.auth.signInWithPassword(email, password);
-      const aal = await this.auth.getAuthenticatorAssuranceLevel();
-      if (aal === 'aal1') {
+      if (await this.auth.needsMfaChallenge()) {
         await this.router.navigateByUrl('/mfa');
         return;
       }
@@ -140,8 +139,7 @@ export class LoginComponent implements OnInit {
       this.newPassword.set('');
       const me = this.auth.me() ?? (await this.auth.refreshMe().catch(() => null));
       if (me) {
-        const aal = await this.auth.getAuthenticatorAssuranceLevel();
-        if (aal === 'aal1') {
+        if (await this.auth.needsMfaChallenge()) {
           await this.router.navigateByUrl('/mfa');
           return;
         }

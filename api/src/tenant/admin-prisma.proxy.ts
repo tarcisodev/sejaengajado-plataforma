@@ -11,7 +11,7 @@ const MODEL_DELEGATES = new Set(
 
 /**
  * Proxy over the se_admin client: model access is allowed only when the
- * current AsyncLocalStorage user is ADMIN with aal2.
+ * current AsyncLocalStorage user is ADMIN.
  */
 export function createAdminPrismaProxy(root: PrismaClient): PrismaClient {
   return new Proxy(root, {

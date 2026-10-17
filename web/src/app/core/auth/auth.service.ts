@@ -116,6 +116,19 @@ export class AuthService {
     return data.currentLevel === 'aal2' ? 'aal2' : 'aal1';
   }
 
+  /** True only when the user already enrolled TOTP and still needs the challenge. */
+  async needsMfaChallenge(): Promise<boolean> {
+    const sb = await ensureSupabaseBrowser();
+    if (!sb) {
+      return false;
+    }
+    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || !data) {
+      return false;
+    }
+    return data.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
+  }
+
   /**
    * Await bootstrap; only fall back to anonymous if it still has not finished
    * within BOOT_TIMEOUT_MS. Do not resolve ensureReady early — that raced
