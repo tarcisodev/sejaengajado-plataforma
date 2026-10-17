@@ -71,9 +71,38 @@
       </p>
     } @else if (mode() === 'reset') {
       <form class="grid gap-4" (submit)="completeReset($event)">
-        <p class="text-sm text-muted-foreground">Defina a sua nova senha (mínimo 8 caracteres).</p>
+        <p class="text-sm text-muted-foreground">
+          Se veio pelo link do e-mail, basta escolher a nova senha. Se recebeu um código, informe e-mail + código + nova senha.
+        </p>
         <div hlmField>
-          <label hlmFieldLabel for="new-password">Nova senha</label>
+          <label hlmFieldLabel for="reset-email-confirm">E-mail</label>
+          <input
+            hlmInput
+            id="reset-email-confirm"
+            class="h-11"
+            type="email"
+            autocomplete="email"
+            [value]="email()"
+            (input)="email.set(inputValue($event))"
+          />
+        </div>
+        <div hlmField>
+          <label hlmFieldLabel for="recovery-code">Código do e-mail (se não abriu o link)</label>
+          <input
+            hlmInput
+            id="recovery-code"
+            data-field="recoveryToken"
+            class="h-11 font-mono tracking-widest"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            placeholder="000000"
+            [value]="recoveryToken()"
+            (input)="recoveryToken.set(inputValue($event))"
+          />
+        </div>
+        <div hlmField>
+          <label hlmFieldLabel for="new-password">Nova senha (mín. 8 caracteres)</label>
           <input
             hlmInput
             id="new-password"
